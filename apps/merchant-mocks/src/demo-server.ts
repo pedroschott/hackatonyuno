@@ -12,11 +12,10 @@ if (!expectedAgentProof) {
 }
 
 const port = Number.parseInt(process.env.PORT ?? '3003', 10);
+const demoAdminSecret = process.env.DEMO_ADMIN_SECRET;
 const app = createDemoMerchantMocksApp({
   expectedAgentProof,
-  demoScenarioControl: process.env.DEMO_ADMIN_SECRET
-    ? { secret: process.env.DEMO_ADMIN_SECRET }
-    : undefined,
+  ...(demoAdminSecret ? { demoScenarioControl: { secret: demoAdminSecret } } : {}),
 });
 
 serve({ fetch: app.fetch, port });

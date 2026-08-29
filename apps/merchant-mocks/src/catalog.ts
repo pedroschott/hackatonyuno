@@ -1,6 +1,6 @@
 import type { JWK } from 'jose';
 
-import type { Attributes } from './contracts.js';
+import type { Attributes } from '@agentic-mandates/contracts';
 
 export type CatalogProduct = {
   merchantSku: string;

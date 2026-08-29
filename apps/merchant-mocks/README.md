@@ -43,7 +43,7 @@ Every mutating endpoint requires `Idempotency-Key`. Retrying the same key and pa
 }
 ```
 
-The merchant calls its injected `MandateVerificationClient` with only the merchant/order/quote/capability tuple. It records `quoted`, `verification_approved`, `verification_rejected`, or `approval_required`; it never marks an order paid or invokes a Vault/capture endpoint.
+The merchant calls its injected `MandateVerificationClient` with only the merchant/order/quote/capability tuple. It records `quoted`, `verification_approved`, `verification_rejected`, or `approval_required`; it never marks an order paid or invokes a Vault/capture endpoint. When the Mandate-signed result includes an opaque `paymentOperationId` and `settlementStatus`, the merchant may fulfill only after `settlementStatus: "captured"`.
 
 ## Authentication, persistence, and integration boundary
 
@@ -53,17 +53,16 @@ Search, quote creation, and order-verification requests require an authenticated
 
 The `merchantRegistrySeed` export intentionally contains only public JWKs, endpoint paths, and lifecycle status. The Mandate service owns the endpoint allow-list and all trust-tier assignments.
 
-`createMerchantMocksApp` deliberately requires injected quote, order, idempotency, and rate-limit adapters. The in-memory/allow-all adapters exist only in `src/test-harness.ts`; a Vercel deployment must provide durable database-backed stores and a fail-closed rate limiter.
+`createMerchantMocksApp` deliberately requires injected quote, order, idempotency, and rate-limit adapters. The in-memory/allow-all adapters exist only in `src/test-harness.ts`; a Vercel deployment must provide durable database-backed stores and a fail-closed rate limiter. The order-store contract claims a verification before the remote Mandate call, then completes it only with that claim; this prevents concurrent idempotency keys from replacing a terminal decision.
 
 ## Run locally
 
-The root workspace is expected to install this package through pnpm. Until it exists, the package can be run independently:
+The root workspace installs this package and its shared contracts through pnpm:
 
 ```sh
-cd apps/merchant-mocks
-npm install
-npm test
-DEMO_AGENT_REQUEST_PROOF=local-test-only-proof npm run demo
+pnpm build
+pnpm test
+DEMO_AGENT_REQUEST_PROOF=local-test-only-proof pnpm --filter @agentic-mandates/merchant-mocks demo
 ```
 
 The `.env.example` lists local-demo and future composition variables; export local values in your shell because this package does not load `.env` files itself. Pass the configured `X-Agent-Request-Proof` value to the local demo request harness. It is not production authentication. `src/demo-server.ts` refuses `NODE_ENV=production` and imports the test harness.

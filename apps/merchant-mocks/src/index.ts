@@ -8,12 +8,20 @@ export {
   type MerchantDefinition,
 } from './catalog.js';
 export {
+  JoseMerchantRequestAuthenticator,
   RejectingMerchantRequestAuthenticator,
+  merchantRequestProofAudience,
   type MerchantEndpointPurpose,
   type MerchantRequestActor,
   type MerchantRequestAuthenticationInput,
   type MerchantRequestAuthenticationResult,
   type MerchantRequestAuthenticator,
+  type MerchantRequestProofKey,
+  type MerchantRequestProofKeyResolver,
+  type MerchantRequestReplayClaim,
+  type MerchantRequestReplayClaimResult,
+  type MerchantRequestReplayStore,
+  type JoseMerchantRequestAuthenticatorOptions,
 } from './auth.js';
 export {
   HttpMandateVerificationClient,
@@ -29,6 +37,21 @@ export {
   type MerchantRateLimitInput,
   type MerchantRateLimitResult,
 } from './rate-limit.js';
+export {
+  type IdempotencyExecution,
+  type IdempotencyStore,
+  type StoredResponse,
+} from './idempotency.js';
+export {
+  MerchantOrderConflictError,
+  type MerchantOrder,
+  type MerchantOrderStore,
+  type MerchantOrderVerificationClaim,
+  type MerchantOrderVerificationClaimResult,
+} from './order-store.js';
+export {
+  type QuoteStore,
+} from './quote-store.js';
 export {
   verifyMerchantQuoteSignature,
   signMerchantQuote,

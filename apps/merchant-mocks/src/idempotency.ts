@@ -1,4 +1,4 @@
-import { canonicalJson } from './canonical.js';
+import { canonicalJson } from '@agentic-mandates/domain';
 
 export type StoredResponse = {
   status: 200 | 201 | 202 | 403 | 409 | 410 | 422 | 500 | 503;

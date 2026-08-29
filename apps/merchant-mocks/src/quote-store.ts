@@ -1,8 +1,8 @@
-import type { MerchantQuote } from './contracts.js';
+import type { MerchantQuote } from '@agentic-mandates/contracts';
 
 export interface QuoteStore {
-  save(quote: MerchantQuote): void;
-  get(quoteId: string): MerchantQuote | undefined;
+  save(quote: MerchantQuote): Promise<void>;
+  get(quoteId: string): Promise<MerchantQuote | undefined>;
 }
 
 /**
@@ -12,7 +12,7 @@ export interface QuoteStore {
 export class InMemoryQuoteStore implements QuoteStore {
   private readonly quotes = new Map<string, MerchantQuote>();
 
-  save(quote: MerchantQuote): void {
+  async save(quote: MerchantQuote): Promise<void> {
     if (this.quotes.has(quote.id)) {
       throw new Error(`Quote ${quote.id} already exists.`);
     }
@@ -20,7 +20,7 @@ export class InMemoryQuoteStore implements QuoteStore {
     this.quotes.set(quote.id, freezeDeep(structuredClone(quote)));
   }
 
-  get(quoteId: string): MerchantQuote | undefined {
+  async get(quoteId: string): Promise<MerchantQuote | undefined> {
     const quote = this.quotes.get(quoteId);
     return quote ? structuredClone(quote) : undefined;
   }
