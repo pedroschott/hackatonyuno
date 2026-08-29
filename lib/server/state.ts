@@ -178,7 +178,7 @@ export async function loadAuthenticatedState(): Promise<{ state: Data; user: Use
   const { supabase, user } = await authenticatedRequest();
   const agent = await ensureAgent(supabase, user.id);
   const [cards, mandates, attempts, approvals, audit, products] = await Promise.all([
-    supabase.from("vault_cards").select("*").order("created_at"),
+    supabase.from("vault_cards").select("id, brand, last4, label, created_at").order("created_at"),
     supabase.from("mandates").select("*").order("created_at", { ascending: false }),
     supabase.from("attempts").select("*").order("created_at", { ascending: false }).limit(200),
     supabase.from("approvals").select("*").order("created_at", { ascending: false }),
