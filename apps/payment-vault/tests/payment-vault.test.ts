@@ -76,6 +76,15 @@ describe('payment vault', () => {
     });
     expect(wrongAudience.status).toBe(401);
 
+    const wrongProofType = await requestVault(app, {
+      method: 'POST',
+      path: methodsPath,
+      body: { fixture: 'visa_4242' },
+      idempotencyKey: 'wrong-proof-type-001',
+      proofType: 'JWT',
+    });
+    expect(wrongProofType.status).toBe(401);
+
     expect(() => createPaymentVaultApp({} as PaymentVaultOptions)).toThrow(
       'Payment Vault requires authenticated, isolated, and durable runtime adapters.',
     );
@@ -380,6 +389,66 @@ describe('payment vault', () => {
     });
   });
 
+  it('never lets a void overwrite an in-flight capture result', async () => {
+    let signalCaptureStarted!: () => void;
+    const captureStarted = new Promise<void>((resolve) => {
+      signalCaptureStarted = resolve;
+    });
+    let releaseCapture!: () => void;
+    const captureGate = new Promise<void>((resolve) => {
+      releaseCapture = resolve;
+    });
+    const { app } = createDemoPaymentVaultApp({
+      mockYunoOptions: {
+        beforeCapture: async () => {
+          signalCaptureStarted();
+          await captureGate;
+        },
+      },
+    });
+    const paymentMethod = await createPaymentMethod(app, 'method-capture-void-race-001');
+    const authorization = await createAuthorization(
+      app,
+      paymentMethod.id,
+      'operation-capture-void-race-0001',
+    );
+    const authorizationId = authorization.paymentAuthorization.id;
+
+    const capture = requestVault(app, {
+      method: 'POST',
+      path: `${authorizationsPath}/${authorizationId}/capture`,
+      body: {},
+      idempotencyKey: 'capture-void-race-001',
+    });
+    await captureStarted;
+
+    const voidResponse = await requestVault(app, {
+      method: 'POST',
+      path: `${authorizationsPath}/${authorizationId}/void`,
+      body: {},
+      idempotencyKey: 'void-while-capture-001',
+    });
+    expect(voidResponse.status).toBe(202);
+    expect((await voidResponse.json()) as PaymentAuthorizationResponse).toMatchObject({
+      paymentAuthorization: { status: 'capture_pending' },
+    });
+
+    releaseCapture();
+    const captureResponse = await capture;
+    expect(captureResponse.status).toBe(200);
+    expect((await captureResponse.json()) as PaymentAuthorizationResponse).toMatchObject({
+      paymentAuthorization: { status: 'captured' },
+    });
+
+    const finalState = await requestVault(app, {
+      method: 'GET',
+      path: `${authorizationsPath}/${authorizationId}`,
+    });
+    expect((await finalState.json()) as PaymentAuthorizationResponse).toMatchObject({
+      paymentAuthorization: { status: 'captured' },
+    });
+  });
+
   it('rejects a replayed JWS even when the request body and idempotency key are valid', async () => {
     const { app } = createDemoPaymentVaultApp();
     const originalRequest = await createMandateServiceRequest({
@@ -438,6 +507,7 @@ async function requestVault(
     body?: unknown;
     idempotencyKey?: string;
     audience?: string;
+    proofType?: string;
   },
 ): Promise<Response> {
   const request = await createMandateServiceRequest(input);

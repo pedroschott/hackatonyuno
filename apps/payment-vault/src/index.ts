@@ -44,6 +44,7 @@ export {
   type MockGatewayId,
   type MockGatewayScenario,
   type MockPaymentScenarioResolver,
+  type MockYunoRouterOptions,
   type MockYunoRouter,
 } from './mock-yuno.js';
 export {
