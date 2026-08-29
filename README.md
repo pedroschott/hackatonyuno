@@ -73,6 +73,7 @@ npm run sdk:pack
 See [docs/merchant-sdk.md](docs/merchant-sdk.md) for store integration.
 
 Architecture and the hackathon tradeoffs are documented in [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md).
+The complete web, MCP, API and V2-service map is in [docs/routes.md](docs/routes.md). Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml`; protocol and authenticated paths are excluded through `/robots.txt`.
 
 ## Supabase
 
