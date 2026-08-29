@@ -1,0 +1,93 @@
+{
+  "suiteVersion": "1.0",
+  "id": "10-limit-changed-mid-flow",
+  "title": "A policy revision invalidates authority issued under the prior version",
+  "description": "The agent obtains capability under mandate version 1, then the principal replaces the contract with version 2 and a lower maximum before merchant verification.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-limit-change-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-limit-change-400",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-limit-change-400",
+      "totalMinor": 40000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    }
+  },
+  "steps": [
+    {
+      "id": "issue-version-one-capability",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-limit-change-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-limit-change-400",
+        "idempotencyKey": "intent-limit-change-400"
+      }
+    },
+    {
+      "id": "replace-mandate-with-lower-limit",
+      "kind": "mutate-mandate",
+      "input": {
+        "actor": "principal-1",
+        "mandateId": "mandate-limit-change-1",
+        "nextVersion": 2,
+        "policyPatch": {
+          "maxAmountMinor": 20000,
+          "totalBudgetMinor": 20000
+        }
+      }
+    },
+    {
+      "id": "verify-stale-capability",
+      "kind": "merchant-verification",
+      "input": {
+        "actor": "merchant-a",
+        "merchantId": "merchant-a",
+        "merchantOrderRef": "order-limit-change-400",
+        "quoteId": "quote-limit-change-400",
+        "purchaseCapability": "$purchaseCapability",
+        "idempotencyKey": "verify-limit-change-400"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "issue-version-one-capability",
+        "httpStatus": 200,
+        "decision": "approved",
+        "reasonCode": "AUTHORIZED"
+      },
+      {
+        "step": "verify-stale-capability",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "CAPABILITY_INVALID"
+      }
+    ],
+    "invariants": {
+      "mandateVersion": 2,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0,
+      "capabilityFromPriorVersionCannotCapture": true
+    }
+  }
+}

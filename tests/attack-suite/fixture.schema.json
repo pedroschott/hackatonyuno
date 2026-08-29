@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpay.test/schemas/attack-suite-fixture.json",
+  "title": "Agentic Mandates attack-suite fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "suiteVersion",
+    "id",
+    "title",
+    "description",
+    "preconditions",
+    "steps",
+    "expected"
+  ],
+  "properties": {
+    "suiteVersion": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[0-9]{2}-[a-z0-9-]+$" },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "preconditions": { "type": "object" },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "input"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "agent-intent",
+              "merchant-verification",
+              "principal-revocation",
+              "mutate-mandate",
+              "advance-clock",
+              "malformed-request",
+              "concurrent"
+            ]
+          },
+          "input": { "type": "object" }
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcomes", "invariants"],
+      "properties": {
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["step", "httpStatus", "reasonCode"],
+            "properties": {
+              "step": { "type": "string" },
+              "httpStatus": { "type": "integer", "minimum": 100, "maximum": 599 },
+              "decision": {
+                "type": "string",
+                "enum": ["approved", "rejected", "approval_required"]
+              },
+              "reasonCode": { "type": "string", "pattern": "^[A-Z_]+$" },
+              "settlementStatus": {
+                "type": "string",
+                "enum": ["captured", "pending", "failed"]
+              },
+              "idempotentReplay": { "type": "boolean" }
+            }
+          }
+        },
+        "invariants": { "type": "object" }
+      }
+    }
+  }
+}

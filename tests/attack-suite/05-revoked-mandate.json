@@ -1,0 +1,62 @@
+{
+  "suiteVersion": "1.0",
+  "id": "05-revoked-mandate",
+  "title": "A revoked mandate cannot issue new authority",
+  "description": "A previous principal revocation is authoritative even if the agent has a valid request proof.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-revoked-1",
+      "status": "revoked",
+      "version": 1,
+      "revokedAt": "2026-08-29T11:55:00.000Z",
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-revoked-mandate-100",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-revoked-mandate-100",
+      "totalMinor": 10000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    }
+  },
+  "steps": [
+    {
+      "id": "submit-revoked-mandate-intent",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-revoked-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-revoked-mandate-100",
+        "idempotencyKey": "intent-revoked-mandate"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "submit-revoked-mandate-intent",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "MANDATE_REVOKED"
+      }
+    ],
+    "invariants": {
+      "purchaseCapabilityIssued": false,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0
+    }
+  }
+}

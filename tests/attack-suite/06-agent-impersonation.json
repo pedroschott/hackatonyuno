@@ -1,0 +1,66 @@
+{
+  "suiteVersion": "1.0",
+  "id": "06-agent-impersonation",
+  "title": "An invalid proof cannot impersonate the permitted agent",
+  "description": "The request claims to be agent-primary but is signed by an unregistered attacker key.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-agent-impersonation-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-agent-impersonation-100",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-agent-impersonation-100",
+      "totalMinor": 10000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    },
+    "requestProof": {
+      "claimedAgentId": "agent-primary",
+      "signingKey": "unregistered attacker fixture key",
+      "validSignatureForClaim": false
+    }
+  },
+  "steps": [
+    {
+      "id": "submit-impersonated-intent",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "authentication": "invalid-unregistered-agent-proof",
+        "mandateId": "mandate-agent-impersonation-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-agent-impersonation-100",
+        "idempotencyKey": "intent-agent-impersonation"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "submit-impersonated-intent",
+        "httpStatus": 401,
+        "reasonCode": "AGENT_PROOF_INVALID"
+      }
+    ],
+    "invariants": {
+      "purchaseCapabilityIssued": false,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0
+    }
+  }
+}

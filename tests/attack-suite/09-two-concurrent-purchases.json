@@ -1,0 +1,117 @@
+{
+  "suiteVersion": "1.0",
+  "id": "09-two-concurrent-purchases",
+  "title": "Concurrent purchases cannot double-spend remaining authority",
+  "description": "Two purchase paths start concurrently against 50,000 minor units of remaining authority: 40,000 for merchant-a and 30,000 for merchant-b. Only the scheduled first purchase may capture.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-concurrent-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a", "merchant-b"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quotes": [
+      {
+        "id": "quote-concurrent-400",
+        "merchantId": "merchant-a",
+        "merchantOrderRef": "order-concurrent-400",
+        "totalMinor": 40000,
+        "currency": "USD",
+        "canonicalCategories": ["food.pantry.rice"],
+        "signature": "valid merchant fixture signature"
+      },
+      {
+        "id": "quote-concurrent-300",
+        "merchantId": "merchant-b",
+        "merchantOrderRef": "order-concurrent-300",
+        "totalMinor": 30000,
+        "currency": "USD",
+        "canonicalCategories": ["food.pantry.rice"],
+        "signature": "valid merchant fixture signature"
+      }
+    ],
+    "paymentVault": { "scenario": "captured" }
+  },
+  "steps": [
+    {
+      "id": "concurrent-purchases",
+      "kind": "concurrent",
+      "input": {
+        "barrier": "start-both-purchase-paths",
+        "scheduledAuthorityReservationOrder": ["purchase-400", "purchase-300"],
+        "operations": [
+          {
+            "id": "purchase-400",
+            "agentIntent": {
+              "actor": "agent-primary",
+              "mandateId": "mandate-concurrent-1",
+              "merchantId": "merchant-a",
+              "quoteId": "quote-concurrent-400",
+              "idempotencyKey": "intent-concurrent-400"
+            },
+            "merchantVerification": {
+              "actor": "merchant-a",
+              "merchantId": "merchant-a",
+              "merchantOrderRef": "order-concurrent-400",
+              "quoteId": "quote-concurrent-400",
+              "idempotencyKey": "verify-concurrent-400"
+            }
+          },
+          {
+            "id": "purchase-300",
+            "agentIntent": {
+              "actor": "agent-primary",
+              "mandateId": "mandate-concurrent-1",
+              "merchantId": "merchant-b",
+              "quoteId": "quote-concurrent-300",
+              "idempotencyKey": "intent-concurrent-300"
+            },
+            "merchantVerification": {
+              "actor": "merchant-b",
+              "merchantId": "merchant-b",
+              "merchantOrderRef": "order-concurrent-300",
+              "quoteId": "quote-concurrent-300",
+              "idempotencyKey": "verify-concurrent-300"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "concurrent-purchases.purchase-400",
+        "httpStatus": 200,
+        "decision": "approved",
+        "reasonCode": "AUTHORIZED",
+        "settlementStatus": "captured"
+      },
+      {
+        "step": "concurrent-purchases.purchase-300",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "VERIFICATION_IN_PROGRESS"
+      }
+    ],
+    "invariants": {
+      "successfulCaptures": 1,
+      "captureCount": 1,
+      "capturedAmountMinorDelta": 40000,
+      "capturedAmountMinorDeltaAtMost": 50000,
+      "capturedUsesDelta": 1,
+      "vaultCalls": ["authorize", "capture"],
+      "neverAllowBothPurchases": true
+    }
+  }
+}

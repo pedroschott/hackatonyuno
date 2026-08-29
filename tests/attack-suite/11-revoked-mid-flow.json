@@ -1,0 +1,88 @@
+{
+  "suiteVersion": "1.0",
+  "id": "11-revoked-mid-flow",
+  "title": "Revocation stops a capability before authorization begins",
+  "description": "The principal revokes after issuance but before the merchant verifies the quote-bound capability.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-revoked-mid-flow-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-revoked-mid-flow-350",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-revoked-mid-flow-350",
+      "totalMinor": 35000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    }
+  },
+  "steps": [
+    {
+      "id": "issue-capability",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-revoked-mid-flow-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-revoked-mid-flow-350",
+        "idempotencyKey": "intent-revoked-mid-flow"
+      }
+    },
+    {
+      "id": "principal-revokes-mandate",
+      "kind": "principal-revocation",
+      "input": {
+        "actor": "principal-1",
+        "mandateId": "mandate-revoked-mid-flow-1"
+      }
+    },
+    {
+      "id": "verify-after-revocation",
+      "kind": "merchant-verification",
+      "input": {
+        "actor": "merchant-a",
+        "merchantId": "merchant-a",
+        "merchantOrderRef": "order-revoked-mid-flow-350",
+        "quoteId": "quote-revoked-mid-flow-350",
+        "purchaseCapability": "$purchaseCapability",
+        "idempotencyKey": "verify-revoked-mid-flow"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "issue-capability",
+        "httpStatus": 200,
+        "decision": "approved",
+        "reasonCode": "AUTHORIZED"
+      },
+      {
+        "step": "verify-after-revocation",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "MANDATE_REVOKED"
+      }
+    ],
+    "invariants": {
+      "mandateStatus": "revoked",
+      "capabilityVoided": true,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0
+    }
+  }
+}

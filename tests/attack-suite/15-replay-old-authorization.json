@@ -1,0 +1,95 @@
+{
+  "suiteVersion": "1.0",
+  "id": "15-replay-old-authorization",
+  "title": "A settled one-time capability cannot be reused under a new idempotency key",
+  "description": "After a successful purchase, an attacker replays the old capability with a different verification idempotency key. This is distinct from a legitimate retry in fixture 08.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-capability-replay-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-capability-replay-350",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-capability-replay-350",
+      "totalMinor": 35000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    },
+    "paymentVault": { "scenario": "captured" }
+  },
+  "steps": [
+    {
+      "id": "issue-capability",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-capability-replay-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-capability-replay-350",
+        "idempotencyKey": "intent-capability-replay"
+      }
+    },
+    {
+      "id": "settle-original-purchase",
+      "kind": "merchant-verification",
+      "input": {
+        "actor": "merchant-a",
+        "merchantId": "merchant-a",
+        "merchantOrderRef": "order-capability-replay-350",
+        "quoteId": "quote-capability-replay-350",
+        "purchaseCapability": "$purchaseCapability",
+        "idempotencyKey": "verify-capability-replay-original"
+      }
+    },
+    {
+      "id": "replay-old-capability",
+      "kind": "merchant-verification",
+      "input": {
+        "actor": "merchant-a",
+        "merchantId": "merchant-a",
+        "merchantOrderRef": "order-capability-replay-350",
+        "quoteId": "quote-capability-replay-350",
+        "purchaseCapability": "$purchaseCapability",
+        "idempotencyKey": "verify-capability-replay-attacker"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "settle-original-purchase",
+        "httpStatus": 200,
+        "decision": "approved",
+        "reasonCode": "AUTHORIZED",
+        "settlementStatus": "captured"
+      },
+      {
+        "step": "replay-old-capability",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "CAPABILITY_REPLAYED"
+      }
+    ],
+    "invariants": {
+      "vaultCalls": ["authorize", "capture"],
+      "captureCount": 1,
+      "capturedAmountMinorDelta": 35000,
+      "capturedUsesDelta": 1,
+      "oldCapabilityNeverSettlesTwice": true
+    }
+  }
+}
