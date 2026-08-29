@@ -2,7 +2,7 @@
 export const MAX_MINOR_AMOUNT = Number.MAX_SAFE_INTEGER;
 
 export function isMinorAmount(value: unknown): value is number {
-  return Number.isSafeInteger(value) && value >= 0;
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
 export function assertMinorAmount(value: unknown, label = 'amount'): asserts value is number {
