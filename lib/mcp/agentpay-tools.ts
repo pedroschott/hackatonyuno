@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { appendAudit, ensureAgent, getAgentPrivateKey } from "@/lib/data";
 import { agentPayBaseUrl } from "@/lib/env";
+import { createPaymentSetupToken } from "@/lib/payment-setup";
 import { createBearerSupabase } from "@/lib/supabase/bearer";
 import { discoverAgentPayMerchant, signAgentPayRequest } from "@/sdk";
 
@@ -97,7 +98,63 @@ export function registerAgentPayTools(server: McpServer) {
       const approvalRows = approvals.data ?? [];
       return mcpResult(
         { cards: cardRows, mandates: mandateRows, pending_approvals: approvalRows },
-        `AgentPay is connected. Found ${cardRows.length} card(s), ${mandateRows.length} mandate(s), and ${approvalRows.length} pending approval(s).`,
+        cardRows.length === 0
+          ? `AgentPay is connected, but no payment method is saved. Call get_payment_setup_link and ask the user to complete the secure AgentPay browser flow. Never ask the user to send a card number, CVC, PIN, bank password, or vault credential in chat.`
+          : `AgentPay is connected. Found ${cardRows.length} card(s), ${mandateRows.length} mandate(s), and ${approvalRows.length} pending approval(s).`,
+      );
+    },
+  );
+
+  server.registerTool(
+    "get_payment_setup_link",
+    {
+      title: "Get secure payment setup link",
+      description:
+        "Use this when the AgentPay account has no saved payment method or the user asks to add one. Returns a short-lived browser link and accepts no card details. Never request or accept a full card number, CVC, PIN, bank password, or vault credential in chat.",
+      inputSchema: z.object({}),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+        idempotentHint: true,
+      },
+      _meta: {
+        "openai/toolInvocation/invoking": "Creating secure payment setup link",
+        "openai/toolInvocation/invoked": "Secure payment setup link ready",
+      },
+    },
+    async (_input, ctx) => {
+      const auth = authContext(ctx);
+      const cards = await auth.supabase
+        .from("vault_cards")
+        .select("id, brand, last4, created_at")
+        .order("created_at");
+      if (cards.error) throw new Error(cards.error.message);
+      const { token, expiresAt } = createPaymentSetupToken(auth.userId);
+      const setupUrl = `${auth.origin}/payment-methods/setup?token=${encodeURIComponent(token)}`;
+      const savedCards = cards.data ?? [];
+      return mcpResult(
+        {
+          status: savedCards.length === 0 ? "payment_method_required" : "ready_to_add_another",
+          saved_cards: savedCards,
+          setup_url: setupUrl,
+          expires_at: expiresAt,
+          safety: {
+            agent_receives_card_details: false,
+            agent_can_authorize_purchase: false,
+            agent_visible_fields: ["payment_method_id", "brand", "last4"],
+            never_share_in_chat: [
+              "full_card_number",
+              "cvc",
+              "pin",
+              "bank_password",
+              "vault_credential",
+            ],
+          },
+          next_step:
+            "Ask the user to open setup_url and complete payment setup inside AgentPay. Wait for them to return, then call get_account again before creating a mandate.",
+        },
+        `Open ${setupUrl} to add a payment method securely inside AgentPay. Do not send card details in chat: the agent never sees or uses the full card number, CVC, PIN, bank password, or vault credential. Saving a payment method does not approve a purchase. After setup, return here so I can check the account and prepare the passkey-limited mandate. This link expires at ${expiresAt}.`,
       );
     },
   );

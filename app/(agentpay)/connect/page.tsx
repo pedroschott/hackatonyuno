@@ -21,10 +21,11 @@ When authentication is requested, open the AgentPay browser flow and let the use
 
 1. Find the product through normal search or the store's own tools.
 2. Discover AgentPay support on that store at /.well-known/agentpay.json. AgentPay is not a store directory.
-3. Use get_account, then create_mandate from the user's original request with the narrowest useful merchant, category, amount, use-count and expiry limits.
-4. Ask the user to open approval_url. Do not purchase until get_mandate reports active.
-5. Use purchase. Respect every refusal; if an exception is required, wait for passkey approval and retry only that purchase.
-6. If the user says stop, call revoke_mandate immediately.`;
+3. Use get_account. If there is no saved payment method, call get_payment_setup_link. Explain that the secure browser form stays inside AgentPay and that you never see or use the full card number, CVC, PIN, bank password or vault credential. Never ask the user to send those details in chat. Wait for the user to finish, then call get_account again.
+4. Create_mandate from the user's original request with the narrowest useful merchant, category, amount, use-count and expiry limits.
+5. Ask the user to open approval_url. Do not purchase until get_mandate reports active.
+6. Use purchase. Respect every refusal; if an exception is required, wait for passkey approval and retry only that purchase.
+7. If the user says stop, call revoke_mandate immediately.`;
 
   const mcpConfig = `{
   "mcpServers": {
@@ -102,7 +103,7 @@ When authentication is requested, open the AgentPay browser flow and let the use
             <table className="w-full text-[13px]">
               <tbody className="divide-y divide-line-2">
                 {[
-                  ["POST", "/mcp", "OAuth-protected tools: account, mandate, purchase and revoke"],
+                  ["POST", "/mcp", "OAuth-protected tools: account, secure payment setup, mandate, purchase and revoke"],
                   ["GET", "/.well-known/oauth-protected-resource/mcp", "MCP authorization-server discovery"],
                   ["GET", "/.well-known/agentpay.json", "store-owned AgentPay checkout discovery"],
                   ["POST", "/api/store/checkout", "merchant SDK verifies signatures, status, replay and policy"],
