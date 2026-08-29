@@ -1,0 +1,1345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maré Botanicals — Demo Store</title>
+<meta name="description" content="Fictional beauty storefront used as a test fixture for payment automation. No real payments are processed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Hanken+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body,h1,h2,h3,h4,p,figure,ul,ol,dl,dd{margin:0}
+  ul,ol{padding:0;list-style:none}
+  img,svg{display:block;max-width:100%}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer;background:none;border:0}
+  table{border-collapse:collapse}
+
+  :root{
+    --ground:#EDF0EE; --surface:#FFFFFF; --surface-2:#F5F7F5; --surface-3:#E4EAE6;
+    --ink:#101A18; --ink-2:#3C4A46; --muted:#6B7B76;
+    --line:#D9E1DC; --line-strong:#BFCCC6;
+    --accent:#0E5C4F; --accent-hover:#0A473D; --accent-soft:#D8E7E0; --on-accent:#F3F8F5;
+    --shell:#D98E76; --shell-soft:#F6E2DA; --shell-ink:#2A140D;
+    --ok:#2C6E49; --crit:#A6392A;
+    --shadow:0 1px 2px rgba(16,26,24,.05), 0 12px 32px -12px rgba(16,26,24,.18);
+    --shadow-lg:0 24px 60px -20px rgba(16,26,24,.35);
+    --r:14px; --r-sm:9px; --r-lg:22px;
+    --wrap:1220px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0C1312; --surface:#131D1B; --surface-2:#182421; --surface-3:#20302B;
+      --ink:#E9F0EC; --ink-2:#BCC9C4; --muted:#8CA09A;
+      --line:#243330; --line-strong:#33453F;
+      --accent:#63C6AC; --accent-hover:#7ED6BE; --accent-soft:#1A342E; --on-accent:#06201B;
+      --shell:#E9AF98; --shell-soft:#33241F; --shell-ink:#1B0F0A;
+      --ok:#66C08C; --crit:#E0796A;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -12px rgba(0,0,0,.6);
+      --shadow-lg:0 24px 60px -20px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C1312; --surface:#131D1B; --surface-2:#182421; --surface-3:#20302B;
+    --ink:#E9F0EC; --ink-2:#BCC9C4; --muted:#8CA09A;
+    --line:#243330; --line-strong:#33453F;
+    --accent:#63C6AC; --accent-hover:#7ED6BE; --accent-soft:#1A342E; --on-accent:#06201B;
+    --shell:#E9AF98; --shell-soft:#33241F; --shell-ink:#1B0F0A;
+    --ok:#66C08C; --crit:#E0796A;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -12px rgba(0,0,0,.6);
+    --shadow-lg:0 24px 60px -20px rgba(0,0,0,.8);
+  }
+
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:"Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size:clamp(.9rem,.86rem + .2vw,1rem); line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:"Bodoni Moda","Times New Roman",serif; font-weight:400; text-wrap:balance; letter-spacing:-.01em; line-height:1.1}
+  .mono,.price,.num{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+  .wrap{width:100%; max-width:var(--wrap); margin-inline:auto; padding-inline:clamp(16px,4vw,32px)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .demo-strip{background:var(--ink); color:var(--ground); font-size:.74rem; padding:7px 16px; text-align:center; font-family:"IBM Plex Mono",monospace}
+  .demo-strip b{color:var(--shell); font-weight:500}
+
+  .site-header{position:sticky; top:0; z-index:60; background:var(--ground); border-bottom:1px solid var(--line)}
+  .header-in{display:flex; align-items:center; gap:clamp(12px,3vw,36px); height:70px}
+  .brand{display:flex; flex-direction:column; line-height:1; flex:0 0 auto}
+  .brand strong{font-family:"Bodoni Moda",serif; font-weight:500; font-size:1.45rem; letter-spacing:.07em}
+  .brand span{font-family:"IBM Plex Mono",monospace; font-size:.58rem; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); margin-top:4px}
+  .nav{display:flex; gap:22px}
+  .nav button{font-size:.86rem; color:var(--ink-2); padding:6px 0; position:relative}
+  .nav button::after{content:""; position:absolute; left:0; right:0; bottom:0; height:1px; background:var(--accent); transform:scaleX(0); transform-origin:left; transition:transform .25s ease}
+  .nav button:hover{color:var(--ink)}
+  .nav button:hover::after,.nav button[aria-current="true"]::after{transform:scaleX(1)}
+  .nav button[aria-current="true"]{color:var(--ink)}
+  .header-actions{margin-inline-start:auto; display:flex; align-items:center; gap:10px}
+  .search{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:100px; padding:7px 14px; min-width:200px}
+  .search input{border:0; background:none; outline:0; width:100%; font-size:.84rem}
+  .search input::placeholder{color:var(--muted)}
+  .icon-btn{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--surface); border-radius:100px; padding:8px 14px; font-size:.82rem; transition:border-color .2s}
+  .icon-btn:hover{border-color:var(--line-strong)}
+  .cart-count{min-width:20px; height:20px; padding:0 6px; border-radius:100px; background:var(--accent); color:var(--on-accent); font-family:"IBM Plex Mono",monospace; font-size:.68rem; display:grid; place-items:center}
+  .menu-btn{display:none}
+
+  .hero{padding:clamp(40px,7vw,84px) 0 clamp(30px,5vw,54px)}
+  .hero-grid{display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(24px,5vw,64px); align-items:center}
+  .hero h1{font-size:clamp(2.6rem,6.2vw,4.4rem); margin-top:18px}
+  .hero h1 em{font-style:italic; color:var(--accent)}
+  .lede{margin-top:20px; max-width:46ch; color:var(--ink-2); font-size:1.02rem}
+  .hero-cta{display:flex; flex-wrap:wrap; gap:12px; margin-top:30px}
+  .hero-meta{display:flex; gap:30px; margin-top:38px; padding-top:22px; border-top:1px solid var(--line); flex-wrap:wrap}
+  .hero-meta div{display:flex; flex-direction:column; gap:2px}
+  .hero-meta strong{font-family:"IBM Plex Mono",monospace; font-size:1.05rem; font-weight:500}
+  .hero-meta span{font-size:.74rem; color:var(--muted)}
+  .hero-art{position:relative; aspect-ratio:1/1; border-radius:var(--r-lg); overflow:hidden; border:1px solid var(--line); display:grid; place-items:center;
+    background:radial-gradient(120% 90% at 20% 8%, var(--accent-soft), transparent 62%), radial-gradient(100% 100% at 92% 88%, var(--shell-soft), transparent 58%), var(--surface-2)}
+  .hero-art svg{width:86%}
+  .hero-badge{position:absolute; left:18px; bottom:18px; background:var(--surface); border:1px solid var(--line); border-radius:100px; padding:8px 15px; font-size:.75rem; box-shadow:var(--shadow); display:flex; align-items:center; gap:9px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:9px; border-radius:100px; padding:13px 26px; font-size:.88rem; font-weight:500; border:1px solid transparent; transition:background .2s,color .2s,border-color .2s,transform .15s}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--accent); color:var(--on-accent)}
+  .btn-primary:hover{background:var(--accent-hover)}
+  .btn-ghost{border-color:var(--line-strong); color:var(--ink)}
+  .btn-ghost:hover{background:var(--surface)}
+  .btn-block{width:100%}
+  .btn:disabled{opacity:.55; cursor:not-allowed}
+
+  .strip{border-block:1px solid var(--line); background:var(--surface)}
+  .strip-in{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line)}
+  .strip-in div{background:var(--surface); padding:20px clamp(12px,2vw,24px)}
+  .strip-in strong{display:block; font-size:.84rem; font-weight:600}
+  .strip-in span{font-size:.76rem; color:var(--muted)}
+
+  .section{padding:clamp(44px,6vw,78px) 0}
+  .section-head{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px}
+  .section-head h2{font-size:clamp(1.8rem,3.4vw,2.5rem); margin-top:8px}
+  .toolbar{display:flex; justify-content:space-between; gap:16px; align-items:center; flex-wrap:wrap; margin-bottom:26px}
+  .filters{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{border:1px solid var(--line-strong); border-radius:100px; padding:8px 16px; font-size:.8rem; color:var(--ink-2); background:var(--surface); transition:.2s}
+  .chip:hover{border-color:var(--accent)}
+  .chip[aria-pressed="true"]{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+  .sort{border:1px solid var(--line-strong); background:var(--surface); border-radius:100px; padding:8px 14px; font-size:.8rem}
+  .result-count{font-size:.78rem; color:var(--muted); font-family:"IBM Plex Mono",monospace}
+
+  .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(14px,2vw,24px)}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; display:flex; flex-direction:column; transition:border-color .25s, transform .25s, box-shadow .25s}
+  .card:hover{border-color:var(--line-strong); transform:translateY(-3px); box-shadow:var(--shadow)}
+  .card-media{position:relative; aspect-ratio:5/5.3; background:var(--surface-2); display:grid; place-items:center; cursor:pointer; overflow:hidden; width:100%}
+  .card-media svg{width:72%; transition:transform .45s cubic-bezier(.2,.7,.3,1)}
+  .card:hover .card-media svg{transform:scale(1.045)}
+  .tag{position:absolute; top:12px; left:12px; font-family:"IBM Plex Mono",monospace; font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; padding:5px 9px; border-radius:100px; background:var(--ink); color:var(--ground)}
+  .tag.sale{background:var(--shell); color:var(--shell-ink)}
+  .quick{position:absolute; inset-inline:12px; bottom:12px; opacity:0; transform:translateY(6px); transition:.25s}
+  .card:hover .quick,.card:focus-within .quick{opacity:1; transform:none}
+  .quick .btn{width:100%; background:var(--surface); border-color:var(--line-strong); color:var(--ink); padding:10px; font-size:.8rem}
+  .quick .btn:hover{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+  .card-body{padding:16px 16px 18px; display:flex; flex-direction:column; gap:7px; flex:1}
+  .card-cat{font-family:"IBM Plex Mono",monospace; font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  .card-name{font-size:.95rem; font-weight:500; line-height:1.3}
+  .card-size{font-size:.76rem; color:var(--muted)}
+  .stars{display:flex; align-items:center; gap:6px; font-size:.74rem; color:var(--muted)}
+  .stars b{color:var(--ink); font-weight:600; font-family:"IBM Plex Mono",monospace}
+  .card-foot{margin-top:auto; padding-top:10px; display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+  .price{font-size:1rem; font-weight:500}
+  .price s{color:var(--muted); font-size:.8rem; margin-inline-end:6px; font-weight:400}
+  .add{border:1px solid var(--ink); border-radius:100px; padding:7px 15px; font-size:.78rem; transition:.2s; white-space:nowrap}
+  .add:hover{background:var(--ink); color:var(--ground)}
+
+  .band{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); padding:clamp(24px,4vw,42px); display:grid; grid-template-columns:.9fr 1.1fr; gap:clamp(22px,4vw,50px); align-items:center}
+  .band h2{font-size:clamp(1.6rem,3vw,2.2rem); margin-top:8px}
+  .band p{color:var(--ink-2); margin-top:12px; max-width:44ch}
+  .ship-table{width:100%; font-size:.85rem}
+  .ship-table th{text-align:left; font-family:"IBM Plex Mono",monospace; font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:400; padding-bottom:10px; border-bottom:1px solid var(--line)}
+  .ship-table td{padding:13px 0; border-bottom:1px solid var(--line)}
+  .ship-table tr:last-child td{border-bottom:0}
+  .ship-table td:last-child,.ship-table th:last-child{text-align:right; font-family:"IBM Plex Mono",monospace}
+  .pill{display:inline-block; font-size:.68rem; padding:3px 9px; border-radius:100px; background:var(--accent-soft); color:var(--accent); font-family:"IBM Plex Mono",monospace}
+
+  footer{background:var(--surface); border-top:1px solid var(--line); margin-top:clamp(40px,6vw,80px); padding:clamp(38px,5vw,64px) 0 26px}
+  .foot-grid{display:grid; grid-template-columns:1.6fr repeat(3,1fr); gap:clamp(20px,4vw,48px)}
+  .foot-grid h4{font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:400; margin-bottom:14px}
+  .foot-grid li{margin-bottom:9px; font-size:.85rem; color:var(--ink-2)}
+  .foot-grid li a:hover{color:var(--accent)}
+  .news{display:flex; gap:8px; margin-top:16px; max-width:360px}
+  .news input{flex:1; border:1px solid var(--line-strong); background:var(--ground); border-radius:100px; padding:11px 16px; font-size:.83rem; outline:0}
+  .foot-bottom{margin-top:38px; padding-top:20px; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:.74rem; color:var(--muted)}
+
+  .scrim{position:fixed; inset:0; background:rgba(8,16,14,.45); z-index:80; opacity:0; pointer-events:none; transition:opacity .3s}
+  .scrim.on{opacity:1; pointer-events:auto}
+
+  .drawer{position:fixed; top:0; right:0; height:100dvh; width:min(430px,100vw); background:var(--surface); border-left:1px solid var(--line); z-index:90; display:flex; flex-direction:column; transform:translateX(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); box-shadow:var(--shadow-lg)}
+  .drawer.on{transform:none}
+  .drawer-head{display:flex; align-items:center; justify-content:space-between; padding:20px 22px; border-bottom:1px solid var(--line)}
+  .drawer-head h3{font-size:1.3rem}
+  .close-x{width:34px;height:34px;border-radius:50%;border:1px solid var(--line); display:grid;place-items:center; font-size:1rem; color:var(--ink-2)}
+  .close-x:hover{background:var(--surface-2)}
+  .drawer-body{flex:1; overflow-y:auto; padding:18px 22px; display:flex; flex-direction:column; gap:18px}
+  .drawer-foot{border-top:1px solid var(--line); padding:18px 22px 22px; display:flex; flex-direction:column; gap:12px; background:var(--surface-2)}
+
+  .line-item{display:grid; grid-template-columns:64px 1fr auto; gap:14px; align-items:start}
+  .line-item .thumb{width:64px; aspect-ratio:1; border-radius:var(--r-sm); background:var(--surface-2); display:grid; place-items:center; overflow:hidden; border:1px solid var(--line)}
+  .line-item .thumb svg{width:80%}
+  .li-name{font-size:.87rem; font-weight:500; line-height:1.3}
+  .li-var{font-size:.74rem; color:var(--muted); margin-top:2px}
+  .stepper{display:inline-flex; align-items:center; border:1px solid var(--line-strong); border-radius:100px; margin-top:8px}
+  .stepper button{width:27px; height:27px; display:grid; place-items:center; font-size:.9rem; color:var(--ink-2)}
+  .stepper button:hover{color:var(--accent)}
+  .stepper span{min-width:24px; text-align:center; font-family:"IBM Plex Mono",monospace; font-size:.8rem}
+  .li-price{text-align:right; font-family:"IBM Plex Mono",monospace; font-size:.88rem}
+  .li-remove{display:block; margin-top:8px; font-size:.72rem; color:var(--muted); text-decoration:underline; text-underline-offset:2px}
+  .li-remove:hover{color:var(--crit)}
+
+  .totals{display:flex; flex-direction:column; gap:7px; font-size:.85rem}
+  .totals > div{display:flex; justify-content:space-between; gap:12px}
+  .totals .t-total{border-top:1px solid var(--line-strong); margin-top:6px; padding-top:10px; font-size:1.05rem; font-weight:600}
+  .totals .val{font-family:"IBM Plex Mono",monospace}
+  .totals .disc .val{color:var(--ok)}
+  .coupon-row{display:flex; gap:8px}
+  .coupon-row input{flex:1; border:1px solid var(--line-strong); background:var(--surface); border-radius:100px; padding:10px 15px; font-size:.8rem; outline:0; text-transform:uppercase; font-family:"IBM Plex Mono",monospace}
+  .coupon-row button{border:1px solid var(--ink); border-radius:100px; padding:0 18px; font-size:.8rem}
+  .note{font-size:.74rem; color:var(--muted)}
+  .note.ok{color:var(--ok)}
+  .note.err{color:var(--crit)}
+  .empty{text-align:center; padding:56px 10px; color:var(--muted); display:flex; flex-direction:column; gap:14px; align-items:center}
+
+  .modal{position:fixed; z-index:95; top:50%; left:50%; transform:translate(-50%,-48%) scale(.98); width:min(920px,94vw); max-height:88dvh; overflow:auto; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); box-shadow:var(--shadow-lg); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s}
+  .modal.on{opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1)}
+  .modal-grid{display:grid; grid-template-columns:1fr 1fr}
+  .modal-media{background:var(--surface-2); display:grid; place-items:center; padding:32px; border-right:1px solid var(--line)}
+  .modal-media svg{width:78%}
+  .modal-info{padding:clamp(22px,3vw,34px); display:flex; flex-direction:column; gap:14px; position:relative}
+  .modal-info h3{font-size:clamp(1.5rem,2.6vw,2rem)}
+  .modal .close-x{position:absolute; top:16px; right:16px; background:var(--surface)}
+  .variants{display:flex; gap:8px; flex-wrap:wrap}
+  .variants button{border:1px solid var(--line-strong); border-radius:100px; padding:8px 15px; font-size:.8rem; font-family:"IBM Plex Mono",monospace}
+  .variants button[aria-pressed="true"]{border-color:var(--ink); background:var(--ink); color:var(--ground)}
+  .facts{display:flex; flex-direction:column; gap:9px; border-top:1px solid var(--line); padding-top:14px; font-size:.82rem; color:var(--ink-2)}
+  .facts div{display:flex; gap:12px}
+  .facts b{font-weight:500; color:var(--ink); min-width:104px; font-size:.68rem; font-family:"IBM Plex Mono",monospace; text-transform:uppercase; letter-spacing:.1em; padding-top:3px}
+
+  .checkout{position:fixed; inset:0; z-index:100; background:var(--ground); overflow-y:auto; display:none}
+  .checkout.on{display:block}
+  .ck-head{border-bottom:1px solid var(--line); background:var(--surface)}
+  .ck-head-in{display:flex; align-items:center; justify-content:space-between; min-height:70px; gap:16px; flex-wrap:wrap; padding-block:10px}
+  .steps{display:flex; gap:8px; align-items:center; font-size:.76rem; font-family:"IBM Plex Mono",monospace; color:var(--muted); flex-wrap:wrap}
+  .steps i{font-style:normal; display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:100px; border:1px solid var(--line)}
+  .steps i[data-on="true"]{color:var(--ink); border-color:var(--ink)}
+  .steps i[data-done="true"]{color:var(--accent); border-color:var(--accent)}
+  .ck-grid{display:grid; grid-template-columns:1.35fr .8fr; gap:clamp(24px,4vw,52px); padding-block:clamp(26px,4vw,46px); align-items:start}
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:clamp(20px,3vw,30px); margin-bottom:18px}
+  .panel h3{font-size:1.35rem; margin-bottom:4px}
+  .panel .sub{font-size:.82rem; color:var(--muted); margin-bottom:20px}
+  .field-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:14px}
+  .field{display:flex; flex-direction:column; gap:6px; grid-column:span 6}
+  .field.half{grid-column:span 3} .field.third{grid-column:span 2} .field.two-thirds{grid-column:span 4}
+  .field label{font-size:.7rem; font-family:"IBM Plex Mono",monospace; letter-spacing:.09em; text-transform:uppercase; color:var(--muted)}
+  .field input,.field select{border:1px solid var(--line-strong); background:var(--ground); border-radius:var(--r-sm); padding:12px 14px; font-size:.9rem; outline:0; transition:border-color .2s; width:100%}
+  .field input:focus,.field select:focus{border-color:var(--accent)}
+  .field input[aria-invalid="true"],.field select[aria-invalid="true"]{border-color:var(--crit)}
+  .field .err{font-size:.72rem; color:var(--crit); display:none}
+  .field input[aria-invalid="true"] ~ .err,.field select[aria-invalid="true"] ~ .err{display:block}
+
+  .option{display:flex; gap:14px; align-items:center; border:1px solid var(--line-strong); border-radius:var(--r-sm); padding:14px 16px; cursor:pointer; transition:border-color .2s, background .2s}
+  .option:hover{border-color:var(--accent)}
+  .option[data-sel="true"]{border-color:var(--accent); background:var(--accent-soft)}
+  .option input{accent-color:var(--accent); width:17px; height:17px; flex:0 0 auto}
+  .option .o-main{flex:1}
+  .option .o-name{font-size:.9rem; font-weight:500}
+  .option .o-desc{font-size:.76rem; color:var(--muted)}
+  .option .o-price{font-family:"IBM Plex Mono",monospace; font-size:.9rem; white-space:nowrap}
+  .option-list{display:flex; flex-direction:column; gap:10px}
+  .divider{height:1px; background:var(--line); margin:22px 0}
+
+  .summary{position:sticky; top:20px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+  .summary-head{padding:18px 22px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center}
+  .summary-head h4{font-family:"Bodoni Moda",serif; font-size:1.15rem; font-weight:400}
+  .summary-items{padding:18px 22px; display:flex; flex-direction:column; gap:14px; max-height:290px; overflow-y:auto}
+  .summary-tot{padding:18px 22px 22px; border-top:1px solid var(--line); background:var(--surface-2)}
+  .si{display:grid; grid-template-columns:48px 1fr auto; gap:12px; align-items:center; font-size:.82rem}
+  .si .thumb{width:48px; aspect-ratio:1; border-radius:8px; background:var(--surface-2); border:1px solid var(--line); display:grid; place-items:center; overflow:hidden}
+  .si .thumb svg{width:80%}
+  .si .qty{font-family:"IBM Plex Mono",monospace; color:var(--muted); font-size:.74rem}
+  .si .si-price{font-family:"IBM Plex Mono",monospace}
+
+  .ck-actions{display:flex; justify-content:space-between; gap:14px; align-items:center; flex-wrap:wrap; margin-top:6px}
+  .back-link{font-size:.83rem; color:var(--muted); text-decoration:underline; text-underline-offset:3px}
+  .back-link:hover{color:var(--ink)}
+  .spinner{width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .success{max-width:660px; margin:clamp(36px,7vw,84px) auto; text-align:center; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); padding:clamp(28px,5vw,54px)}
+  .success .seal{width:62px;height:62px;border-radius:50%;background:var(--accent-soft); color:var(--accent); display:grid;place-items:center; margin:0 auto 20px}
+  .success h2{font-size:clamp(1.8rem,4vw,2.5rem)}
+  .oid{display:inline-block; margin-top:16px; font-family:"IBM Plex Mono",monospace; font-size:.95rem; background:var(--surface-2); border:1px solid var(--line); border-radius:100px; padding:8px 18px}
+  .receipt{margin-top:28px; text-align:left; border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+  .receipt div{display:flex; justify-content:space-between; gap:14px; padding:13px 18px; font-size:.85rem; border-bottom:1px solid var(--line)}
+  .receipt div:last-child{border-bottom:0; background:var(--surface-2); font-weight:600}
+  .receipt span:last-child{font-family:"IBM Plex Mono",monospace; text-align:right}
+
+  .toast{position:fixed; left:50%; bottom:26px; transform:translate(-50%,20px); z-index:120; background:var(--ink); color:var(--ground); border-radius:100px; padding:12px 22px; font-size:.83rem; box-shadow:var(--shadow-lg); opacity:0; pointer-events:none; transition:.3s; display:flex; align-items:center; gap:10px}
+  .toast.on{opacity:1; transform:translate(-50%,0)}
+
+  @media (max-width:1000px){
+    .grid{grid-template-columns:repeat(3,1fr)}
+    .ck-grid{grid-template-columns:1fr}
+    .summary{position:static; order:-1}
+    .foot-grid{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:820px){
+    .nav{display:none; position:absolute; top:70px; left:0; right:0; background:var(--surface); border-bottom:1px solid var(--line); flex-direction:column; gap:0; padding:8px 20px 16px}
+    .nav.on{display:flex}
+    .nav button{padding:12px 0; text-align:left; border-bottom:1px solid var(--line)}
+    .menu-btn{display:inline-flex}
+    .search{display:none}
+    .hero-grid{grid-template-columns:1fr}
+    .hero-art{order:-1; aspect-ratio:4/3}
+    .band{grid-template-columns:1fr}
+    .strip-in{grid-template-columns:1fr 1fr}
+    .modal-grid{grid-template-columns:1fr}
+    .modal-media{border-right:0; border-bottom:1px solid var(--line); padding:24px}
+    .modal-media svg{width:50%}
+  }
+  @media (max-width:560px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .foot-grid{grid-template-columns:1fr}
+    .field.half,.field.third,.field.two-thirds{grid-column:span 6}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important; transition-duration:.001ms !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-strip" data-testid="demo-banner">
+  Demo environment — fictional store, simulated payments, no real data is processed. Test card: <b>4242 4242 4242 4242</b>
+</div>
+
+<header class="site-header" id="top">
+  <div class="wrap header-in">
+    <button class="icon-btn menu-btn" id="menu-toggle" aria-expanded="false" aria-controls="main-nav" data-testid="menu-toggle">Menu</button>
+    <a class="brand" href="#top" data-testid="brand"><strong>MARÉ</strong><span>botanicals</span></a>
+    <nav class="nav" id="main-nav" aria-label="Categories">
+      <button data-cat="all" aria-current="true" data-testid="nav-all">All</button>
+      <button data-cat="Face" data-testid="nav-face">Face</button>
+      <button data-cat="Body" data-testid="nav-body">Body</button>
+      <button data-cat="Hair" data-testid="nav-hair">Hair</button>
+      <button data-cat="Fragrance" data-testid="nav-fragrance">Fragrance</button>
+      <button data-cat="Kits" data-testid="nav-kits">Kits</button>
+    </nav>
+    <div class="header-actions">
+      <label class="search" for="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span class="sr">Search products</span>
+        <input id="search" name="search" type="search" placeholder="Search products" autocomplete="off" data-testid="search-input">
+      </label>
+      <button class="icon-btn" id="open-cart" data-testid="open-cart" aria-haspopup="dialog">
+        Cart <span class="cart-count" id="cart-count" data-testid="cart-count">0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">Coastline collection · Summer 2026</p>
+        <h1>Skincare built on <em>ingredients</em> from the Brazilian coast.</h1>
+        <p class="lede">Short formulas, dermatologically tested, bottled in returnable glass. Locally sourced actives, from cerrado buriti to sea salt harvested on the north coast.</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary" data-scroll="catalog" data-testid="hero-shop">Shop the collection</button>
+          <button class="btn btn-ghost" data-scroll="shipping" data-testid="hero-shipping">Delivery and rates</button>
+        </div>
+        <div class="hero-meta">
+          <div><strong>16</strong><span>products in stock</span></div>
+          <div><strong>R$ 249</strong><span>free standard shipping</span></div>
+          <div><strong>4.8</strong><span>average of 2,140 reviews</span></div>
+          <div><strong>30 days</strong><span>to return</span></div>
+        </div>
+      </div>
+      <div class="hero-art" id="hero-art" aria-hidden="true">
+        <div class="hero-badge"><span class="dot"></span> Inventory synced just now</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="strip">
+    <div class="wrap strip-in">
+      <div><strong>Free shipping over R$ 249</strong><span>Standard delivery, anywhere in Brazil</span></div>
+      <div><strong>5% off with Pix</strong><span>Approved instantly</span></div>
+      <div><strong>Up to 6 interest-free installments</strong><span>On credit card</span></div>
+      <div><strong>Free sample</strong><span>On every order over R$ 150</span></div>
+    </div>
+  </div>
+
+  <section class="section wrap" id="catalog">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Catalog</p>
+        <h2>Everything your routine needs</h2>
+      </div>
+      <p class="result-count" id="result-count" data-testid="result-count"></p>
+    </div>
+    <div class="toolbar">
+      <div class="filters" id="filters" role="group" aria-label="Filter by category">
+        <button class="chip" data-cat="all" aria-pressed="true">All</button>
+        <button class="chip" data-cat="Face" aria-pressed="false">Face</button>
+        <button class="chip" data-cat="Body" aria-pressed="false">Body</button>
+        <button class="chip" data-cat="Hair" aria-pressed="false">Hair</button>
+        <button class="chip" data-cat="Fragrance" aria-pressed="false">Fragrance</button>
+        <button class="chip" data-cat="Kits" aria-pressed="false">Kits</button>
+      </div>
+      <label class="sr" for="sort">Sort by</label>
+      <select class="sort" id="sort" name="sort" data-testid="sort-select">
+        <option value="featured">Sort: featured</option>
+        <option value="lowest">Lowest price</option>
+        <option value="highest">Highest price</option>
+        <option value="rating">Top rated</option>
+      </select>
+    </div>
+    <div class="grid" id="grid" data-testid="product-grid"></div>
+  </section>
+
+  <section class="section wrap" id="shipping">
+    <div class="band">
+      <div>
+        <p class="eyebrow">Delivery</p>
+        <h2>Rates calculated by postal code, with no surprise at checkout</h2>
+        <p>We ship from São Paulo within 24 business hours. The rates below are the baseline for the Southeast region — other regions get a distance factor applied in the cart calculation.</p>
+        <p style="margin-top:16px"><span class="pill">Free over R$ 249</span></p>
+      </div>
+      <table class="ship-table">
+        <thead><tr><th>Method</th><th>Estimated time</th><th>Starting at</th></tr></thead>
+        <tbody>
+          <tr><td>Standard delivery</td><td>5 to 8 business days</td><td>R$ 19.90</td></tr>
+          <tr><td>Express delivery</td><td>1 to 3 business days</td><td>R$ 34.90</td></tr>
+          <tr><td>Store pickup — Pinheiros, SP</td><td>Within 4 hours</td><td>Free</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="#top"><strong>MARÉ</strong><span>botanicals</span></a>
+        <p class="lede" style="font-size:.88rem; margin-top:14px; max-width:38ch">Get the monthly letter with care rituals and early access to new releases.</p>
+        <form class="news" id="newsletter-form">
+          <label class="sr" for="newsletter-email">Email for the newsletter</label>
+          <input id="newsletter-email" name="newsletter-email" type="email" placeholder="you@email.com" autocomplete="email" data-testid="newsletter-email">
+          <button class="btn btn-primary" type="submit" data-testid="newsletter-submit">Subscribe</button>
+        </form>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <ul>
+          <li><a href="#catalog">New arrivals</a></li>
+          <li><a href="#catalog">Best sellers</a></li>
+          <li><a href="#catalog">Kits and gifts</a></li>
+          <li><a href="#catalog">Gift card</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Help</h4>
+        <ul>
+          <li><a href="#shipping">Delivery and rates</a></li>
+          <li><a href="#shipping">Returns and exchanges</a></li>
+          <li><a href="#shipping">Track your order</a></li>
+          <li><a href="#shipping">Contact us</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>The brand</h4>
+        <ul>
+          <li><a href="#top">Our story</a></li>
+          <li><a href="#top">Ingredients</a></li>
+          <li><a href="#top">Returnable glass</a></li>
+          <li><a href="#top">Careers</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>Maré Botanicals — fictional brand built for automation testing. Tax ID 00.000.000/0001-00</span>
+      <span>Pix · Card · Boleto — all simulated</span>
+    </div>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping cart" aria-hidden="true" data-testid="cart-drawer">
+  <div class="drawer-head">
+    <h3>Your cart</h3>
+    <button class="close-x" id="close-cart" aria-label="Close cart" data-testid="close-cart">✕</button>
+  </div>
+  <div class="drawer-body" id="cart-items"></div>
+  <div class="drawer-foot" id="cart-footer"></div>
+</aside>
+
+<div class="modal" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="modal-name" data-testid="product-modal"></div>
+
+<div class="checkout" id="checkout" role="dialog" aria-modal="true" aria-label="Checkout" data-testid="checkout">
+  <div class="ck-head">
+    <div class="wrap ck-head-in">
+      <a class="brand" href="#top"><strong>MARÉ</strong><span>secure checkout</span></a>
+      <div class="steps" id="checkout-steps" data-testid="checkout-steps">
+        <i data-step="1">1 · Delivery</i>
+        <i data-step="2">2 · Shipping</i>
+        <i data-step="3">3 · Payment</i>
+      </div>
+      <button class="icon-btn" id="exit-checkout" data-testid="exit-checkout">Back to store</button>
+    </div>
+  </div>
+  <div id="checkout-body"></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- catalog data ---------------- */
+  var PRODUCTS = [
+    {id:"vitc-serum", name:"Marine Vitamin C 15% Serum", cat:"Face", price:149.90, size:"30 ml", vessel:"dropper", hue:38, rating:4.9, reviews:412, tag:"Best seller",
+     desc:"Stabilized vitamin C with red algae extract. Evens out tone and brings back glow within the first weeks.", actives:"Ascorbic acid 15%, red algae, vitamin E", usage:"Every morning, 4 drops on clean skin, before sunscreen.",
+     variants:[{label:"30 ml", delta:0},{label:"50 ml", delta:59}]},
+    {id:"buriti-oil", name:"Buriti & Rosehip Facial Oil", cat:"Face", price:189.00, size:"30 ml", vessel:"dropper", hue:24, rating:4.8, reviews:268,
+     desc:"Fast-absorbing dry oil for dry and mature skin. Cold-pressed buriti from the cerrado.", actives:"Buriti, rosehip, plant squalane", usage:"At night, 3 drops sealed over your moisturizer."},
+    {id:"hyaluronic-cream", name:"Hyaluronic Acid Moisturizer", cat:"Face", price:119.90, size:"50 g", vessel:"jar", hue:196, rating:4.7, reviews:531, tag:"Best seller",
+     desc:"Three molecular weights of hyaluronic acid in a light base, with no heavy occlusives. Works as a makeup primer.", actives:"Hyaluronic acid, panthenol, plant glycerin", usage:"Morning and night, after your serum."},
+    {id:"micellar-water", name:"Calendula Micellar Water", cat:"Face", price:69.90, size:"200 ml", vessel:"mist", hue:52, rating:4.6, reviews:344,
+     desc:"Removes makeup and sunscreen without rubbing, with calming calendula for reactive skin.", actives:"Calendula, gentle micelles, orange blossom water", usage:"First step of your night cleanse."},
+    {id:"sunscreen-spf60", name:"Fluid Sunscreen SPF 60", cat:"Face", price:139.90, size:"50 ml", vessel:"pump", hue:14, rating:4.9, reviews:702, tag:"Best seller",
+     desc:"Dry touch, no white cast, with a universal adaptive tint. Water resistant for 80 minutes.", actives:"Mineral and organic filters, niacinamide 2%", usage:"Last morning step, reapply every 3 hours."},
+    {id:"cupuacu-butter", name:"Cupuaçu Body Butter", cat:"Body", price:89.90, size:"200 g", vessel:"jar", hue:32, rating:4.8, reviews:289,
+     desc:"Dense butter that melts on contact with skin. 24-hour hydration for elbows and knees.", actives:"Cupuaçu, murumuru, nut oil", usage:"After showering, while skin is still damp."},
+    {id:"sea-salt-scrub", name:"Sea Salt Body Scrub", cat:"Body", price:79.90, size:"250 g", vessel:"jar", hue:186, rating:4.5, reviews:176,
+     desc:"Sea salt harvested on the north coast in a sunflower oil base. Exfoliates without drying.", actives:"Sea salt, sunflower oil, rosemary", usage:"Twice a week, in circular motions."},
+    {id:"lemongrass-wash", name:"Lemongrass Body Wash", cat:"Body", price:54.90, size:"300 ml", vessel:"pump", hue:88, rating:4.7, reviews:398,
+     desc:"Creamy lather at physiological pH, with no harsh sulfates. A citrus scent that lingers on skin.", actives:"Lemongrass, aloe vera, coconut betaine", usage:"Daily, all over the body."},
+    {id:"pequi-mask", name:"Pequi Oil Hair Mask", cat:"Hair", price:99.90, size:"250 g", vessel:"jar", hue:44, rating:4.8, reviews:456, tag:"Best seller",
+     desc:"Rebuilds chemically treated hair. Reduces breakage by 62% after four applications.", actives:"Pequi, plant keratin, coconut oil", usage:"Once a week, 10 minutes on lengths."},
+    {id:"clay-shampoo-bar", name:"White Clay Shampoo Bar", cat:"Hair", price:59.90, size:"90 g", vessel:"bar", hue:150, rating:4.4, reviews:212, tag:"New",
+     desc:"One bar equals two 300 ml bottles. White clay keeps roots from getting oily.", actives:"White clay, coconut surfactants, peppermint essential oil", usage:"Rub the wet bar on your scalp and massage."},
+    {id:"babassu-leavein", name:"Babassu Repair Leave-in", cat:"Hair", price:74.90, size:"150 ml", vessel:"pump", hue:64, rating:4.6, reviews:301,
+     desc:"Protects from heat up to 220 °C and defines waves without weighing hair down.", actives:"Babassu, rice protein, hair UV filter", usage:"On damp hair, before blow-drying."},
+    {id:"mare-alta-edp", name:"Maré Alta Eau de Parfum", cat:"Fragrance", price:329.00, size:"50 ml", vessel:"flask", hue:206, rating:4.9, reviews:187, tag:"New",
+     desc:"Saline on top, iris and cardamom at the heart, dry amber in the base. Lasts 8 to 10 hours.", actives:"Notes: sea salt, cardamom, iris, amber, cedar", usage:"Two sprays on pulse points.",
+     variants:[{label:"30 ml", delta:-110},{label:"50 ml", delta:0},{label:"100 ml", delta:180}]},
+    {id:"flor-de-sal-mist", name:"Flor de Sal Body Mist", cat:"Fragrance", price:149.00, size:"200 ml", vessel:"mist", hue:172, rating:4.7, reviews:143,
+     desc:"A light, hydrating take on Maré Alta, made to spray on body and hair.", actives:"Coconut water, glycerin, saline accord", usage:"After showering, 20 cm from the skin."},
+    {id:"night-ritual-kit", name:"Night Ritual Kit", cat:"Kits", price:279.00, was:349.70, size:"3 items", vessel:"box", hue:264, rating:4.9, reviews:214, tag:"-20%",
+     desc:"Micellar water, vitamin C serum and buriti facial oil in a seed-paper gift box.", actives:"Three full-size products", usage:"The complete night ritual, in the right order."},
+    {id:"discovery-kit", name:"Fragrance Discovery Kit", cat:"Kits", price:129.00, size:"4 × 5 ml", vessel:"box", hue:308, rating:4.6, reviews:96,
+     desc:"Four miniatures to try before choosing. The amount comes back as credit on a full-size purchase.", actives:"Maré Alta, Cerrado, Sereno, Vento Norte", usage:"Try one a day, on clean skin."},
+    {id:"coconut-face-mist", name:"Coconut Water Face Mist", cat:"Face", price:64.90, size:"120 ml", vessel:"mist", hue:120, rating:4.5, reviews:233,
+     desc:"Refreshes and sets makeup with freeze-dried coconut water and low-weight hyaluronic acid.", actives:"Coconut water, hyaluronic acid, aloe", usage:"Any time, even over makeup."}
+  ];
+
+  var COUPONS = {
+    AGENTPAY10:{type:"percent", value:10, text:"10% off"},
+    MARE20:{type:"percent", value:20, min:300, text:"20% off over R$ 300"},
+    FREESHIP:{type:"shipping", text:"free standard shipping"}
+  };
+
+  var STATES = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
+
+  var FREE_SHIPPING_FROM = 249;
+
+  /* ---------------- state ---------------- */
+  var state = {
+    category:"all", query:"", sort:"featured",
+    cart:[], coupon:null,
+    delivery:{name:"",email:"",taxId:"",phone:"",postalCode:"",street:"",number:"",complement:"",district:"",city:"",state:""},
+    shipping:null, step:1, payment:"card", installments:1,
+    order:null, openProduct:null, variant:0, modalQty:1
+  };
+
+  /* ---------------- helpers ---------------- */
+  var CURRENCY = new Intl.NumberFormat("en-US",{style:"currency",currency:"BRL"});
+  // English UI with Brazilian currency: keep the "R$ 1,234.56" spacing used across the static copy.
+  function money(v){ return CURRENCY.format(v).replace(/^R\$\s*/,"R$ "); }
+  function round2(v){ return Math.round(v*100)/100; }
+  function $(s,root){ return (root||document).querySelector(s); }
+  function $$(s,root){ return Array.prototype.slice.call((root||document).querySelectorAll(s)); }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+  function emit(name, detail){ document.dispatchEvent(new CustomEvent("agentpay:"+name,{detail:detail})); }
+  function product(id){ for(var i=0;i<PRODUCTS.length;i++){ if(PRODUCTS[i].id===id) return PRODUCTS[i]; } return null; }
+
+  var toastTimer;
+  function toast(message){
+    var el = $("#toast");
+    el.textContent = message; el.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove("on"); }, 2600);
+  }
+
+  /* ---------------- product illustrations ---------------- */
+  function vesselShapes(type, gid){
+    var glass = 'url(#'+gid+')', cap = 'url(#'+gid+'c)';
+    switch(type){
+      case "dropper": return '<rect x="62" y="86" width="76" height="112" rx="11" fill="'+glass+'"/>'+
+        '<rect x="86" y="62" width="28" height="26" fill="'+glass+'"/>'+
+        '<rect x="79" y="30" width="42" height="34" rx="6" fill="'+cap+'"/>'+
+        '<rect x="74" y="116" width="52" height="50" rx="4" fill="#fff" fill-opacity=".82"/>'+
+        '<rect x="82" y="130" width="36" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".35"/>'+
+        '<rect x="82" y="140" width="24" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".2"/>';
+      case "pump": return '<rect x="60" y="88" width="80" height="110" rx="15" fill="'+glass+'"/>'+
+        '<path d="M72 92q28-14 56 0z" fill="'+glass+'"/>'+
+        '<rect x="85" y="64" width="30" height="26" fill="'+glass+'"/>'+
+        '<rect x="88" y="42" width="24" height="24" rx="5" fill="'+cap+'"/>'+
+        '<rect x="108" y="46" width="22" height="8" rx="4" fill="'+cap+'"/>'+
+        '<rect x="72" y="118" width="56" height="48" rx="4" fill="#fff" fill-opacity=".82"/>'+
+        '<rect x="80" y="132" width="40" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".35"/>'+
+        '<rect x="80" y="142" width="26" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".2"/>';
+      case "jar": return '<rect x="52" y="112" width="96" height="82" rx="13" fill="'+glass+'"/>'+
+        '<rect x="46" y="80" width="108" height="36" rx="11" fill="'+cap+'"/>'+
+        '<rect x="66" y="134" width="68" height="40" rx="4" fill="#fff" fill-opacity=".8"/>'+
+        '<rect x="76" y="148" width="48" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".35"/>'+
+        '<rect x="76" y="158" width="30" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".2"/>';
+      case "mist": return '<rect x="72" y="82" width="56" height="118" rx="9" fill="'+glass+'"/>'+
+        '<rect x="90" y="62" width="20" height="22" fill="'+glass+'"/>'+
+        '<rect x="85" y="36" width="30" height="28" rx="4" fill="'+cap+'"/>'+
+        '<rect x="80" y="112" width="40" height="56" rx="3" fill="#fff" fill-opacity=".82"/>'+
+        '<rect x="87" y="128" width="26" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".35"/>'+
+        '<rect x="87" y="138" width="16" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".2"/>';
+      case "bar": return '<rect x="50" y="92" width="100" height="84" rx="28" fill="'+glass+'"/>'+
+        '<ellipse cx="100" cy="134" rx="30" ry="22" fill="#fff" fill-opacity=".28"/>'+
+        '<path d="M88 134q12-13 24 0" stroke="#0f1c1a" stroke-opacity=".28" stroke-width="3" fill="none" stroke-linecap="round"/>';
+      case "flask": return '<rect x="58" y="98" width="84" height="100" rx="9" fill="'+glass+'"/>'+
+        '<path d="M70 100 84 78h32l14 22z" fill="'+glass+'"/>'+
+        '<rect x="88" y="68" width="24" height="14" fill="'+cap+'"/>'+
+        '<rect x="80" y="38" width="40" height="32" rx="4" fill="'+cap+'"/>'+
+        '<rect x="72" y="124" width="56" height="46" rx="3" fill="#fff" fill-opacity=".84"/>'+
+        '<rect x="82" y="140" width="36" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".35"/>'+
+        '<rect x="82" y="150" width="22" height="3" rx="1.5" fill="#0f1c1a" fill-opacity=".2"/>';
+      default: return '<rect x="46" y="96" width="108" height="94" rx="7" fill="'+glass+'"/>'+
+        '<rect x="46" y="96" width="108" height="22" rx="7" fill="'+cap+'"/>'+
+        '<rect x="94" y="96" width="12" height="94" fill="#fff" fill-opacity=".45"/>'+
+        '<path d="M100 96q-16-16-26-6t26 6q16-16 26-6t-26 6z" fill="#fff" fill-opacity=".7"/>';
+    }
+  }
+
+  function artwork(p, salt){
+    var gid = "g-"+p.id+"-"+(salt||"a");
+    var h = p.hue;
+    return '<svg viewBox="0 0 200 220" role="img" aria-label="'+esc(p.name)+'" xmlns="http://www.w3.org/2000/svg">'+
+      '<defs>'+
+        '<linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1">'+
+          '<stop offset="0" stop-color="hsl('+h+' 45% 72%)"/>'+
+          '<stop offset="1" stop-color="hsl('+((h+18)%360)+' 40% 44%)"/>'+
+        '</linearGradient>'+
+        '<linearGradient id="'+gid+'c" x1="0" y1="0" x2="1" y2="1">'+
+          '<stop offset="0" stop-color="hsl('+h+' 22% 34%)"/>'+
+          '<stop offset="1" stop-color="hsl('+h+' 24% 22%)"/>'+
+        '</linearGradient>'+
+        '<radialGradient id="'+gid+'b">'+
+          '<stop offset="0" stop-color="hsl('+h+' 60% 78%)" stop-opacity=".55"/>'+
+          '<stop offset="1" stop-color="hsl('+h+' 60% 78%)" stop-opacity="0"/>'+
+        '</radialGradient>'+
+      '</defs>'+
+      '<circle cx="100" cy="118" r="88" fill="url(#'+gid+'b)"/>'+
+      '<ellipse cx="100" cy="200" rx="62" ry="9" fill="hsl('+h+' 30% 30%)" fill-opacity=".16"/>'+
+      vesselShapes(p.vessel, gid)+
+    '</svg>';
+  }
+
+  function heroArtwork(){
+    var a = product("mare-alta-edp"), b = product("vitc-serum"), c = product("hyaluronic-cream");
+    function block(p, x, y, s, salt){
+      var gid = "h-"+p.id+"-"+salt, h = p.hue;
+      return '<defs>'+
+        '<linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl('+h+' 45% 74%)"/><stop offset="1" stop-color="hsl('+((h+18)%360)+' 40% 44%)"/></linearGradient>'+
+        '<linearGradient id="'+gid+'c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl('+h+' 22% 34%)"/><stop offset="1" stop-color="hsl('+h+' 24% 22%)"/></linearGradient>'+
+        '</defs><g transform="translate('+x+','+y+') scale('+s+')">'+vesselShapes(p.vessel, gid)+'</g>';
+    }
+    return '<svg viewBox="0 0 420 330" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+
+      '<ellipse cx="210" cy="300" rx="170" ry="16" fill="#0f1c1a" fill-opacity=".08"/>'+
+      block(c, -20, 96, .74, "1")+
+      block(a, 100, 44, 1.02, "2")+
+      block(b, 250, 108, .7, "3")+
+    '</svg>';
+  }
+
+  /* ---------------- catalog ---------------- */
+  function visibleProducts(){
+    var list = PRODUCTS.filter(function(p){
+      var matchesCategory = state.category==="all" || p.cat===state.category;
+      var q = state.query.trim().toLowerCase();
+      var matchesQuery = !q || (p.name+" "+p.cat+" "+p.actives).toLowerCase().indexOf(q)>-1;
+      return matchesCategory && matchesQuery;
+    });
+    if(state.sort==="lowest") list.sort(function(a,b){ return a.price-b.price; });
+    if(state.sort==="highest") list.sort(function(a,b){ return b.price-a.price; });
+    if(state.sort==="rating") list.sort(function(a,b){ return b.rating-a.rating; });
+    return list;
+  }
+
+  function renderGrid(){
+    var list = visibleProducts();
+    $("#result-count").textContent = list.length + (list.length===1 ? " product" : " products");
+    if(!list.length){
+      $("#grid").innerHTML = '<p class="empty" style="grid-column:1/-1">No products match this search.</p>';
+      return;
+    }
+    $("#grid").innerHTML = list.map(function(p){
+      return '<article class="card" data-id="'+p.id+'" data-testid="product-card" data-product="'+p.id+'">'+
+        '<div class="card-media" data-open="'+p.id+'" role="button" tabindex="0" aria-label="View '+esc(p.name)+'">'+
+          artwork(p,"card")+
+          (p.tag ? '<span class="tag'+(p.was?" sale":"")+'">'+esc(p.tag)+'</span>' : '')+
+          '<div class="quick"><span class="btn" data-open="'+p.id+'">View details</span></div>'+
+        '</div>'+
+        '<div class="card-body">'+
+          '<p class="card-cat">'+esc(p.cat)+'</p>'+
+          '<h3 class="card-name" data-testid="product-name">'+esc(p.name)+'</h3>'+
+          '<p class="card-size">'+esc(p.size)+'</p>'+
+          '<p class="stars"><b>'+p.rating.toFixed(1)+'</b> ★ · '+p.reviews+' reviews</p>'+
+          '<div class="card-foot">'+
+            '<p class="price" data-testid="product-price" data-price="'+p.price+'">'+(p.was?'<s>'+money(p.was)+'</s>':'')+money(p.price)+'</p>'+
+            '<button class="add" data-add="'+p.id+'" data-testid="add-to-cart">Add</button>'+
+          '</div>'+
+        '</div>'+
+      '</article>';
+    }).join("");
+  }
+
+  /* ---------------- cart ---------------- */
+  function subtotal(){
+    return round2(state.cart.reduce(function(sum,item){ return sum + item.price*item.qty; },0));
+  }
+  function itemCount(){
+    return state.cart.reduce(function(sum,item){ return sum+item.qty; },0);
+  }
+  function couponDiscount(){
+    if(!state.coupon) return 0;
+    var rule = COUPONS[state.coupon];
+    if(!rule || rule.type!=="percent") return 0;
+    var sub = subtotal();
+    if(rule.min && sub < rule.min) return 0;
+    return round2(sub*rule.value/100);
+  }
+  function shippingCost(){ return state.shipping ? state.shipping.price : 0; }
+  function pixDiscount(){
+    if(state.payment!=="pix") return 0;
+    return round2((subtotal()-couponDiscount())*0.05);
+  }
+  function orderTotal(){
+    return round2(subtotal() - couponDiscount() - pixDiscount() + shippingCost());
+  }
+
+  function shippingOptions(){
+    var code = (state.delivery.postalCode||"").replace(/\D/g,"");
+    if(code.length!==8) return [];
+    var region = parseInt(code.charAt(0),10);
+    var factor = [1,1,1.05,1.15,1.2,1.3,1.35,1.4,1.45,1.5][region];
+    var net = subtotal() - couponDiscount();
+    var standardIsFree = net>=FREE_SHIPPING_FROM || state.coupon==="FREESHIP";
+    return [
+      {id:"standard", name:"Standard delivery", desc:(5+Math.round(region*0.7))+" to "+(8+region)+" business days", price: standardIsFree?0:round2(19.9*factor)},
+      {id:"express", name:"Express delivery", desc:(1+Math.round(region/4))+" to "+(3+Math.round(region/2))+" business days", price:round2(34.9*factor)},
+      {id:"pickup", name:"Store pickup", desc:"Rua Fradique Coutinho, 812 — Pinheiros, São Paulo", price:0}
+    ];
+  }
+
+  function addToCart(id, qty, variantIndex){
+    var p = product(id); if(!p) return;
+    qty = qty||1;
+    var variant = (p.variants && p.variants[variantIndex||0]) || null;
+    var key = id + (variant ? "::"+variant.label : "");
+    var price = round2(p.price + (variant ? variant.delta : 0));
+    var existing = null;
+    for(var i=0;i<state.cart.length;i++){ if(state.cart[i].key===key) existing = state.cart[i]; }
+    if(existing){ existing.qty += qty; }
+    else{
+      state.cart.push({key:key, id:id, name:p.name, variant: variant?variant.label:p.size, price:price, qty:qty});
+    }
+    state.shipping = null;
+    save(); renderCart(); renderCheckout();
+    toast(p.name + " added to your cart");
+    emit("cart-updated",{items:state.cart.slice(), total:orderTotal()});
+  }
+
+  function changeQty(key, delta){
+    for(var i=0;i<state.cart.length;i++){
+      if(state.cart[i].key===key){
+        state.cart[i].qty += delta;
+        if(state.cart[i].qty<=0) state.cart.splice(i,1);
+        break;
+      }
+    }
+    state.shipping = null;
+    save(); renderCart(); renderCheckout();
+    emit("cart-updated",{items:state.cart.slice(), total:orderTotal()});
+  }
+
+  function removeItem(key){
+    state.cart = state.cart.filter(function(item){ return item.key!==key; });
+    state.shipping = null;
+    save(); renderCart(); renderCheckout();
+    emit("cart-updated",{items:state.cart.slice(), total:orderTotal()});
+  }
+
+  function renderCart(){
+    $("#cart-count").textContent = itemCount();
+    var body = $("#cart-items"), footer = $("#cart-footer");
+    if(!state.cart.length){
+      body.innerHTML = '<div class="empty"><p>Your cart is empty.</p><button class="btn btn-ghost" id="browse-products">Browse products</button></div>';
+      footer.innerHTML = '';
+      return;
+    }
+    body.innerHTML = state.cart.map(function(item){
+      var p = product(item.id);
+      return '<div class="line-item" data-testid="cart-item" data-key="'+esc(item.key)+'">'+
+        '<div class="thumb">'+artwork(p,"cart")+'</div>'+
+        '<div>'+
+          '<p class="li-name">'+esc(item.name)+'</p>'+
+          '<p class="li-var">'+esc(item.variant)+'</p>'+
+          '<div class="stepper">'+
+            '<button data-dec="'+esc(item.key)+'" aria-label="Decrease quantity">−</button>'+
+            '<span data-testid="item-qty">'+item.qty+'</span>'+
+            '<button data-inc="'+esc(item.key)+'" aria-label="Increase quantity">+</button>'+
+          '</div>'+
+        '</div>'+
+        '<div><p class="li-price">'+money(item.price*item.qty)+'</p>'+
+        '<button class="li-remove" data-remove="'+esc(item.key)+'">Remove</button></div>'+
+      '</div>';
+    }).join("");
+
+    var appliedCoupon = state.coupon ? COUPONS[state.coupon] : null;
+    var missing = round2(FREE_SHIPPING_FROM - (subtotal()-couponDiscount()));
+    footer.innerHTML =
+      '<div class="coupon-row">'+
+        '<label class="sr" for="coupon">Discount code</label>'+
+        '<input id="coupon" name="coupon" placeholder="CODE" value="'+esc(state.coupon||"")+'" data-testid="coupon-input">'+
+        '<button id="apply-coupon" data-testid="apply-coupon">Apply</button>'+
+      '</div>'+
+      '<p class="note '+(appliedCoupon?"ok":"")+'" id="coupon-message">'+
+        (appliedCoupon ? "Coupon "+state.coupon+" applied — "+appliedCoupon.text+"." : "Test coupons: AGENTPAY10, MARE20, FREESHIP")+
+      '</p>'+
+      '<div class="totals">'+
+        '<div><span>Subtotal</span><span class="val" data-testid="cart-subtotal">'+money(subtotal())+'</span></div>'+
+        (couponDiscount() ? '<div class="disc"><span>Discount</span><span class="val">−'+money(couponDiscount())+'</span></div>' : '')+
+        '<div><span>Shipping</span><span class="val">'+(state.shipping ? (state.shipping.price?money(state.shipping.price):"Free") : "calculated at checkout")+'</span></div>'+
+        '<div class="t-total"><span>Total</span><span class="val" data-testid="cart-total">'+money(orderTotal())+'</span></div>'+
+      '</div>'+
+      (missing>0 ? '<p class="note">Add '+money(missing)+' more for free standard shipping.</p>' : '<p class="note ok">Free standard shipping unlocked.</p>')+
+      '<button class="btn btn-primary btn-block" id="go-to-checkout" data-testid="go-to-checkout">Checkout · '+money(orderTotal())+'</button>';
+  }
+
+  function applyCoupon(input){
+    var code = (input||"").trim().toUpperCase();
+    var message = $("#coupon-message");
+    if(!code){ state.coupon=null; save(); renderCart(); renderCheckout(); return; }
+    var rule = COUPONS[code];
+    if(!rule){
+      if(message){ message.textContent = "Coupon "+code+" does not exist or has expired."; message.className="note err"; }
+      return;
+    }
+    if(rule.min && subtotal() < rule.min){
+      if(message){ message.textContent = "Coupon "+code+" applies from "+money(rule.min)+" in products."; message.className="note err"; }
+      return;
+    }
+    state.coupon = code; state.shipping = null;
+    save(); renderCart(); renderCheckout();
+    toast("Coupon "+code+" applied");
+    emit("coupon-applied",{code:code});
+  }
+
+  /* ---------------- product modal ---------------- */
+  function openProductModal(id){
+    var p = product(id); if(!p) return;
+    state.openProduct = id;
+    state.variant = 0;
+    if(p.variants){ for(var i=0;i<p.variants.length;i++){ if(p.variants[i].delta===0) state.variant=i; } }
+    state.modalQty = 1;
+    renderModal();
+    $("#product-modal").classList.add("on");
+    $("#scrim").classList.add("on");
+    document.body.style.overflow = "hidden";
+    emit("product-opened",{id:id});
+  }
+
+  function modalPrice(){
+    var p = product(state.openProduct);
+    var variant = p.variants ? p.variants[state.variant] : null;
+    return round2(p.price + (variant?variant.delta:0));
+  }
+
+  function renderModal(){
+    var p = product(state.openProduct); if(!p) return;
+    $("#product-modal").innerHTML = '<div class="modal-grid">'+
+      '<div class="modal-media">'+artwork(p,"modal")+'</div>'+
+      '<div class="modal-info">'+
+        '<button class="close-x" id="close-modal" aria-label="Close" data-testid="close-modal">✕</button>'+
+        '<p class="eyebrow">'+esc(p.cat)+'</p>'+
+        '<h3 id="modal-name" data-testid="modal-product-name">'+esc(p.name)+'</h3>'+
+        '<p class="stars"><b>'+p.rating.toFixed(1)+'</b> ★ · '+p.reviews+' reviews</p>'+
+        '<p style="color:var(--ink-2)">'+esc(p.desc)+'</p>'+
+        (p.variants ? '<div class="variants" role="group" aria-label="Size">'+p.variants.map(function(v,i){
+            return '<button data-variant="'+i+'" aria-pressed="'+(i===state.variant)+'">'+esc(v.label)+'</button>';
+          }).join("")+'</div>' : '')+
+        '<p class="price" style="font-size:1.6rem" data-testid="modal-price">'+money(modalPrice())+'</p>'+
+        '<p class="note">Up to 6 interest-free installments of '+money(round2(modalPrice()/6))+' · 5% off with Pix</p>'+
+        '<div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">'+
+          '<div class="stepper" style="margin:0">'+
+            '<button id="modal-dec" aria-label="Decrease quantity">−</button>'+
+            '<span id="modal-qty" data-testid="modal-qty">'+state.modalQty+'</span>'+
+            '<button id="modal-inc" aria-label="Increase quantity">+</button>'+
+          '</div>'+
+          '<button class="btn btn-primary" id="modal-add" data-testid="modal-add-to-cart" style="flex:1; min-width:190px">Add to cart</button>'+
+        '</div>'+
+        '<div class="facts">'+
+          '<div><b>Size</b><span>'+esc(p.variants?p.variants[state.variant].label:p.size)+'</span></div>'+
+          '<div><b>Actives</b><span>'+esc(p.actives)+'</span></div>'+
+          '<div><b>How to use</b><span>'+esc(p.usage)+'</span></div>'+
+          '<div><b>Delivery</b><span>Leaves the warehouse in 24h · shipping calculated by postal code at checkout</span></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function closeOverlays(){
+    $("#product-modal").classList.remove("on");
+    $("#cart-drawer").classList.remove("on");
+    $("#cart-drawer").setAttribute("aria-hidden","true");
+    $("#scrim").classList.remove("on");
+    if(!$("#checkout").classList.contains("on")) document.body.style.overflow = "";
+  }
+
+  function openCart(){
+    renderCart();
+    $("#cart-drawer").classList.add("on");
+    $("#cart-drawer").setAttribute("aria-hidden","false");
+    $("#scrim").classList.add("on");
+    document.body.style.overflow = "hidden";
+  }
+
+  /* ---------------- checkout ---------------- */
+  function openCheckout(){
+    if(!state.cart.length){ toast("Add a product before checking out"); return; }
+    closeOverlays();
+    state.step = 1; state.order = null;
+    $("#checkout").classList.add("on");
+    document.body.style.overflow = "hidden";
+    renderCheckout();
+    window.scrollTo(0,0);
+    emit("checkout-opened",{total:orderTotal()});
+  }
+
+  function exitCheckout(){
+    $("#checkout").classList.remove("on");
+    document.body.style.overflow = "";
+    renderCart();
+  }
+
+  function field(id, label, options){
+    options = options||{};
+    return '<div class="field '+(options.cls||"")+'">'+
+      '<label for="'+id+'">'+label+'</label>'+
+      '<input id="'+id+'" name="'+id+'" type="'+(options.type||"text")+'" '+
+        (options.autocomplete?'autocomplete="'+options.autocomplete+'" ':'')+
+        (options.placeholder?'placeholder="'+options.placeholder+'" ':'')+
+        (options.inputmode?'inputmode="'+options.inputmode+'" ':'')+
+        'data-testid="'+id+'" value="'+esc(options.value||"")+'">'+
+      '<span class="err" id="err-'+id+'">'+(options.error||"This field is required")+'</span>'+
+    '</div>';
+  }
+
+  function renderSteps(){
+    $$("#checkout-steps i").forEach(function(el){
+      var n = parseInt(el.getAttribute("data-step"),10);
+      el.setAttribute("data-on", n===state.step);
+      el.setAttribute("data-done", n<state.step);
+    });
+  }
+
+  function summaryHTML(){
+    var items = state.cart.map(function(item){
+      var p = product(item.id);
+      return '<div class="si"><div class="thumb">'+artwork(p,"summary")+'</div>'+
+        '<div><div>'+esc(item.name)+'</div><div class="qty">'+esc(item.variant)+' · '+item.qty+' pc</div></div>'+
+        '<div class="si-price">'+money(item.price*item.qty)+'</div></div>';
+    }).join("");
+    return '<aside class="summary" data-testid="order-summary">'+
+      '<div class="summary-head"><h4>Order summary</h4><span class="result-count">'+itemCount()+' items</span></div>'+
+      '<div class="summary-items">'+items+'</div>'+
+      '<div class="summary-tot"><div class="totals">'+
+        '<div><span>Subtotal</span><span class="val">'+money(subtotal())+'</span></div>'+
+        (couponDiscount()?'<div class="disc"><span>Coupon '+state.coupon+'</span><span class="val">−'+money(couponDiscount())+'</span></div>':'')+
+        (pixDiscount()?'<div class="disc"><span>Pix discount (5%)</span><span class="val">−'+money(pixDiscount())+'</span></div>':'')+
+        '<div><span>Shipping</span><span class="val">'+(state.shipping ? (state.shipping.price?money(state.shipping.price):"Free") : "—")+'</span></div>'+
+        '<div class="t-total"><span>Total</span><span class="val" data-testid="checkout-total">'+money(orderTotal())+'</span></div>'+
+      '</div></div>'+
+    '</aside>';
+  }
+
+  function stepDeliveryHTML(){
+    var d = state.delivery;
+    return '<div><div class="panel">'+
+      '<h3>Your details</h3><p class="sub">We use your details only to issue the invoice and track the delivery.</p>'+
+      '<div class="field-grid">'+
+        field("name","Full name",{autocomplete:"name", placeholder:"Ana Ribeiro", value:d.name})+
+        field("email","Email",{cls:"half", type:"email", autocomplete:"email", placeholder:"ana@email.com", value:d.email, error:"Enter a valid email address"})+
+        field("phone","Mobile",{cls:"half", autocomplete:"tel", placeholder:"(11) 99999-0000", inputmode:"tel", value:d.phone})+
+        field("tax-id","Tax ID (CPF)",{cls:"half", placeholder:"000.000.000-00", inputmode:"numeric", value:d.taxId, error:"Enter 11 digits"})+
+      '</div>'+
+      '<div class="divider"></div>'+
+      '<h3>Delivery address</h3><p class="sub">The postal code sets the shipping options and estimate in the next step.</p>'+
+      '<div class="field-grid">'+
+        field("postal-code","Postal code (CEP)",{cls:"third", autocomplete:"postal-code", placeholder:"05416-000", inputmode:"numeric", value:d.postalCode, error:"Enter 8 digits"})+
+        field("street","Street",{cls:"two-thirds", autocomplete:"address-line1", placeholder:"Rua Fradique Coutinho", value:d.street})+
+        field("number","Number",{cls:"third", placeholder:"812", value:d.number})+
+        field("complement","Complement (optional)",{cls:"two-thirds", autocomplete:"address-line2", placeholder:"Apt 41", value:d.complement, error:""})+
+        field("district","District",{cls:"half", placeholder:"Pinheiros", value:d.district})+
+        field("city","City",{cls:"third", autocomplete:"address-level2", placeholder:"São Paulo", value:d.city})+
+        '<div class="field third"><label for="state">State</label><select id="state" name="state" data-testid="state">'+
+          '<option value="">—</option>'+STATES.map(function(uf){ return '<option value="'+uf+'"'+(d.state===uf?" selected":"")+'>'+uf+'</option>'; }).join("")+
+        '</select><span class="err" id="err-state">Select a state</span></div>'+
+      '</div>'+
+      '<div class="ck-actions" style="margin-top:24px">'+
+        '<button class="back-link" id="fill-test-data" type="button" data-testid="fill-test-data">Fill with test data</button>'+
+        '<button class="btn btn-primary" id="continue-to-shipping" data-testid="continue-to-shipping">Continue to shipping</button>'+
+      '</div>'+
+    '</div></div>';
+  }
+
+  function stepShippingHTML(){
+    var options = shippingOptions();
+    var d = state.delivery;
+    return '<div><div class="panel">'+
+      '<h3>How you want to receive it</h3>'+
+      '<p class="sub">Shipping to '+esc(d.street)+', '+esc(d.number)+' — '+esc(d.district)+', '+esc(d.city)+'/'+esc(d.state)+' · CEP '+esc(d.postalCode)+'</p>'+
+      '<div class="option-list" id="shipping-list">'+
+        options.map(function(o){
+          return '<label class="option" data-sel="'+(state.shipping && state.shipping.id===o.id)+'" data-testid="shipping-option" data-ship="'+o.id+'">'+
+            '<input type="radio" name="shipping" value="'+o.id+'"'+((state.shipping&&state.shipping.id===o.id)?" checked":"")+'>'+
+            '<span class="o-main"><span class="o-name">'+o.name+'</span><br><span class="o-desc">'+esc(o.desc)+'</span></span>'+
+            '<span class="o-price">'+(o.price?money(o.price):"Free")+'</span>'+
+          '</label>';
+        }).join("")+
+      '</div>'+
+      '<p class="note" style="margin-top:14px">Orders placed before 2 pm ship the same business day. The estimate starts counting after dispatch.</p>'+
+      '<div class="ck-actions" style="margin-top:24px">'+
+        '<button class="back-link" id="back-to-delivery" type="button">Back to delivery details</button>'+
+        '<button class="btn btn-primary" id="continue-to-payment" data-testid="continue-to-payment"'+(state.shipping?"":" disabled")+'>Continue to payment</button>'+
+      '</div>'+
+    '</div></div>';
+  }
+
+  function stepPaymentHTML(){
+    var total = orderTotal();
+    var installmentOptions = "";
+    for(var n=1;n<=6;n++){
+      installmentOptions += '<option value="'+n+'"'+(state.installments===n?" selected":"")+'>'+n+'× '+money(round2(total/n))+(n===1?" in full":" interest-free")+'</option>';
+    }
+    var pixPreview = round2(total - round2((subtotal()-couponDiscount())*0.05));
+    return '<div><div class="panel">'+
+      '<h3>Payment</h3><p class="sub">Simulated transaction — nothing is sent to any service. Use the test card 4242 4242 4242 4242.</p>'+
+      '<div class="option-list">'+
+        '<label class="option" data-sel="'+(state.payment==="card")+'" data-testid="pay-card" data-pay="card">'+
+          '<input type="radio" name="payment" value="card"'+(state.payment==="card"?" checked":"")+'>'+
+          '<span class="o-main"><span class="o-name">Credit card</span><br><span class="o-desc">Up to 6 interest-free installments</span></span>'+
+          '<span class="o-price">'+money(total)+'</span></label>'+
+        '<label class="option" data-sel="'+(state.payment==="pix")+'" data-testid="pay-pix" data-pay="pix">'+
+          '<input type="radio" name="payment" value="pix"'+(state.payment==="pix"?" checked":"")+'>'+
+          '<span class="o-main"><span class="o-name">Pix</span><br><span class="o-desc">5% off, approved instantly</span></span>'+
+          '<span class="o-price">'+money(state.payment==="pix"?total:pixPreview)+'</span></label>'+
+        '<label class="option" data-sel="'+(state.payment==="boleto")+'" data-testid="pay-boleto" data-pay="boleto">'+
+          '<input type="radio" name="payment" value="boleto"'+(state.payment==="boleto"?" checked":"")+'>'+
+          '<span class="o-main"><span class="o-name">Bank slip (Boleto)</span><br><span class="o-desc">Clears within 2 business days</span></span>'+
+          '<span class="o-price">'+money(total)+'</span></label>'+
+      '</div>'+
+      (state.payment==="card" ?
+        '<div class="divider"></div><div class="field-grid" id="card-fields">'+
+          field("card-number","Card number",{placeholder:"4242 4242 4242 4242", inputmode:"numeric", autocomplete:"cc-number", error:"Enter 16 digits"})+
+          field("card-name","Name on card",{placeholder:"ANA C RIBEIRO", autocomplete:"cc-name"})+
+          field("card-expiry","Expiry",{cls:"third", placeholder:"12/29", autocomplete:"cc-exp", error:"Use MM/YY"})+
+          field("card-cvv","CVV",{cls:"third", placeholder:"123", inputmode:"numeric", autocomplete:"cc-csc", error:"3 digits"})+
+          '<div class="field third"><label for="installments">Installments</label><select id="installments" name="installments" data-testid="installments">'+installmentOptions+'</select><span class="err"></span></div>'+
+        '</div>' : '')+
+      (state.payment==="pix" ? '<div class="divider"></div><p class="note">On confirmation we generate a simulated Pix code valid for 30 minutes.</p>' : '')+
+      (state.payment==="boleto" ? '<div class="divider"></div><p class="note">The simulated bank slip is shown on the confirmation screen.</p>' : '')+
+      '<div class="ck-actions" style="margin-top:24px">'+
+        '<button class="back-link" id="back-to-shipping" type="button">Back to shipping</button>'+
+        '<button class="btn btn-primary" id="place-order" data-testid="place-order">Pay '+money(total)+'</button>'+
+      '</div>'+
+      '<p class="note" style="margin-top:14px">Demo environment. Do not enter real card details.</p>'+
+    '</div></div>';
+  }
+
+  function confirmationHTML(){
+    var o = state.order;
+    var methodLabel = {card:"Credit card "+o.installments+"×", pix:"Pix", boleto:"Bank slip (Boleto)"}[o.payment];
+    return '<div class="wrap"><div class="success" data-testid="order-confirmation">'+
+      '<div class="seal"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 7"/></svg></div>'+
+      '<p class="eyebrow">Order confirmed</p>'+
+      '<h2>Thank you, '+esc(o.name.split(" ")[0])+'.</h2>'+
+      '<p class="lede" style="margin:14px auto 0">We sent the confirmation to '+esc(o.email)+'. You get the tracking code as soon as the order ships.</p>'+
+      '<p class="oid" data-testid="order-id">'+o.id+'</p>'+
+      '<div class="receipt">'+
+        '<div><span>Delivery</span><span>'+esc(o.shipping.name)+' · '+esc(o.shipping.desc)+'</span></div>'+
+        '<div><span>Address</span><span>'+esc(o.street)+', '+esc(o.number)+' — '+esc(o.city)+'/'+esc(o.state)+'</span></div>'+
+        '<div><span>Payment</span><span>'+methodLabel+'</span></div>'+
+        '<div><span>Items ('+o.items+')</span><span>'+money(o.subtotal)+'</span></div>'+
+        (o.discount?'<div><span>Discounts</span><span>−'+money(o.discount)+'</span></div>':'')+
+        '<div><span>Shipping</span><span>'+(o.shipping.price?money(o.shipping.price):"Free")+'</span></div>'+
+        '<div><span>Total paid</span><span data-testid="order-total">'+money(o.total)+'</span></div>'+
+      '</div>'+
+      '<div class="hero-cta" style="justify-content:center; margin-top:28px">'+
+        '<button class="btn btn-primary" id="new-order" data-testid="new-order">Back to store</button>'+
+      '</div>'+
+    '</div></div>';
+  }
+
+  function renderCheckout(){
+    if(!$("#checkout").classList.contains("on")) return;
+    var body = $("#checkout-body");
+    if(state.order){
+      $("#checkout-steps").style.visibility = "hidden";
+      body.innerHTML = confirmationHTML();
+      return;
+    }
+    $("#checkout-steps").style.visibility = "visible";
+    renderSteps();
+    var content = state.step===1 ? stepDeliveryHTML() : state.step===2 ? stepShippingHTML() : stepPaymentHTML();
+    body.innerHTML = '<div class="wrap"><div class="ck-grid">'+content+summaryHTML()+'</div></div>';
+    emit("checkout-step",{step:state.step});
+  }
+
+  var DELIVERY_FIELDS = {name:"name", email:"email", phone:"phone", taxId:"tax-id", postalCode:"postal-code",
+    street:"street", number:"number", complement:"complement", district:"district", city:"city", state:"state"};
+
+  function readDeliveryForm(){
+    Object.keys(DELIVERY_FIELDS).forEach(function(stateKey){
+      var el = document.getElementById(DELIVERY_FIELDS[stateKey]);
+      if(el) state.delivery[stateKey] = el.value.trim();
+    });
+  }
+
+  function validateDelivery(){
+    readDeliveryForm();
+    var d = state.delivery, errors = 0;
+    function mark(id, valid){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.setAttribute("aria-invalid", valid ? "false" : "true");
+      if(!valid) errors++;
+    }
+    mark("name", d.name.length>=3);
+    mark("email", /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email));
+    mark("phone", d.phone.replace(/\D/g,"").length>=10);
+    mark("tax-id", d.taxId.replace(/\D/g,"").length===11);
+    mark("postal-code", d.postalCode.replace(/\D/g,"").length===8);
+    mark("street", d.street.length>=3);
+    mark("number", d.number.length>=1);
+    mark("district", d.district.length>=2);
+    mark("city", d.city.length>=2);
+    mark("state", !!d.state);
+    if(errors){
+      var first = $("[aria-invalid='true']");
+      if(first) first.focus();
+      toast("Check the highlighted fields");
+    }
+    return errors===0;
+  }
+
+  function validateCard(){
+    if(state.payment!=="card") return true;
+    var errors = 0;
+    function value(id){ var el = document.getElementById(id); return el ? el.value : ""; }
+    function mark(id, valid){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.setAttribute("aria-invalid", valid?"false":"true");
+      if(!valid) errors++;
+    }
+    mark("card-number", value("card-number").replace(/\D/g,"").length===16);
+    mark("card-name", value("card-name").trim().length>=3);
+    mark("card-expiry", /^\d{2}\/\d{2}$/.test(value("card-expiry").trim()));
+    mark("card-cvv", value("card-cvv").replace(/\D/g,"").length>=3);
+    if(errors) toast("Check your card details");
+    return errors===0;
+  }
+
+  function placeOrder(button){
+    if(!validateCard()) return;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span> Processing payment';
+    setTimeout(function(){
+      var order = {
+        id:"MB-2026-"+String(Math.floor(100000+Math.random()*899999)),
+        name:state.delivery.name, email:state.delivery.email,
+        street:state.delivery.street, number:state.delivery.number,
+        city:state.delivery.city, state:state.delivery.state, postalCode:state.delivery.postalCode,
+        shipping:state.shipping, payment:state.payment, installments:state.installments,
+        items:itemCount(), subtotal:subtotal(),
+        discount:round2(couponDiscount()+pixDiscount()), total:orderTotal(),
+        products:state.cart.slice(), createdAt:new Date().toISOString()
+      };
+      state.order = order;
+      state.cart = []; state.coupon = null; state.shipping = null;
+      save(); renderCart(); renderCheckout();
+      window.scrollTo(0,0);
+      emit("order-placed", order);
+    }, 1500);
+  }
+
+  /* ---------------- persistence ---------------- */
+  var STORAGE_KEY = "mare-demo-store";
+  function save(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({cart:state.cart, coupon:state.coupon, delivery:state.delivery}));
+    }catch(err){}
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return;
+      var saved = JSON.parse(raw);
+      if(saved && saved.cart) state.cart = saved.cart;
+      if(saved && saved.coupon) state.coupon = saved.coupon;
+      if(saved && saved.delivery) state.delivery = saved.delivery;
+    }catch(err){}
+  }
+
+  /* ---------------- events ---------------- */
+  document.addEventListener("click", function(event){
+    var target = event.target, el;
+
+    if((el = target.closest("[data-scroll]"))){
+      var section = document.getElementById(el.getAttribute("data-scroll"));
+      if(section) section.scrollIntoView({behavior:"smooth", block:"start"});
+      return;
+    }
+    if((el = target.closest("[data-add]"))){ addToCart(el.getAttribute("data-add"),1,0); openCart(); return; }
+    if((el = target.closest("[data-open]"))){ openProductModal(el.getAttribute("data-open")); return; }
+    if((el = target.closest("[data-cat]"))){
+      state.category = el.getAttribute("data-cat");
+      $$("#filters .chip").forEach(function(chip){ chip.setAttribute("aria-pressed", chip.getAttribute("data-cat")===state.category); });
+      $$("#main-nav button").forEach(function(link){ link.setAttribute("aria-current", link.getAttribute("data-cat")===state.category); });
+      $("#main-nav").classList.remove("on");
+      renderGrid();
+      document.getElementById("catalog").scrollIntoView({behavior:"smooth", block:"start"});
+      return;
+    }
+    if(target.id==="menu-toggle"){
+      var nav = $("#main-nav");
+      nav.classList.toggle("on");
+      target.setAttribute("aria-expanded", nav.classList.contains("on"));
+      return;
+    }
+    if(target.id==="open-cart"){ openCart(); return; }
+    if(target.id==="close-cart" || target.id==="scrim" || target.id==="close-modal"){ closeOverlays(); return; }
+    if(target.id==="browse-products"){ closeOverlays(); document.getElementById("catalog").scrollIntoView({behavior:"smooth"}); return; }
+
+    if((el = target.closest("[data-inc]"))){ changeQty(el.getAttribute("data-inc"), 1); return; }
+    if((el = target.closest("[data-dec]"))){ changeQty(el.getAttribute("data-dec"), -1); return; }
+    if((el = target.closest("[data-remove]"))){ removeItem(el.getAttribute("data-remove")); return; }
+    if(target.id==="apply-coupon"){ applyCoupon($("#coupon").value); return; }
+    if(target.id==="go-to-checkout"){ openCheckout(); return; }
+
+    if((el = target.closest("[data-variant]"))){ state.variant = parseInt(el.getAttribute("data-variant"),10); renderModal(); return; }
+    if(target.id==="modal-inc"){ state.modalQty++; $("#modal-qty").textContent = state.modalQty; return; }
+    if(target.id==="modal-dec"){ state.modalQty = Math.max(1, state.modalQty-1); $("#modal-qty").textContent = state.modalQty; return; }
+    if(target.id==="modal-add"){ addToCart(state.openProduct, state.modalQty, state.variant); closeOverlays(); openCart(); return; }
+
+    if(target.id==="exit-checkout"){ exitCheckout(); return; }
+    if(target.id==="fill-test-data"){
+      state.delivery = {name:"Ana Carolina Ribeiro", email:"ana.ribeiro@example.com", taxId:"123.456.789-09", phone:"(11) 98877-6655",
+        postalCode:"05416-000", street:"Rua Fradique Coutinho", number:"812", complement:"Apt 41", district:"Pinheiros", city:"São Paulo", state:"SP"};
+      renderCheckout();
+      toast("Test data filled in");
+      return;
+    }
+    if(target.id==="continue-to-shipping"){
+      if(!validateDelivery()) return;
+      state.step = 2; save(); renderCheckout(); window.scrollTo(0,0); return;
+    }
+    if(target.id==="back-to-delivery"){ state.step=1; renderCheckout(); return; }
+    if(target.id==="back-to-shipping"){ state.step=2; renderCheckout(); return; }
+    if(target.id==="continue-to-payment"){
+      if(!state.shipping){ toast("Choose a shipping option"); return; }
+      state.step = 3; renderCheckout(); window.scrollTo(0,0); return;
+    }
+    if(target.id==="place-order"){ placeOrder(target); return; }
+    if(target.id==="new-order"){
+      state.order = null; state.step = 1;
+      exitCheckout(); renderGrid();
+      return;
+    }
+  });
+
+  document.addEventListener("change", function(event){
+    var target = event.target;
+    if(target.id==="sort"){ state.sort = target.value; renderGrid(); return; }
+    if(target.name==="shipping"){
+      var options = shippingOptions();
+      for(var i=0;i<options.length;i++){ if(options[i].id===target.value) state.shipping = options[i]; }
+      renderCheckout();
+      emit("shipping-selected", state.shipping);
+      return;
+    }
+    if(target.name==="payment"){ state.payment = target.value; renderCheckout(); return; }
+    if(target.id==="installments"){ state.installments = parseInt(target.value,10); return; }
+  });
+
+  document.addEventListener("input", function(event){
+    var target = event.target;
+    if(target.id==="search"){ state.query = target.value; renderGrid(); return; }
+    if(target.getAttribute && target.getAttribute("aria-invalid")==="true"){ target.setAttribute("aria-invalid","false"); }
+  });
+
+  document.addEventListener("keydown", function(event){
+    if(event.key==="Escape"){ closeOverlays(); }
+    if(event.key==="Enter" && event.target.classList && event.target.classList.contains("card-media")){
+      openProductModal(event.target.getAttribute("data-open"));
+    }
+    if(event.key==="Enter" && event.target.id==="coupon"){ event.preventDefault(); applyCoupon(event.target.value); }
+  });
+
+  var newsletterForm = document.getElementById("newsletter-form");
+  newsletterForm.addEventListener("submit", function(event){
+    event.preventDefault();
+    var email = $("#newsletter-email").value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ toast("Enter a valid email address"); return; }
+    toast("You are on the list.");
+    newsletterForm.reset();
+  });
+
+  /* ---------------- automation API ---------------- */
+  window.AgentPayDemo = {
+    version:"1.0",
+    store:"Maré Botanicals (demo)",
+    products:function(){ return PRODUCTS.map(function(p){ return {id:p.id, name:p.name, category:p.cat, price:p.price}; }); },
+    cart:function(){ return state.cart.slice(); },
+    totals:function(){ return {subtotal:subtotal(), discount:round2(couponDiscount()+pixDiscount()), shipping:shippingCost(), total:orderTotal(), items:itemCount()}; },
+    addItem:function(id, qty){ addToCart(id, qty||1, 0); },
+    clear:function(){ state.cart=[]; state.coupon=null; state.shipping=null; save(); renderCart(); renderCheckout(); },
+    applyCoupon:applyCoupon,
+    openCheckout:openCheckout,
+    order:function(){ return state.order; },
+    state:function(){ return JSON.parse(JSON.stringify(state)); }
+  };
+
+  /* ---------------- start ---------------- */
+  load();
+  $("#hero-art").insertAdjacentHTML("afterbegin", heroArtwork());
+  renderGrid();
+  renderCart();
+})();
+</script>
+</body>
+</html>

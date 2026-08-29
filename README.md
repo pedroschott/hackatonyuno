@@ -6,6 +6,12 @@ Hackathon project powered by Supabase.
 
 Add application code under `src/` and document any required environment variables in `.env.example`.
 
+## Demo store
+
+`src/demo-store/index.html` is a self-contained fictional storefront used to exercise the payment
+flow end to end. Open the file in a browser — there is no build step. See `docs/demo-store.md` for
+test cards, coupons, and the automation hooks it exposes.
+
 ## Folders
 
 - `src/` — application code
