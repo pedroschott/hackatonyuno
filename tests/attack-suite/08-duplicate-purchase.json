@@ -1,0 +1,97 @@
+{
+  "suiteVersion": "1.0",
+  "id": "08-duplicate-purchase",
+  "title": "An idempotent merchant retry does not charge twice",
+  "description": "The exact same verification is retried with the same idempotency key after a successful capture.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-duplicate-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-duplicate-350",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-duplicate-350",
+      "totalMinor": 35000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    },
+    "paymentVault": { "scenario": "captured" }
+  },
+  "steps": [
+    {
+      "id": "issue-capability",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-duplicate-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-duplicate-350",
+        "idempotencyKey": "intent-duplicate-350"
+      }
+    },
+    {
+      "id": "verify-original",
+      "kind": "merchant-verification",
+      "input": {
+        "actor": "merchant-a",
+        "merchantId": "merchant-a",
+        "merchantOrderRef": "order-duplicate-350",
+        "quoteId": "quote-duplicate-350",
+        "purchaseCapability": "$purchaseCapability",
+        "idempotencyKey": "verify-duplicate-350"
+      }
+    },
+    {
+      "id": "verify-idempotent-retry",
+      "kind": "merchant-verification",
+      "input": {
+        "actor": "merchant-a",
+        "merchantId": "merchant-a",
+        "merchantOrderRef": "order-duplicate-350",
+        "quoteId": "quote-duplicate-350",
+        "purchaseCapability": "$purchaseCapability",
+        "idempotencyKey": "verify-duplicate-350"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "verify-original",
+        "httpStatus": 200,
+        "decision": "approved",
+        "reasonCode": "AUTHORIZED",
+        "settlementStatus": "captured"
+      },
+      {
+        "step": "verify-idempotent-retry",
+        "httpStatus": 200,
+        "decision": "approved",
+        "reasonCode": "AUTHORIZED",
+        "settlementStatus": "captured",
+        "idempotentReplay": true
+      }
+    ],
+    "invariants": {
+      "vaultCalls": ["authorize", "capture"],
+      "captureCount": 1,
+      "capturedAmountMinorDelta": 35000,
+      "capturedUsesDelta": 1,
+      "verificationReceiptMatchesOriginal": true
+    }
+  }
+}

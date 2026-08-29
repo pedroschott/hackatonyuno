@@ -1,0 +1,62 @@
+{
+  "suiteVersion": "1.0",
+  "id": "04-expired-mandate",
+  "title": "An expired mandate cannot issue new authority",
+  "description": "The mandate expired before the agent submitted its otherwise valid intent.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-expired-1",
+      "status": "active",
+      "version": 1,
+      "validUntil": "2026-08-29T11:59:59.999Z",
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-expired-mandate-100",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-expired-mandate-100",
+      "totalMinor": 10000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    }
+  },
+  "steps": [
+    {
+      "id": "submit-expired-mandate-intent",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-expired-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-expired-mandate-100",
+        "idempotencyKey": "intent-expired-mandate"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "submit-expired-mandate-intent",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "MANDATE_EXPIRED"
+      }
+    ],
+    "invariants": {
+      "purchaseCapabilityIssued": false,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0
+    }
+  }
+}

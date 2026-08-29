@@ -1,0 +1,48 @@
+{
+  "suiteVersion": "1.0",
+  "id": "14-missing-mandate",
+  "title": "A nonexistent mandate does not become implicit authority",
+  "description": "An otherwise valid agent and merchant quote reference a mandate ID absent from state.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "registeredAgents": ["agent-primary"],
+    "quote": {
+      "id": "quote-missing-mandate-100",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-missing-mandate-100",
+      "totalMinor": 10000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    },
+    "missingMandateId": "mandate-does-not-exist"
+  },
+  "steps": [
+    {
+      "id": "submit-missing-mandate-intent",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-does-not-exist",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-missing-mandate-100",
+        "idempotencyKey": "intent-missing-mandate"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "submit-missing-mandate-intent",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "MANDATE_NOT_FOUND"
+      }
+    ],
+    "invariants": {
+      "purchaseCapabilityIssued": false,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0
+    }
+  }
+}
