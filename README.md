@@ -13,6 +13,18 @@ Minimal starter structure for the project.
 
 Add the first application files under `src/` and update this README as the project takes shape.
 
+## Supabase
+
+This project uses Supabase as its backend platform.
+
+- Project name: `hackatonyuno`
+- Project reference: `oieakzvyonhoddqukmse`
+- Region: `us-west-2`
+- PostgreSQL version: `17`
+- Database host: `db.oieakzvyonhoddqukmse.supabase.co`
+
+Keep Supabase credentials in local environment variables and provide only placeholder values in `.env.example`. Frontend code may use a Supabase publishable key, but service-role and secret keys must never be exposed in the client or committed to Git. Apply Row Level Security to tables exposed through the Data API and document schema changes with migrations.
+
 ## Project guidelines
 
 ### Language
