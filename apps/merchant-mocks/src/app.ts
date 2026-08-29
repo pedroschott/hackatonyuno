@@ -8,25 +8,26 @@ import type { JWK } from 'jose';
 import { z } from 'zod';
 
 import {
+  OrderVerificationRequestSchema,
+  QuoteRequestSchema,
+  SearchRequestSchema,
+  type MerchantQuote,
+  type MerchantQuotePayload,
+  type QuoteRequest,
+  type VerificationResult,
+} from '@agentic-mandates/contracts';
+import { calculateMerchantCartHash, requestFingerprint } from '@agentic-mandates/domain';
+
+import {
   type MerchantRequestAuthenticator,
   type MerchantEndpointPurpose,
   type MerchantRequestActor,
 } from './auth.js';
-import { calculateMerchantCartHash, requestFingerprint } from './canonical.js';
 import {
   merchantDefinitions,
   type CatalogProduct,
   type MerchantDefinition,
 } from './catalog.js';
-import {
-  OrderVerificationRequestSchema,
-  QuoteRequestSchema,
-  SearchRequestSchema,
-  type MerchantOrderStatus,
-  type MerchantQuote,
-  type MerchantQuotePayload,
-  type QuoteRequest,
-} from './contracts.js';
 import {
   type IdempotencyStore,
   type StoredResponse,
@@ -37,6 +38,7 @@ import {
 import {
   type MerchantOrder,
   type MerchantOrderStore,
+  type MerchantOrderVerificationClaim,
   MerchantOrderConflictError,
 } from './order-store.js';
 import { signMerchantQuote } from './quote-signing.js';
@@ -93,7 +95,9 @@ export function createMerchantMocksApp(options: MerchantMocksOptions): Hono<AppE
     now: options.now ?? (() => new Date()),
     idGenerator: options.idGenerator ?? randomUUID,
     quoteTtlMs: options.quoteTtlMs ?? 5 * 60_000,
-    demoScenarioControl: options.demoScenarioControl,
+    ...(options.demoScenarioControl
+      ? { demoScenarioControl: options.demoScenarioControl }
+      : {}),
   };
 
   validateConfiguration(definitions, dependencies);
@@ -259,8 +263,8 @@ function createMerchantRouter(
             quoteScenario,
             dependencies,
           );
-          dependencies.quoteStore.save(quote);
-          dependencies.orderStore.createQuoted({
+          await dependencies.quoteStore.save(quote);
+          await dependencies.orderStore.createQuoted({
             merchantId: merchant.id,
             merchantOrderRef: quote.merchantOrderRef,
             quoteId: quote.id,
@@ -314,7 +318,7 @@ function createMerchantRouter(
       return authenticationFailure;
     }
 
-    const quote = dependencies.quoteStore.get(context.req.param('quoteId'));
+    const quote = await dependencies.quoteStore.get(context.req.param('quoteId'));
     if (!quote) {
       return apiError(context, 404, 'QUOTE_NOT_FOUND', 'The quote does not exist.');
     }
@@ -359,7 +363,7 @@ function createMerchantRouter(
     }
 
     const merchantOrderRef = context.req.param('merchantOrderRef');
-    const quote = dependencies.quoteStore.get(parsed.value.quoteId);
+    const quote = await dependencies.quoteStore.get(parsed.value.quoteId);
     if (!quote) {
       return apiError(context, 404, 'QUOTE_NOT_FOUND', 'The quote does not exist.');
     }
@@ -387,14 +391,49 @@ function createMerchantRouter(
       idempotencyKey.value,
       requestFingerprint(parsed.value),
       async () => {
-        if (isQuoteExpired(quote, dependencies.now())) {
-          return {
-            status: 410,
-            body: apiErrorBody(context, 'QUOTE_EXPIRED', 'The quote has expired.'),
-          };
-        }
+        let claim: MerchantOrderVerificationClaim | undefined;
 
         try {
+          const claimResult = await dependencies.orderStore.claimVerification({
+            merchantId: merchant.id,
+            merchantOrderRef,
+            quoteId: quote.id,
+            idempotencyKey: idempotencyKey.value,
+          });
+
+          if (claimResult.kind === 'terminal') {
+            return {
+              status: 409,
+              body: apiErrorBody(
+                context,
+                'ORDER_ALREADY_VERIFIED',
+                'A terminal verification decision is already stored for this order.',
+              ),
+            };
+          }
+
+          if (claimResult.kind === 'in_progress') {
+            return {
+              status: 409,
+              body: apiErrorBody(
+                context,
+                'VERIFICATION_IN_PROGRESS',
+                'Another verification request is already in progress for this order.',
+              ),
+            };
+          }
+
+          claim = claimResult.claim;
+
+          if (isQuoteExpired(quote, dependencies.now())) {
+            await dependencies.orderStore.abandonVerification(claim);
+            claim = undefined;
+            return {
+              status: 410,
+              body: apiErrorBody(context, 'QUOTE_EXPIRED', 'The quote has expired.'),
+            };
+          }
+
           const verification = await dependencies.mandateVerifier.verify({
             merchantId: merchant.id,
             merchantOrderRef,
@@ -403,22 +442,22 @@ function createMerchantRouter(
             idempotencyKey: idempotencyKey.value,
             requestId: context.get('requestId'),
           });
-          const now = dependencies.now().toISOString();
-          const order = dependencies.orderStore.recordVerification({
-            merchantId: merchant.id,
-            merchantOrderRef,
-            quoteId: quote.id,
-            status: orderStatusForDecision(verification.decision),
+          const order = await dependencies.orderStore.completeVerification(
+            claim,
             verification,
-            createdAt: quote.issuedAt,
-            updatedAt: now,
-          });
+            dependencies.now().toISOString(),
+          );
+          claim = undefined;
 
           return {
-            status: statusForDecision(verification.decision),
+            status: statusForVerification(verification),
             body: { order: toPublicOrder(order) },
           };
         } catch (error) {
+          if (claim) {
+            await dependencies.orderStore.abandonVerification(claim).catch(() => undefined);
+          }
+
           if (error instanceof MerchantOrderConflictError) {
             return {
               status: 409,
@@ -435,6 +474,7 @@ function createMerchantRouter(
             ),
           };
         }
+
       },
     );
 
@@ -704,23 +744,10 @@ function normalizeSearchQuery(value: string): string {
   return value.trim().toLocaleLowerCase().replaceAll(/\s+/g, ' ');
 }
 
-function orderStatusForDecision(
-  decision: 'approved' | 'rejected' | 'approval_required',
-): MerchantOrderStatus {
-  switch (decision) {
+function statusForVerification(verification: VerificationResult): 200 | 202 | 403 {
+  switch (verification.decision) {
     case 'approved':
-      return 'verification_approved';
-    case 'approval_required':
-      return 'approval_required';
-    case 'rejected':
-      return 'verification_rejected';
-  }
-}
-
-function statusForDecision(decision: 'approved' | 'rejected' | 'approval_required'): 200 | 202 | 403 {
-  switch (decision) {
-    case 'approved':
-      return 200;
+      return verification.settlementStatus === 'captured' ? 200 : 202;
     case 'approval_required':
       return 202;
     case 'rejected':
@@ -744,7 +771,14 @@ function toPublicOrder(order: MerchantOrder) {
           reasonCode: verification.reasonCode,
           verificationId: verification.verificationId,
           mandateStatus: verification.mandateStatus,
+          verificationReceipt: verification.verificationReceipt,
           expiresAt: verification.expiresAt,
+          ...(verification.paymentOperationId && verification.settlementStatus
+            ? {
+                paymentOperationId: verification.paymentOperationId,
+                settlementStatus: verification.settlementStatus,
+              }
+            : {}),
         }
       : undefined,
   };

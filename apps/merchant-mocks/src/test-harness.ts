@@ -1,13 +1,18 @@
 import type { JWK } from 'jose';
 
+import type {
+  ReasonCode,
+  SettlementStatus,
+  VerificationResult,
+} from '@agentic-mandates/contracts';
+import { requestFingerprint, sha256Base64Url } from '@agentic-mandates/domain';
+
 import {
   type MerchantRequestAuthenticationInput,
   type MerchantRequestAuthenticationResult,
   type MerchantRequestAuthenticator,
 } from './auth.js';
-import { requestFingerprint, sha256Base64Url } from './canonical.js';
 import { merchantDefinitions } from './catalog.js';
-import type { VerificationResult } from './contracts.js';
 import {
   type MandateVerificationClient,
   type MandateVerificationRequest,
@@ -124,6 +129,10 @@ export class DemoMandateVerificationClient implements MandateVerificationClient 
     private readonly options: {
       scenario?: DemoVerificationScenario;
       now?: () => Date;
+      settlement?: {
+        paymentOperationId: string;
+        settlementStatus: SettlementStatus;
+      };
     } = {},
   ) {}
 
@@ -132,7 +141,10 @@ export class DemoMandateVerificationClient implements MandateVerificationClient 
     const now = this.options.now?.() ?? new Date();
     const reference = requestFingerprint({ scenario, ...request }).slice(0, 24);
     const expiresAt = new Date(now.getTime() + 60_000).toISOString();
-    const result = resultForScenario(scenario, reference, expiresAt);
+    const result: Omit<VerificationResult, 'verificationReceipt'> = {
+      ...resultForScenario(scenario, reference, expiresAt),
+      ...this.options.settlement,
+    };
     const verificationReceipt = await signMandateVerificationReceipt(
       {
         verificationId: result.verificationId,
@@ -147,6 +159,12 @@ export class DemoMandateVerificationClient implements MandateVerificationClient 
         issuedAt: now.toISOString(),
         expiresAt: result.expiresAt,
         keyId: 'mandate-demo-2026-08',
+        ...(result.paymentOperationId && result.settlementStatus
+          ? {
+              paymentOperationId: result.paymentOperationId,
+              settlementStatus: result.settlementStatus,
+            }
+          : {}),
       },
       mandateReceiptPrivateJwk,
     );
@@ -188,7 +206,9 @@ export function createDemoMerchantMocksApp(options: DemoMerchantMocksOptions) {
     ...options,
     requestAuthenticator: new DemoProofAuthenticator({
       agentProof: options.expectedAgentProof,
-      mandateServiceProof: options.expectedMandateServiceProof,
+      ...(options.expectedMandateServiceProof
+        ? { mandateServiceProof: options.expectedMandateServiceProof }
+        : {}),
     }),
     mandateVerifier: options.mandateVerifier ?? new DemoMandateVerificationClient(),
     signingKeys,
@@ -239,12 +259,14 @@ function approvedVerification(
     verificationId: `verify_${reference}`,
     mandateStatus: 'active',
     expiresAt,
+    paymentOperationId: `operation_${reference}`,
+    settlementStatus: 'captured',
   };
 }
 
 function rejectedVerification(
   reference: string,
-  reasonCode: string,
+  reasonCode: ReasonCode,
   mandateStatus: 'active' | 'revoked' | 'expired',
 ): Omit<VerificationResult, 'verificationReceipt'> {
   return {

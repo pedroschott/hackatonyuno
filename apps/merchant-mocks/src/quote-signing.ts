@@ -8,12 +8,12 @@ import {
   type JWK,
 } from 'jose';
 
-import { canonicalJson } from './canonical.js';
 import {
   MerchantQuotePayloadSchema,
   type MerchantQuote,
   type MerchantQuotePayload,
-} from './contracts.js';
+} from '@agentic-mandates/contracts';
+import { canonicalJson } from '@agentic-mandates/domain';
 
 const textEncoder = new TextEncoder();
 

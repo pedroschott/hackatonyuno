@@ -5,6 +5,7 @@ import {
   merchantDefinitions,
   verifyMerchantQuoteSignature,
   HttpMandateVerificationClient,
+  type MandateVerificationClient,
   type MerchantMocksOptions,
   type MerchantQuote,
 } from '../src/index.js';
@@ -285,7 +286,7 @@ describe('merchant mocks', () => {
     expect(firstBody).toEqual(secondBody);
     expect(firstBody.order.status).toBe('verification_approved');
     expect(firstBody.order).not.toHaveProperty('paymentMethodId');
-    expect(firstBody.order).not.toHaveProperty('verification.verificationReceipt');
+    expect(firstBody.order.verification).toHaveProperty('verificationReceipt');
 
     const changedPayload = await requestJson(
       app,
@@ -296,6 +297,215 @@ describe('merchant mocks', () => {
     expect(changedPayload.status).toBe(409);
     expect((await changedPayload.json()) as ApiErrorResponse).toMatchObject({
       error: { code: 'IDEMPOTENCY_KEY_REUSED' },
+    });
+  });
+
+  it.each([
+    { firstScenario: 'valid' as const, expectedStatus: 'verification_approved' },
+    { firstScenario: 'cart_changed' as const, expectedStatus: 'verification_rejected' },
+  ])('preserves a $expectedStatus terminal decision across idempotency keys', async ({
+    firstScenario,
+    expectedStatus,
+  }) => {
+    const firstVerifier = new DemoMandateVerificationClient({ scenario: firstScenario });
+    const competingVerifier = new DemoMandateVerificationClient();
+    let verificationCalls = 0;
+    const mandateVerifier: MandateVerificationClient = {
+      verify: async (request) => {
+        verificationCalls += 1;
+        return verificationCalls === 1
+          ? firstVerifier.verify(request)
+          : competingVerifier.verify(request);
+      },
+    };
+    const app = createTestApp({ mandateVerifier });
+    const quoteResponse = await requestJson(
+      app,
+      `${harvestBasePath}/quotes`,
+      { items: [{ merchantSku: 'hm-rice-jasmine-2lb', quantity: 1 }] },
+      { 'idempotency-key': 'quote-terminal-preservation-001' },
+    );
+    const { quote } = (await quoteResponse.json()) as QuoteResponse;
+    const path = `${harvestBasePath}/orders/${quote.merchantOrderRef}/verification`;
+
+    const firstVerification = await requestJson(
+      app,
+      path,
+      { quoteId: quote.id, purchaseCapability: 'first-capability' },
+      { 'idempotency-key': 'verify-terminal-preservation-001' },
+    );
+    expect(firstVerification.status).toBe(
+      expectedStatus === 'verification_approved' ? 200 : 403,
+    );
+    expect((await firstVerification.json()) as VerificationResponse).toMatchObject({
+      order: { status: expectedStatus },
+    });
+
+    const conflictingVerification = await requestJson(
+      app,
+      path,
+      { quoteId: quote.id, purchaseCapability: 'different-capability' },
+      { 'idempotency-key': 'verify-terminal-preservation-002' },
+    );
+
+    expect(conflictingVerification.status).toBe(409);
+    expect((await conflictingVerification.json()) as ApiErrorResponse).toMatchObject({
+      error: { code: 'ORDER_ALREADY_VERIFIED' },
+    });
+    expect(verificationCalls).toBe(1);
+  });
+
+  it('allows only one concurrent verification attempt across different idempotency keys', async () => {
+    const delegate = new DemoMandateVerificationClient();
+    let verificationCalls = 0;
+    let resolveStarted: () => void = () => undefined;
+    let releaseVerification: () => void = () => undefined;
+    const verificationStarted = new Promise<void>((resolve) => {
+      resolveStarted = resolve;
+    });
+    const verificationReleased = new Promise<void>((resolve) => {
+      releaseVerification = resolve;
+    });
+    const mandateVerifier: MandateVerificationClient = {
+      verify: async (request) => {
+        verificationCalls += 1;
+        resolveStarted();
+        await verificationReleased;
+        return delegate.verify(request);
+      },
+    };
+    const app = createTestApp({ mandateVerifier });
+    const quoteResponse = await requestJson(
+      app,
+      `${harvestBasePath}/quotes`,
+      { items: [{ merchantSku: 'hm-rice-jasmine-2lb', quantity: 1 }] },
+      { 'idempotency-key': 'quote-concurrent-verification-001' },
+    );
+    const { quote } = (await quoteResponse.json()) as QuoteResponse;
+    const path = `${harvestBasePath}/orders/${quote.merchantOrderRef}/verification`;
+    const body = { quoteId: quote.id, purchaseCapability: 'opaque-test-capability' };
+
+    const firstVerification = requestJson(
+      app,
+      path,
+      body,
+      { 'idempotency-key': 'verify-concurrent-001' },
+    );
+    await verificationStarted;
+
+    const competingVerification = await requestJson(
+      app,
+      path,
+      body,
+      { 'idempotency-key': 'verify-concurrent-002' },
+    );
+    expect(competingVerification.status).toBe(409);
+    expect((await competingVerification.json()) as ApiErrorResponse).toMatchObject({
+      error: { code: 'VERIFICATION_IN_PROGRESS' },
+    });
+    expect(verificationCalls).toBe(1);
+
+    releaseVerification();
+    const completedVerification = await firstVerification;
+    expect(completedVerification.status).toBe(200);
+    expect(verificationCalls).toBe(1);
+  });
+
+  it('returns only opaque settlement state from a Mandate verification result', async () => {
+    const app = createTestApp({
+      mandateVerifier: new DemoMandateVerificationClient({
+        settlement: {
+          paymentOperationId: 'operation_mock_001',
+          settlementStatus: 'captured',
+        },
+      }),
+    });
+    const quoteResponse = await requestJson(
+      app,
+      `${harvestBasePath}/quotes`,
+      { items: [{ merchantSku: 'hm-rice-jasmine-2lb', quantity: 1 }] },
+      { 'idempotency-key': 'quote-settlement-projection-001' },
+    );
+    const { quote } = (await quoteResponse.json()) as QuoteResponse;
+    const verificationResponse = await requestJson(
+      app,
+      `${harvestBasePath}/orders/${quote.merchantOrderRef}/verification`,
+      { quoteId: quote.id, purchaseCapability: 'opaque-test-capability' },
+      { 'idempotency-key': 'verify-settlement-projection-001' },
+    );
+    const verification = await verificationResponse.json();
+
+    expect(verificationResponse.status).toBe(200);
+    expect(verification).toMatchObject({
+      order: {
+        verification: {
+          paymentOperationId: 'operation_mock_001',
+          settlementStatus: 'captured',
+        },
+      },
+    });
+    expect(JSON.stringify(verification)).not.toContain('paymentMethodId');
+    expect(JSON.stringify(verification)).not.toContain('providerToken');
+  });
+
+  it('does not mark a pending settlement as fulfillable and accepts its later resolution', async () => {
+    const pending = new DemoMandateVerificationClient({
+      settlement: {
+        paymentOperationId: 'operation_pending_001',
+        settlementStatus: 'pending',
+      },
+    });
+    const captured = new DemoMandateVerificationClient({
+      settlement: {
+        paymentOperationId: 'operation_pending_001',
+        settlementStatus: 'captured',
+      },
+    });
+    let attempts = 0;
+    const app = createTestApp({
+      mandateVerifier: {
+        verify: async (request) => {
+          attempts += 1;
+          return attempts === 1 ? pending.verify(request) : captured.verify(request);
+        },
+      },
+    });
+    const quoteResponse = await requestJson(
+      app,
+      `${harvestBasePath}/quotes`,
+      { items: [{ merchantSku: 'hm-rice-jasmine-2lb', quantity: 1 }] },
+      { 'idempotency-key': 'quote-pending-settlement-001' },
+    );
+    const { quote } = (await quoteResponse.json()) as QuoteResponse;
+    const path = `${harvestBasePath}/orders/${quote.merchantOrderRef}/verification`;
+    const body = { quoteId: quote.id, purchaseCapability: 'opaque-test-capability' };
+
+    const first = await requestJson(
+      app,
+      path,
+      body,
+      { 'idempotency-key': 'verify-pending-settlement-001' },
+    );
+    expect(first.status).toBe(202);
+    expect((await first.json()) as VerificationResponse).toMatchObject({
+      order: {
+        status: 'settlement_pending',
+        verification: { settlementStatus: 'pending' },
+      },
+    });
+
+    const resolved = await requestJson(
+      app,
+      path,
+      body,
+      { 'idempotency-key': 'verify-pending-settlement-002' },
+    );
+    expect(resolved.status).toBe(200);
+    expect((await resolved.json()) as VerificationResponse).toMatchObject({
+      order: {
+        status: 'verification_approved',
+        verification: { settlementStatus: 'captured' },
+      },
     });
   });
 
@@ -414,6 +624,45 @@ describe('merchant mocks', () => {
     });
   });
 
+  it('rejects a Mandate receipt whose settlement state differs from the response', async () => {
+    const request = {
+      merchantId: 'harvest-market',
+      merchantOrderRef: 'order_001',
+      quoteId: 'quote_001',
+      purchaseCapability: 'opaque-capability',
+      idempotencyKey: 'verification-bridge-004',
+      requestId: 'req_bridge_004',
+    };
+    const signedResult = await new DemoMandateVerificationClient({
+      now: () => new Date('2026-08-29T12:00:00.000Z'),
+      settlement: {
+        paymentOperationId: 'operation_bridge_001',
+        settlementStatus: 'captured',
+      },
+    }).verify(request);
+    const client = new HttpMandateVerificationClient({
+      baseUrl: 'https://mandate.example.test/',
+      requestProofSigner: { sign: async () => 'merchant-service-proof' },
+      receiptKeys: new Map([
+        ['mandate-demo-2026-08', testOnlyMandateReceiptPublicJwk],
+      ]),
+      now: () => new Date('2026-08-29T12:00:01.000Z'),
+      fetch: (async () =>
+        new Response(JSON.stringify({
+          ...signedResult,
+          settlementStatus: 'failed',
+        }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })) as typeof fetch,
+    });
+
+    await expect(client.verify(request)).rejects.toMatchObject({
+      name: 'MandateVerificationBridgeError',
+      status: 502,
+    });
+  });
+
   it('fails closed when the Mandate bridge times out', async () => {
     const client = new HttpMandateVerificationClient({
       baseUrl: 'https://mandate.example.test/',
@@ -471,7 +720,7 @@ function requestJson(
       ...(body === undefined ? {} : { 'content-type': 'application/json' }),
       ...headers,
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }
 

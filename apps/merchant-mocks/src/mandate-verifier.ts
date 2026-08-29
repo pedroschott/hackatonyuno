@@ -8,13 +8,13 @@ import {
   type JWK,
 } from 'jose';
 
-import { canonicalJson, sha256Base64Url } from './canonical.js';
 import {
   VerificationReceiptPayloadSchema,
   VerificationResultSchema,
   type VerificationReceiptPayload,
   type VerificationResult,
-} from './contracts.js';
+} from '@agentic-mandates/contracts';
+import { canonicalJson, sha256Base64Url } from '@agentic-mandates/domain';
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -269,7 +269,9 @@ function assertReceiptMatchesResult(
     receipt.decision !== result.decision ||
     receipt.reasonCode !== result.reasonCode ||
     receipt.mandateStatus !== result.mandateStatus ||
-    receipt.expiresAt !== result.expiresAt
+    receipt.expiresAt !== result.expiresAt ||
+    receipt.paymentOperationId !== result.paymentOperationId ||
+    receipt.settlementStatus !== result.settlementStatus
   ) {
     throw new MandateVerificationReceiptError(
       'The verification receipt and response fields do not match.',
