@@ -37,4 +37,3 @@ can never exceed 50,000 minor units.
 The suite intentionally tests the authorization boundary, not payment-card
 entry. Payment methods are opaque fixture IDs only; a Vault test adapter owns
 any simulated payment behavior.
-
