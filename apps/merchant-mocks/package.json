@@ -15,8 +15,8 @@
     "test:watch": "./node_modules/.bin/vitest"
   },
   "dependencies": {
-    "@agentic-mandates/contracts": "workspace:*",
-    "@agentic-mandates/domain": "workspace:*",
+    "@agentic-mandates/contracts": "file:../../packages/contracts",
+    "@agentic-mandates/domain": "file:../../packages/domain",
     "@hono/node-server": "1.19.17",
     "hono": "4.13.5",
     "jose": "6.2.10",
