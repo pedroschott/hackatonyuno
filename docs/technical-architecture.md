@@ -147,7 +147,7 @@ A quote includes exact merchant SKUs and local category IDs, shipping, taxes, to
     POST /v1/mandates/:mandateId/revocations
     POST /internal/v1/recurrence/tick
 
-The browser uses the Next.js BFF for principal actions. Direct agent and merchant endpoints require signed proofs. The recurrence endpoint accepts only the Supabase Cron shared bearer secret and is not public. `POST /v1/merchant/verifications` is the sole merchant-to-Mandate settlement handoff: once it verifies the quote-bound capability, the Mandate service owns the authorization/capture saga. A merchant never receives a Vault reference and has no capture route.
+The browser uses the Next.js BFF for principal actions. Direct agent and merchant endpoints require signed proofs. Proof audiences are target-specific: `mandate-api` for an Agent or merchant service calling the Mandate API, `merchant-api:<merchantId>` for a request to an individual merchant router, `payment-vault` for the Vault, and `mcp-server` for the optional HTTP MCP adapter. The recurrence endpoint accepts only the Supabase Cron shared bearer secret and is not public. `POST /v1/merchant/verifications` is the sole merchant-to-Mandate settlement handoff: once it verifies the quote-bound capability, the Mandate service owns the authorization/capture saga. A merchant never receives a Vault reference and has no capture route.
 
 ### Payment Vault API
 

@@ -370,7 +370,7 @@ The principal uses an authenticated browser session with `HttpOnly`, `Secure`, a
 
 Controls to implement or simulate visibly:
 
-- Signature verification, key rotation/revocation, and online status checks.
+- Signature verification, key rotation/revocation, and online status checks. Every request proof has a target-specific audience (`mandate-api`, `merchant-api:<merchantId>`, `payment-vault`, or `mcp-server`) so a valid proof cannot be replayed at another service.
 - Short-lived, one-time capability with atomic consumption.
 - Binding of capability to merchant, agent, canonical cart hash, currency, amount, and expiration.
 - Replay protection using nonce and consumed-capability state.
