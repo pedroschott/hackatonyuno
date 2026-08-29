@@ -22,20 +22,20 @@ export function PendingDraftCard({ mandate }: { mandate: Mandate }) {
 
   return (
     <Card className="ap-in overflow-hidden border-l-[3px] border-l-brand">
-      <div className="flex gap-5 px-5 py-4">
+      <div className="flex flex-col gap-4 px-5 py-4 md:flex-row md:gap-5">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-full bg-brand-soft text-brand-ink">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink">
               <Bot className="size-4" />
             </div>
             <span className="text-[14px] font-semibold">{mandate.origin?.requested_by ?? "Agent"} requested a mandate</span>
             <Badge tone="brand">{mandate.origin?.via === "api" ? "via API" : "via panel"}</Badge>
-            <span className="ml-auto text-[12px] text-muted">{relative(mandate.created_at)}</span>
+            <span className="text-[12px] text-muted sm:ml-auto">{relative(mandate.created_at)}</span>
           </div>
           {mandate.natural_language_description && (
             <blockquote className="mt-2 border-l-2 border-line pl-3 text-[13.5px] text-ink-2">“{mandate.natural_language_description}”</blockquote>
           )}
-          <div className="mt-3 grid grid-cols-3 gap-x-4 gap-y-2 text-[13px]">
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[13px] sm:grid-cols-3">
             <Fact k="Scope" v={`${mandate.scope.categories.join(", ")} · ${merchants}`} />
             <Fact k="Per purchase" v={brl(mandate.limits.per_purchase_cents)} />
             <Fact k="Monthly" v={`${brl(mandate.limits.cumulative_cents)} · ${mandate.limits.max_uses}×`} />
@@ -43,17 +43,17 @@ export function PendingDraftCard({ mandate }: { mandate: Mandate }) {
             <Fact k="Mandate" v={<Mono>{mandate.id}</Mono>} />
             <Fact k="Hash" v={<Mono>{mandateHash(mandate).slice(0, 12)}…</Mono>} />
           </div>
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button variant="primary" icon={<Fingerprint className="size-4" />} onClick={() => setCeremony(true)}>
               Approve here
             </Button>
             <Button onClick={() => decline(mandate.id)}>Decline</Button>
-            <a href={url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-muted hover:text-ink">
-              <ExternalLink className="size-3.5" /> {url.replace(/^https?:\/\//, "")}
+            <a href={url} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center gap-1 text-[12.5px] text-muted hover:text-ink sm:ml-auto">
+              <ExternalLink className="size-3.5 shrink-0" /> <span className="truncate">{url.replace(/^https?:\/\//, "")}</span>
             </a>
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-center gap-1.5">
+        <div className="flex shrink-0 flex-col items-center gap-1.5 self-start md:self-auto">
           <Qr value={url} size={128} />
           <span className="inline-flex items-center gap-1 text-[11.5px] text-muted">
             <Smartphone className="size-3.5" /> Approve on your phone

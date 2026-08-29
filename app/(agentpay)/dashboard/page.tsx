@@ -42,7 +42,7 @@ export default function DashboardPage() {
         }
       />
 
-      <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-6">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6">
         {/* Left */}
         <div className="space-y-6">
           {drafts.length > 0 && (
@@ -97,10 +97,10 @@ export default function DashboardPage() {
               <CardHeader title="Previous mandates" />
               <ul className="divide-y divide-line-2">
                 {others.map((m) => (
-                  <li key={m.id} className="flex items-center gap-3 px-5 py-2.5 text-[13px]">
+                  <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-[13px]">
                     <Mono>{m.id}</Mono>
                     <span className="text-muted">{m.scope.categories.join(", ")} · {m.scope.merchants.length} merchant</span>
-                    <span className="ml-auto text-muted">{timeShort(m.created_at)}</span>
+                    <span className="text-muted sm:ml-auto">{timeShort(m.created_at)}</span>
                     {m.status === "revoked" && <Badge tone="danger">revoked</Badge>}
                     {m.status === "active" && <Badge tone="neutral">superseded</Badge>}
                     {m.status === "declined" && <Badge tone="danger">declined</Badge>}
@@ -121,7 +121,7 @@ export default function DashboardPage() {
               actions={<span className="text-[12px] text-muted tabular">{attempts.length}</span>}
               className="px-4 py-3"
             />
-            <div className="max-h-[calc(100vh-380px)] overflow-y-auto">
+            <div className="max-h-[420px] overflow-y-auto xl:max-h-[calc(100vh-380px)]">
               <AttemptFeed attempts={attempts.slice(0, 60)} />
             </div>
           </Card>

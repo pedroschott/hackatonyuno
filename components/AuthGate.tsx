@@ -93,9 +93,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-8">
         <Card className="w-full max-w-[420px]">
-          <div className="border-b border-line px-6 py-5">
+          <div className="border-b border-line px-5 py-5 sm:px-6">
             <Logo />
             <h1 className="mt-5 text-[21px] font-semibold">
               {mode === "signin" ? "Sign in to AgentPay" : "Create your AgentPay account"}
@@ -104,7 +104,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               One account, your saved payment methods, and one passkey for purchase approvals.
             </p>
           </div>
-          <div className="space-y-4 px-6 py-5">
+          <div className="space-y-4 px-5 py-5 sm:px-6">
             <Field label="Email">
               <Input
                 type="email"
@@ -153,9 +153,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (account.passkeys.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-8">
         <Card className="w-full max-w-[440px]">
-          <div className="px-6 py-6 text-center">
+          <div className="px-5 py-6 text-center sm:px-6">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-soft text-brand">
               <Fingerprint className="size-7" />
             </div>

@@ -50,17 +50,17 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
 
   return (
     <Modal open onClose={onClose} width="max-w-[520px]" dismissible={revealed || !attempt}>
-      <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-5 py-3.5">
         <Mark size={20} />
         <span className="text-[14px] font-semibold">AgentPay checkout</span>
-        <span className="ml-auto text-[12px] text-muted">merchant <Mono>mrc_autoparts</Mono></span>
+        <span className="text-[12px] text-muted sm:ml-auto">merchant <Mono>mrc_autoparts</Mono></span>
       </div>
 
       {(
         <div className="px-5 py-4">
           {/* Order */}
-          <div className="flex items-center justify-between rounded-md bg-canvas px-3 py-2.5 text-[13.5px]">
-            <div>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-canvas px-3 py-2.5 text-[13.5px]">
+            <div className="min-w-0">
               <div className="font-medium">{product.name}</div>
               <div className="text-[12px] text-muted">
                 {product.sku} · <span className="capitalize">{product.category}</span>
@@ -70,7 +70,7 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
           </div>
 
           {/* Buyer */}
-          <div className="mt-3 grid grid-cols-2 gap-2 text-[12.5px]">
+          <div className="mt-3 grid grid-cols-1 gap-2 text-[12.5px] sm:grid-cols-2">
             <div className="rounded-md border border-line px-3 py-2">
               <div className="text-[11px] uppercase tracking-wide text-faint">Purchasing agent</div>
               <div className="mt-0.5 font-medium">{agent.name}</div>

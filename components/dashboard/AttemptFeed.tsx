@@ -67,7 +67,7 @@ export function AttemptRow({ attempt, fresh, compact }: { attempt: Attempt; fres
       {open && (
         <div className="ap-in border-t border-line-2 bg-canvas px-4 py-3">
           <ChecksList checks={attempt.checks} />
-          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11.5px] text-muted">
+          <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-[11.5px] text-muted sm:grid-cols-2">
             <span>attempt <Mono>{attempt.id}</Mono></span>
             <span>mandate <Mono>{attempt.mandate_id ?? "—"}</Mono></span>
             <span>nonce <Mono>{attempt.request.nonce}</Mono></span>

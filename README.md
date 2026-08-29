@@ -45,10 +45,12 @@ npm run test:mcp -- user@example.com 'password'
 | `/dashboard` | Existing AgentPay dashboard: mandates, pending approvals, limits, revocation and audit feed |
 | `/connect` | MCP/OAuth connection instructions and discovery endpoints |
 | `/contracts/new` | Create and passkey-authorize a mandate manually |
-| `/m` | Mobile approval and kill-switch experience |
+| `/m` | Phone-first approval inbox and kill switch, opened by QR from the desktop app |
 | `/store` | Merchant demo with AgentPay checkout verification |
 | `/audit` | Hash-chained decision log |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
+
+Every route above is responsive and usable from a phone. `/m` is a separate, deliberately narrower surface — see the decision log.
 
 ## MCP tools
 

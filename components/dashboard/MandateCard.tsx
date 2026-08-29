@@ -30,10 +30,10 @@ export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?:
   return (
     <Card className={cn("overflow-hidden transition-shadow", status === "revoked" && "shadow-[0_0_0_1px_var(--color-danger)]")}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4">
-        <div className="flex size-9 items-center justify-center rounded-md bg-brand-soft text-[14px] font-semibold text-brand-ink">F</div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3 px-5 py-4">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand-soft text-[14px] font-semibold text-brand-ink">F</div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-[15px] font-semibold">FleetBuyer</span>
             <Badge tone="brand">Intent Mandate</Badge>
             {status === "active" && <Badge tone="success" dot>Active</Badge>}
@@ -41,20 +41,20 @@ export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?:
             {status === "expired" && <Badge tone="warn" dot>Expired</Badge>}
             {status === "draft" && <Badge>Draft</Badge>}
           </div>
-          <div className="mt-0.5 flex items-center gap-2 text-[12px] text-muted">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted">
             <Mono>{mandate.id}</Mono>
             <span>·</span>
             <span>issued by {mandate.issuer.display_name}</span>
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
           {status === "active" && !confirming && (
-            <Button variant="dangerSolid" size="lg" icon={<Ban className="size-4" />} onClick={() => setConfirming(true)}>
+            <Button className="w-full sm:w-auto" variant="dangerSolid" size="lg" icon={<Ban className="size-4" />} onClick={() => setConfirming(true)}>
               Revoke
             </Button>
           )}
           {status === "active" && confirming && (
-            <div className="ap-in flex items-center gap-2 rounded-md bg-danger-soft px-2 py-1.5">
+            <div className="ap-in flex w-full flex-wrap items-center gap-2 rounded-md bg-danger-soft px-2 py-1.5 sm:w-auto">
               <span className="text-[13px] text-danger-ink">Every later purchase fails. Revoke {mandate.id}?</span>
               <Button size="sm" onClick={() => setConfirming(false)}>Cancel</Button>
               <Button
@@ -83,7 +83,7 @@ export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?:
       )}
 
       {/* Limits */}
-      <div className="grid grid-cols-4 divide-x divide-line border-y border-line">
+      <div className="grid grid-cols-1 gap-px border-y border-line bg-line sm:grid-cols-2 xl:grid-cols-4">
         <EditableMoney
           label="Per purchase"
           valueCents={mandate.limits.per_purchase_cents}
@@ -115,7 +115,7 @@ export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?:
             </div>
           }
         />
-        <div className="px-5 py-3.5">
+        <div className="bg-surface px-5 py-3.5">
           <div className="text-[11.5px] font-medium uppercase tracking-wide text-faint">Valid until</div>
           <div className="mt-0.5 text-[15px] font-semibold tabular">{dateTime(mandate.validity.expires_at)}</div>
           <div className={cn("mt-1 inline-flex items-center gap-1 text-[11.5px]", status === "expired" ? "text-danger-ink" : "text-muted")}>
@@ -125,7 +125,7 @@ export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?:
       </div>
 
       {/* Scope + payment */}
-      <div className="grid grid-cols-3 gap-4 px-5 py-4 text-[13px]">
+      <div className="grid grid-cols-1 gap-4 px-5 py-4 text-[13px] sm:grid-cols-3">
         <div>
           <div className="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-medium uppercase tracking-wide text-faint">
             <Store className="size-3" /> Merchants
@@ -150,7 +150,7 @@ export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?:
           <div className="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-medium uppercase tracking-wide text-faint">
             <CreditCard className="size-3" /> Payment
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CardBrand brand={card?.brand ?? "mastercard"} />
             <span className="font-medium">•••• {card?.last4 ?? "????"}</span>
             <span className="text-[12px] text-muted">vault ref only</span>
@@ -204,7 +204,7 @@ function EditableBase({ label, value, onSave, disabled, sub, display, toInput, f
     setEditing(false);
   };
   return (
-    <div className="group px-5 py-3.5">
+    <div className="group bg-surface px-5 py-3.5">
       <div className="text-[11.5px] font-medium uppercase tracking-wide text-faint">{label}</div>
       {editing ? (
         <div className="mt-0.5 flex items-center gap-1">

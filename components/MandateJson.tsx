@@ -16,19 +16,19 @@ export function MandateJson({ mandate, defaultOpen = false, className }: { manda
 
   return (
     <div className={cn("rounded-md border border-line", className)}>
-      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] hover:bg-canvas">
-        <ChevronRight className={cn("size-4 text-faint transition-transform", open && "rotate-90")} />
+      <button onClick={() => setOpen(!open)} className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 text-left text-[13px] hover:bg-canvas">
+        <ChevronRight className={cn("size-4 shrink-0 text-faint transition-transform", open && "rotate-90")} />
         <span className="font-medium text-ink">What your agent actually holds</span>
-        <span className="ml-auto flex items-center gap-2">
+        <span className="flex items-center gap-2 sm:ml-auto">
           <span className="text-[12px] text-muted">sha256</span>
           <Mono>{hash.slice(0, 12)}…</Mono>
         </span>
       </button>
       {open && (
         <div className="border-t border-line">
-          <div className="flex items-center gap-2 px-3 py-2 text-[12px] text-muted">
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2 text-[12px] text-muted">
             <Badge tone="brand">AP2 Intent Mandate</Badge>
-            <span>Canonical JSON · sorted keys · this exact string is what the passkey signs.</span>
+            <span className="min-w-0">Canonical JSON · sorted keys · this exact string is what the passkey signs.</span>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(json).then(() => {
@@ -36,7 +36,7 @@ export function MandateJson({ mandate, defaultOpen = false, className }: { manda
                   setTimeout(() => setCopied(false), 1200);
                 });
               }}
-              className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-line-2 hover:text-ink"
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-line-2 hover:text-ink sm:ml-auto"
             >
               {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
               {copied ? "Copied" : "Copy"}

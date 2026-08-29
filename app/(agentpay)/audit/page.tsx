@@ -38,7 +38,7 @@ export default function AuditPage() {
         description="Hash-chained. Every decision is a signed record that human, merchant and auditor read the same way."
         actions={
           <>
-            <Select value={filter} onChange={(e) => setFilter(e.target.value)} className="w-44">
+            <Select value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full sm:w-44">
               <option value="all">All actors</option>
               {actors.map((a) => (
                 <option key={a} value={a}>
@@ -71,7 +71,7 @@ export default function AuditPage() {
         }
       />
 
-      <div className={cn("mb-4 flex items-center gap-2 rounded-md px-4 py-2.5 text-[13px]", chain.ok ? "bg-success-soft text-success-ink" : "bg-danger-soft text-danger-ink", verified && "ap-in")}>
+      <div className={cn("mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-4 py-2.5 text-[13px]", chain.ok ? "bg-success-soft text-success-ink" : "bg-danger-soft text-danger-ink", verified && "ap-in")}>
         {chain.ok ? <ShieldCheck className="size-4" /> : <ShieldAlert className="size-4" />}
         {chain.ok ? (
           <>
@@ -80,14 +80,15 @@ export default function AuditPage() {
         ) : (
           <>Chain broken at seq {chain.brokenAt}</>
         )}
-        {verified && <span className="ml-auto font-medium">{verified.ok ? "Re-verified just now ✓" : "Verification failed"}</span>}
+        {verified && <span className="font-medium sm:ml-auto">{verified.ok ? "Re-verified just now ✓" : "Verification failed"}</span>}
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         {rows.length === 0 ? (
           <EmptyState title="No entries" />
         ) : (
-          <table className="w-full text-[13px]">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] text-[13px]">
             <thead>
               <tr className="border-b border-line text-left text-[11.5px] font-medium uppercase tracking-wide text-faint">
                 <th className="w-12 px-4 py-2.5">#</th>
@@ -105,6 +106,7 @@ export default function AuditPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
     </>
@@ -142,7 +144,7 @@ function Row({ entry: e, open, onToggle }: { entry: ReturnType<typeof useStore.g
       {open && (
         <tr className="bg-canvas">
           <td colSpan={7} className="px-4 py-3">
-            <div className="grid grid-cols-[1fr_260px] gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
               <pre className="overflow-auto rounded bg-white p-3 font-mono text-[11.5px] leading-relaxed text-ink-2 shadow-[var(--shadow-card)]">{JSON.stringify(e.payload, null, 2)}</pre>
               <div className="space-y-2 text-[11.5px] text-muted">
                 <div>

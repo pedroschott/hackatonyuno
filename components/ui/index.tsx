@@ -42,12 +42,12 @@ export function Card({ className, children, ...rest }: React.HTMLAttributes<HTML
 
 export function CardHeader({ title, description, actions, className }: { title: React.ReactNode; description?: React.ReactNode; actions?: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("flex items-start justify-between gap-4 border-b border-line px-5 py-4", className)}>
-      <div>
+    <div className={cn("flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4", className)}>
+      <div className="min-w-0">
         <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
         {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -150,9 +150,9 @@ export function Modal({ open, onClose, title, children, width = "max-w-md", dism
   }, [open, onClose, dismissible]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={() => dismissible && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-ink/40 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={() => dismissible && onClose()}>
       <div
-        className={cn("ap-in w-full rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[var(--shadow-pop)] sm:rounded-xl sm:pb-0", width)}
+        className={cn("ap-in max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[var(--shadow-pop)] sm:max-h-[90dvh] sm:rounded-xl sm:pb-0", width)}
         onMouseDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal

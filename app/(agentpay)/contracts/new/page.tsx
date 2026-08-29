@@ -82,17 +82,17 @@ export default function NewContractPage() {
     <>
       <PageHeader title="New contract" description="An AP2 Intent Mandate: what FleetBuyer may buy, how much, until when, paid with what." />
 
-      <div className="grid grid-cols-[minmax(0,1fr)_400px] items-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-6">
         {/* Form */}
         <div className="space-y-4">
           <Card>
             <CardHeader title="Agent" description="Identity is a signed request, not a User-Agent string." />
-            <div className="flex items-center gap-3 px-5 py-4">
-              <div className="flex size-9 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
+            <div className="flex flex-wrap items-center gap-3 px-5 py-4">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
                 <Bot className="size-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-[14px] font-medium">
+                <div className="flex flex-wrap items-center gap-2 text-[14px] font-medium">
                   {agent.name} <Mono>{agent.id}</Mono>
                 </div>
                 <div className="mt-0.5 truncate text-[12px] text-muted">
@@ -105,7 +105,7 @@ export default function NewContractPage() {
 
           <Card>
             <CardHeader title="Scope" description="Where and what the agent may buy. Everything else is refused." />
-            <div className="grid grid-cols-2 gap-5 px-5 py-4">
+            <div className="grid grid-cols-1 gap-5 px-5 py-4 sm:grid-cols-2">
               <Field label="Merchants" error={errors.merchants}>
                 <ChipGroup>
                   {merchants.map((m) => (
@@ -129,7 +129,7 @@ export default function NewContractPage() {
 
           <Card>
             <CardHeader title="Limits" description="Per purchase escalates to you; cumulative and uses refuse hard." />
-            <div className="grid grid-cols-4 gap-4 px-5 py-4">
+            <div className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Per purchase" error={errors.per}>
                 <MoneyInput valueCents={limits.per_purchase_cents} onChange={(v) => setLimits({ ...limits, per_purchase_cents: v })} />
               </Field>
@@ -149,13 +149,13 @@ export default function NewContractPage() {
 
           <Card>
             <CardHeader title="Validity" description="After this moment every attempt fails with MANDATE_EXPIRED." />
-            <div className="grid grid-cols-2 gap-4 px-5 py-4">
+            <div className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
               <Field label="Not before">
                 <Input value={dateTime(notBefore)} disabled />
               </Field>
               <Field label="Expires at" error={errors.expires}>
                 <Input type="datetime-local" value={expires} onChange={(e) => setExpires(e.target.value)} />
-                <div className="flex gap-1.5 pt-1">
+                <div className="flex flex-wrap gap-1.5 pt-1">
                   <Preset onClick={() => setExpires(toLocalInputValue(endOfDay()))}>Tonight 23:59</Preset>
                   <Preset onClick={() => setExpires(toLocalInputValue(nextSunday2359()))}>Sunday 23:59</Preset>
                   <Preset onClick={() => setExpires(toLocalInputValue(endOfMonth()))}>End of month</Preset>
@@ -180,17 +180,17 @@ export default function NewContractPage() {
               {errors.card && <p className="mb-2 text-[12px] text-danger-ink">{errors.card}</p>}
               <div className="divide-y divide-line-2">
                 {cards.map((c) => (
-                  <label key={c.id} className="flex cursor-pointer items-center gap-3 py-2.5 text-[13.5px]">
+                  <label key={c.id} className="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-[13.5px]">
                     <input type="radio" name="card" checked={cardId === c.id} onChange={() => setCardId(c.id)} className="accent-brand" />
                     <CardBrand brand={c.brand} />
                     <span className="font-medium">•••• {c.last4}</span>
                     <span className="text-muted">{c.label ?? (c.brand === "visa" ? "Visa" : "Mastercard")}</span>
-                    <Mono className="ml-auto">{c.id}</Mono>
+                    <Mono className="sm:ml-auto">{c.id}</Mono>
                   </label>
                 ))}
               </div>
               {addingCard && (
-                <div className="ap-in mt-2 grid grid-cols-[120px_1fr_auto_auto] items-end gap-2 rounded-md bg-canvas p-3">
+                <div className="ap-in mt-2 grid grid-cols-1 items-end gap-2 rounded-md bg-canvas p-3 sm:grid-cols-[120px_1fr_auto_auto]">
                   <Field label="Brand">
                     <Select value={newCard.brand} onChange={(e) => setNewCard({ ...newCard, brand: e.target.value as "visa" | "mastercard" })}>
                       <option value="visa">Visa</option>
@@ -208,9 +208,9 @@ export default function NewContractPage() {
                       onChange={(e) => setNewCard({ ...newCard, last4: e.target.value.replace(/\D/g, "").slice(0, 4) })}
                     />
                   </Field>
-                  <Button className="mb-[22px]" onClick={() => setAddingCard(false)}>Cancel</Button>
+                  <Button className="sm:mb-[22px]" onClick={() => setAddingCard(false)}>Cancel</Button>
                   <Button
-                    className="mb-[22px]"
+                    className="sm:mb-[22px]"
                     variant="primary"
                     disabled={newCard.last4.length !== 4}
                     onClick={async () => {
@@ -229,7 +229,7 @@ export default function NewContractPage() {
         </div>
 
         {/* Preview */}
-        <div className="sticky top-7 space-y-4">
+        <div className="space-y-4 xl:sticky xl:top-7">
           <Card>
             <CardHeader title="Intent Mandate" description="Plain-language summary of what you’re signing." />
             <div className="px-5 py-4 text-[14px] leading-relaxed text-ink-2">
