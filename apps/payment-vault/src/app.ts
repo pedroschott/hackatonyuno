@@ -818,6 +818,12 @@ async function voidAuthorization(
       if (current.status === 'void_pending') {
         return { value: { kind: 'response', response: authorizationResponse(current) } };
       }
+      // A capture has already been handed to the gateway. Do not race a
+      // second gateway mutation against it: reconciliation determines the
+      // terminal state before any later refund/dispute workflow is considered.
+      if (current.status === 'capture_pending') {
+        return { value: { kind: 'response', response: authorizationResponse(current) } };
+      }
       if (current.status === 'captured') {
         return {
           value: {

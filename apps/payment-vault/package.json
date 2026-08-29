@@ -7,9 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "build": "./node_modules/.bin/tsc --project tsconfig.json",
+    "test": "./node_modules/.bin/vitest run",
+    "test:watch": "./node_modules/.bin/vitest"
   },
   "dependencies": {
     "hono": "4.13.5",

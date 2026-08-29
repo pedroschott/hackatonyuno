@@ -10,6 +10,7 @@ import { requestBodyHash } from './canonical.js';
 
 export const PAYMENT_VAULT_AUDIENCE = 'payment-vault';
 export const MANDATE_SERVICE_ID = 'mandate-service';
+const REQUEST_PROOF_JWS_TYPE = 'application/agentic-mandates-request-proof+jws';
 
 export type ServiceRequestAuthenticationInput = {
   request: Request;
@@ -89,7 +90,12 @@ export class JoseServiceJwsAuthenticator implements ServiceJwsAuthenticator {
 
     try {
       const header = decodeProtectedHeader(proof);
-      if (header.alg !== 'ES256' || typeof header.kid !== 'string' || header.kid.length === 0) {
+      if (
+        header.alg !== 'ES256' ||
+        header.typ !== REQUEST_PROOF_JWS_TYPE ||
+        typeof header.kid !== 'string' ||
+        header.kid.length === 0
+      ) {
         return invalid('The Mandate-service request proof is invalid.');
       }
 

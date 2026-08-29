@@ -15,6 +15,7 @@ import {
   DeterministicMockYunoRouter,
   InMemoryMockPaymentScenarioResolver,
   type MockGatewayScenario,
+  type MockYunoRouterOptions,
 } from './mock-yuno.js';
 import { InMemoryHostedSetupSessionStore } from './hosted-setup-store.js';
 import { InMemoryPaymentAuthorizationStore } from './payment-authorization-store.js';
@@ -45,6 +46,7 @@ const testKeyId = 'mandate-demo-2026-08';
 export type DemoPaymentVaultOptions = {
   now?: () => Date;
   scenarios?: ReadonlyMap<string, MockGatewayScenario>;
+  mockYunoOptions?: MockYunoRouterOptions;
 };
 
 /**
@@ -61,7 +63,12 @@ export function createDemoPaymentVaultApp(options: DemoPaymentVaultOptions = {})
     now,
   });
   const scenarioResolver = new InMemoryMockPaymentScenarioResolver('approved', options.scenarios);
-  const yunoRouter = new DeterministicMockYunoRouter(scenarioResolver);
+  const yunoRouter = new DeterministicMockYunoRouter(
+    scenarioResolver,
+    undefined,
+    undefined,
+    options.mockYunoOptions,
+  );
 
   return {
     app: createPaymentVaultApp({
@@ -88,6 +95,7 @@ export async function createMandateServiceRequest(input: {
   now?: () => Date;
   audience?: string;
   proofId?: string;
+  proofType?: string;
   url?: string;
 }): Promise<Request> {
   const method = input.method.toUpperCase();
@@ -101,6 +109,7 @@ export async function createMandateServiceRequest(input: {
     now?: () => Date;
     audience?: string;
     proofId?: string;
+    proofType?: string;
   } = {
     request: signingRequest,
     rawBody,
@@ -113,6 +122,9 @@ export async function createMandateServiceRequest(input: {
   }
   if (input.proofId) {
     proofInput.proofId = input.proofId;
+  }
+  if (input.proofType) {
+    proofInput.proofType = input.proofType;
   }
   const proof = await createMandateServiceProof(proofInput);
   const headers = new Headers({ 'x-mandate-request-proof': proof });
@@ -138,6 +150,7 @@ export async function createMandateServiceProof(input: {
   now?: () => Date;
   audience?: string;
   proofId?: string;
+  proofType?: string;
 }): Promise<string> {
   const now = input.now?.() ?? new Date('2026-08-29T12:00:00.000Z');
   const nowSeconds = Math.floor(now.getTime() / 1000);
@@ -147,7 +160,11 @@ export async function createMandateServiceProof(input: {
     htu: canonicalRequestUrl(input.request),
     body_hash: requestBodyHash(input.rawBody),
   })
-    .setProtectedHeader({ alg: 'ES256', kid: testKeyId })
+    .setProtectedHeader({
+      alg: 'ES256',
+      kid: testKeyId,
+      typ: input.proofType ?? 'application/agentic-mandates-request-proof+jws',
+    })
     .setIssuer(MANDATE_SERVICE_ID)
     .setSubject(MANDATE_SERVICE_ID)
     .setAudience(input.audience ?? PAYMENT_VAULT_AUDIENCE)

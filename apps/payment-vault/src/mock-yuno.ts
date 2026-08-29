@@ -59,6 +59,15 @@ export interface MockYunoRouter {
   }): Promise<MockYunoVoidResult>;
 }
 
+/** Test hook for proving the Vault's local capture/void state transition. */
+export type MockYunoRouterOptions = {
+  beforeCapture?: (input: {
+    authorizationId: string;
+    operationId: string;
+    idempotencyKey: string;
+  }) => Promise<void>;
+};
+
 export interface MockPaymentScenarioResolver {
   resolve(input: {
     authorizationId: string;
@@ -124,6 +133,7 @@ export class DeterministicMockYunoRouter implements MockYunoRouter {
     private readonly scenarioResolver: MockPaymentScenarioResolver,
     gatewayA: MockCardGateway = new InMemoryMockCardGateway('card-gateway-a'),
     gatewayB: MockCardGateway = new InMemoryMockCardGateway('card-gateway-b'),
+    private readonly options: MockYunoRouterOptions = {},
   ) {
     this.gateways = new Map([
       [gatewayA.id, gatewayA],
@@ -153,6 +163,7 @@ export class DeterministicMockYunoRouter implements MockYunoRouter {
     operationId: string;
     idempotencyKey: string;
   }): Promise<MockYunoCaptureResult> {
+    await this.options.beforeCapture?.(input);
     return this.gatewayForOperation(input.operationId).capture(input.authorizationId);
   }
 
