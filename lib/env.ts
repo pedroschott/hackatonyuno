@@ -21,13 +21,44 @@ export function agentPayBaseUrl(requestUrl?: string): string {
   return "http://localhost:3210";
 }
 
-export function webAuthnEnv(requestUrl?: string) {
-  const origin = process.env.AGENTPAY_RP_ORIGIN ?? agentPayBaseUrl(requestUrl);
+type WebAuthnEnvironmentInput = {
+  origin?: string;
+  requestUrl?: string;
+  rpID?: string;
+  rpName?: string;
+};
+
+export function resolveWebAuthnEnv(input: WebAuthnEnvironmentInput = {}) {
+  const origin = new URL(input.origin ?? agentPayBaseUrl(input.requestUrl)).origin;
+  const originUrl = new URL(origin);
+  const rpID = input.rpID?.trim() || originUrl.hostname;
+
+  if (originUrl.protocol !== "https:" && originUrl.hostname !== "localhost") {
+    throw new Error("AgentPay passkeys require HTTPS outside localhost");
+  }
+  if (rpID !== originUrl.hostname) {
+    throw new Error(
+      `AGENTPAY_RP_ID must exactly match the AgentPay hostname (${originUrl.hostname}), not a parent domain`,
+    );
+  }
+  if (input.requestUrl && new URL(input.requestUrl).origin !== origin) {
+    throw new Error(`Open AgentPay at ${origin} to use your passkey`);
+  }
+
   return {
-    rpName: process.env.AGENTPAY_RP_NAME ?? "AgentPay",
-    rpID: process.env.AGENTPAY_RP_ID ?? new URL(origin).hostname,
+    rpName: input.rpName?.trim() || "AgentPay",
+    rpID,
     origin,
   };
+}
+
+export function webAuthnEnv(requestUrl?: string) {
+  return resolveWebAuthnEnv({
+    origin: process.env.AGENTPAY_RP_ORIGIN,
+    requestUrl,
+    rpID: process.env.AGENTPAY_RP_ID,
+    rpName: process.env.AGENTPAY_RP_NAME,
+  });
 }
 
 export function encryptionSecret(): string {

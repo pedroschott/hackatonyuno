@@ -1,4 +1,5 @@
 import {
+  platformAuthenticatorIsAvailable,
   startAuthentication,
   startRegistration,
 } from "@simplewebauthn/browser";
@@ -23,7 +24,28 @@ async function jsonRequest<T>(url: string, body: unknown): Promise<T> {
 }
 
 export async function platformPasskeyAvailable(): Promise<boolean> {
-  return typeof window !== "undefined" && "PublicKeyCredential" in window;
+  if (typeof window === "undefined" || !("PublicKeyCredential" in window)) return false;
+  try {
+    return await platformAuthenticatorIsAvailable();
+  } catch {
+    return false;
+  }
+}
+
+function passkeyErrorMessage(error: unknown, action: "create" | "authorize"): string {
+  const failure = error as { code?: string; name?: string; message?: string };
+  if (failure.code === "ERROR_INVALID_RP_ID" || failure.code === "ERROR_INVALID_DOMAIN") {
+    return "AgentPay cannot use passkeys on this address. Open the official AgentPay link and try again.";
+  }
+  if (failure.code === "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED") {
+    return "This device already has an AgentPay passkey. Use it to authorize the request.";
+  }
+  if (failure.name === "NotAllowedError" || failure.code === "ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY") {
+    return action === "create"
+      ? "Passkey setup was canceled or Face ID/Touch ID is unavailable here. Open AgentPay directly in Safari or Chrome on this device and try again."
+      : "No AgentPay passkey was selected on this device. Open AgentPay directly in Safari or Chrome, then try again.";
+  }
+  return failure.message || "The passkey ceremony could not be completed";
 }
 
 export async function registerPasskey(): Promise<{ verified: true; credential_id: string }> {
@@ -31,7 +53,12 @@ export async function registerPasskey(): Promise<{ verified: true; credential_id
     challenge_id: string;
     options: Parameters<typeof startRegistration>[0]["optionsJSON"];
   }>("/api/passkeys/register", { phase: "start" });
-  const response = await startRegistration({ optionsJSON: start.options });
+  let response: Awaited<ReturnType<typeof startRegistration>>;
+  try {
+    response = await startRegistration({ optionsJSON: start.options });
+  } catch (error) {
+    throw new Error(passkeyErrorMessage(error, "create"));
+  }
   return jsonRequest("/api/passkeys/register", {
     phase: "finish",
     challenge_id: start.challenge_id,
@@ -50,7 +77,12 @@ export async function passkeyAuthorize(
     challenge_id: string;
     options: Parameters<typeof startAuthentication>[0]["optionsJSON"];
   }>(opts.endpoint, { phase: "start" });
-  const response = await startAuthentication({ optionsJSON: start.options });
+  let response: Awaited<ReturnType<typeof startAuthentication>>;
+  try {
+    response = await startAuthentication({ optionsJSON: start.options });
+  } catch (error) {
+    throw new Error(passkeyErrorMessage(error, "authorize"));
+  }
   await jsonRequest(opts.endpoint, {
     phase: "finish",
     challenge_id: start.challenge_id,

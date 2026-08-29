@@ -74,6 +74,7 @@ function CeremonyBody({
   }
 
   const busy = phase === "prompt" || phase === "signed" || phase === "cosign";
+  const platformUnavailable = real === false;
 
   return (
     <Modal open={open} onClose={onClose} dismissible={!busy} width="max-w-[440px]">
@@ -115,14 +116,22 @@ function CeremonyBody({
 
         {/* Facts */}
         {phase === "review" && (
-          <dl className="mt-5 divide-y divide-line rounded-md border border-line">
-            {facts.map((f) => (
-              <div key={f.label} className="flex items-baseline justify-between gap-4 px-3 py-2 text-[13px]">
-                <dt className="text-muted">{f.label}</dt>
-                <dd className="text-right font-medium text-ink">{f.value}</dd>
-              </div>
-            ))}
-          </dl>
+          <>
+            {platformUnavailable && (
+              <p className="mt-5 rounded-md bg-warn-soft px-3 py-2 text-[12.5px] text-warn-ink" role="alert">
+                This browser cannot access this device&apos;s passkey. Open this AgentPay link directly in Safari or Chrome,
+                then approve with Face ID or Touch ID.
+              </p>
+            )}
+            <dl className="mt-5 divide-y divide-line rounded-md border border-line">
+              {facts.map((f) => (
+                <div key={f.label} className="flex items-baseline justify-between gap-4 px-3 py-2 text-[13px]">
+                  <dt className="text-muted">{f.label}</dt>
+                  <dd className="text-right font-medium text-ink">{f.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </>
         )}
 
         {/* Challenge / assertion */}
@@ -143,10 +152,12 @@ function CeremonyBody({
         <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
           {phase === "review" && (
             <>
-              <span className="text-[12px] text-muted">Verified by the AgentPay registry</span>
+              <span className="text-[12px] text-muted">
+                {platformUnavailable ? "Use a browser with Face ID or Touch ID" : "Verified by the AgentPay registry"}
+              </span>
               <div className="flex gap-2">
                 <Button onClick={onClose}>Cancel</Button>
-                <Button variant="primary" icon={<Fingerprint className="size-4" />} onClick={run} disabled={real === null || real === false}>
+                <Button variant="primary" icon={<Fingerprint className="size-4" />} onClick={run} disabled={real !== true}>
                   {cta}
                 </Button>
               </div>
@@ -157,7 +168,7 @@ function CeremonyBody({
               <span className="text-[12px] text-muted">A registered passkey is required</span>
               <div className="flex gap-2">
                 <Button onClick={onClose}>Cancel</Button>
-                <Button variant="primary" onClick={run}>Try again</Button>
+                <Button variant="primary" onClick={run} disabled={platformUnavailable}>Try again</Button>
               </div>
             </>
           )}
