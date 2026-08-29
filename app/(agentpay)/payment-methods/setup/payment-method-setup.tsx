@@ -47,7 +47,7 @@ export function PaymentMethodSetup({ token }: { token: string }) {
         description="Add a payment method inside AgentPay, then return to your agent to continue the mandate."
       />
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
         <Card>
           {saved ? (
             <div className="px-6 py-10 text-center">
@@ -152,10 +152,10 @@ export function PaymentMethodSetup({ token }: { token: string }) {
               <CardHeader title="Saved payment methods" description={`${cards.length} available`} />
               <div className="divide-y divide-line-2 px-5">
                 {cards.map((card) => (
-                  <div key={card.id} className="flex items-center gap-3 py-3 text-[13px]">
+                  <div key={card.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-[13px]">
                     <CardBrand brand={card.brand} />
                     <span className="font-medium">•••• {card.last4}</span>
-                    <span className="ml-auto text-muted">{card.label ?? card.brand}</span>
+                    <span className="text-muted sm:ml-auto">{card.label ?? card.brand}</span>
                   </div>
                 ))}
               </div>

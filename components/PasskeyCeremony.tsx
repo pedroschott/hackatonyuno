@@ -77,7 +77,7 @@ function CeremonyBody({
 
   return (
     <Modal open={open} onClose={onClose} dismissible={!busy} width="max-w-[440px]">
-      <div className="px-6 pt-6 pb-5">
+      <div className="px-5 pt-6 pb-5 sm:px-6">
         {/* Icon stage */}
         <div className="flex flex-col items-center text-center">
           <div
@@ -140,7 +140,7 @@ function CeremonyBody({
         </div>
 
         {/* Actions */}
-        <div className="mt-5 flex items-center justify-between gap-2">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
           {phase === "review" && (
             <>
               <span className="text-[12px] text-muted">Verified by the AgentPay registry</span>

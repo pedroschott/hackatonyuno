@@ -18,10 +18,10 @@ export function ApprovalCard({ approval, mandate, actor }: { approval: Approval;
       <div className="flex items-start gap-3 px-4 py-3.5">
         <PauseCircle className="mt-0.5 size-5 shrink-0 text-warn" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-[14px] font-semibold">Approval needed</span>
             <Badge tone="warn">AMOUNT_EXCEEDS_LIMIT</Badge>
-            <span className="ml-auto text-[12px] text-muted">{relative(approval.created_at)}</span>
+            <span className="text-[12px] text-muted sm:ml-auto">{relative(approval.created_at)}</span>
           </div>
           <p className="mt-1 text-[13px] text-ink-2">
             FleetBuyer wants to buy <span className="font-medium text-ink">{approval.product_name}</span> for{" "}
@@ -34,13 +34,13 @@ export function ApprovalCard({ approval, mandate, actor }: { approval: Approval;
               "outside the mandate."
             )}
           </p>
-          <div className="mt-1.5 flex items-center gap-2 text-[12px] text-muted">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
             <Mono>{approval.id}</Mono>
             <span>cart</span>
             <Mono>{approval.cart_hash.slice(0, 10)}…</Mono>
             <span>· one-time · bound to this exact cart</span>
           </div>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="primary" icon={<Fingerprint className="size-4" />} onClick={() => setOpen(true)}>
               Approve with passkey
             </Button>
@@ -75,7 +75,7 @@ export function ApprovalCard({ approval, mandate, actor }: { approval: Approval;
 export function DecidedApprovalRow({ approval }: { approval: Approval }) {
   const ok = approval.status === "approved";
   return (
-    <div className="flex items-center gap-2 px-4 py-2 text-[12.5px]">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2 text-[12.5px]">
       {ok ? <Check className="size-3.5 text-success" /> : <X className="size-3.5 text-danger" />}
       <span className="text-ink-2">
         {approval.product_name} · {brl(approval.amount_cents)}
@@ -87,7 +87,7 @@ export function DecidedApprovalRow({ approval }: { approval: Approval }) {
           {approval.consumed ? " · used" : ""}
         </Mono>
       )}
-      <span className="ml-auto text-muted">{approval.decided_by} · {approval.decided_at ? relative(approval.decided_at) : ""}</span>
+      <span className="text-muted sm:ml-auto">{approval.decided_by} · {approval.decided_at ? relative(approval.decided_at) : ""}</span>
     </div>
   );
 }

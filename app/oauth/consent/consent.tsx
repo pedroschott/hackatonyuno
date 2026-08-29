@@ -107,9 +107,9 @@ export function OAuthConsent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-8">
       <Card className="w-full max-w-[440px]">
-        <div className="border-b border-line px-6 py-5">
+        <div className="border-b border-line px-5 py-5 sm:px-6">
           <Logo />
           <div className="mt-5 flex size-10 items-center justify-center rounded-full bg-brand-soft text-brand">
             <Plug className="size-5" />

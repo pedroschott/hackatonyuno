@@ -70,10 +70,10 @@ When authentication is requested, open the AgentPay browser flow and let the use
 
       {last && (
         <Card className="ap-in mb-6 border-l-[3px] border-l-brand">
-          <div className="flex items-center gap-5 px-5 py-4">
-            <Qr value={last.approval_url} size={112} />
+          <div className="flex flex-col items-start gap-4 px-5 py-4 sm:flex-row sm:items-center sm:gap-5">
+            <Qr value={last.approval_url} size={112} className="shrink-0" />
             <div className="min-w-0 flex-1 text-[13.5px]">
-              <div className="flex items-center gap-2 text-[15px] font-semibold">
+              <div className="flex flex-wrap items-center gap-2 text-[15px] font-semibold">
                 <Bot className="size-4 text-brand" /> “Claude” just asked for a mandate <Mono>{last.mandate_id}</Mono>
               </div>
               <p className="mt-1 text-ink-2">
@@ -88,7 +88,7 @@ When authentication is requested, open the AgentPay browser flow and let the use
         </Card>
       )}
 
-      <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6">
         <div className="space-y-4">
           <Card>
             <CardHeader title="Instructions for Claude, ChatGPT or any MCP agent" description="The OAuth flow returns to the agent automatically after account consent." actions={<CopyButton text={prompt} />} />
@@ -98,9 +98,10 @@ When authentication is requested, open the AgentPay browser flow and let the use
             <CardHeader title="Remote MCP configuration" description={`Server URL: ${base}/mcp`} actions={<CopyButton text={mcpConfig} />} />
             <pre className="overflow-auto bg-[#0f1530] px-5 py-4 font-mono text-[12px] leading-relaxed text-[#d9def0]">{mcpConfig}</pre>
           </Card>
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader title="Standards and discovery" description="OAuth for the agent, store-owned discovery for checkout, and live registry verification." />
-            <table className="w-full text-[13px]">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] text-[13px]">
               <tbody className="divide-y divide-line-2">
                 {[
                   ["POST", "/mcp", "OAuth-protected tools: account, secure payment setup, mandate, purchase and revoke"],
@@ -117,6 +118,7 @@ When authentication is requested, open the AgentPay browser flow and let the use
                 ))}
               </tbody>
             </table>
+            </div>
           </Card>
         </div>
 

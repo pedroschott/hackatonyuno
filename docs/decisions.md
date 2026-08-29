@@ -31,3 +31,9 @@ The MCP tool accepts no card fields. It returns a 15-minute, signed, user-bound 
 ## Exact-ID public registry functions are intentional
 
 Merchant checkout must retrieve a signed agent key and mandate without a user session. Two `SECURITY DEFINER` functions expose only exact-ID registry projections; base tables remain protected by RLS. Supabase's linter flags the public executability, but it is the deliberate protocol boundary rather than general table access.
+
+## The full app is responsive; `/m` stays a separate surface
+
+The console at `/dashboard`, `/contracts/new`, `/audit` and `/connect` is fully responsive: below `lg` the sidebar becomes an off-canvas drawer behind a top bar, side rails collapse into a single column, and the fixed limit and scope grids reflow. Judges can therefore drive the entire demo from a phone without a second implementation.
+
+`/m` is kept anyway because it answers a different question. The console is the owner's full control surface; `/m` is the approval inbox someone opens from a QR code on another device to approve a mandate or exception with a passkey and revoke in one tap. Collapsing the two would either bloat the phone approval flow or strip the console. The audit log keeps its columns behind a horizontal scroll rather than dropping data, since an auditor reading it on a phone still needs the actor, action, entity and hash chain.
