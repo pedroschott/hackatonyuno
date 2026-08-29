@@ -1,0 +1,19 @@
+{
+  "name": "@agentic-mandates/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "2.10.10",
+    "typescript": "5.9.3"
+  }
+}
