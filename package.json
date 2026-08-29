@@ -7,13 +7,13 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
-    "test": "turbo run test",
-    "typecheck": "turbo run typecheck"
+    "build": "./node_modules/.bin/pnpm -r --if-present --sort run build",
+    "dev": "./node_modules/.bin/pnpm -r --if-present --parallel run dev",
+    "test": "./node_modules/.bin/pnpm -r --if-present --sort run test",
+    "typecheck": "./node_modules/.bin/pnpm -r --if-present --sort run typecheck"
   },
   "devDependencies": {
-    "turbo": "2.10.10",
+    "pnpm": "10.34.5",
     "typescript": "5.9.3"
   }
 }
