@@ -144,11 +144,10 @@ A quote includes exact merchant SKUs and local category IDs, shipping, taxes, to
     POST /v1/agent/intents
     POST /v1/agent/approval-requests
     POST /v1/merchant/verifications
-    POST /v1/merchant/payments/:paymentId/capture
     POST /v1/mandates/:mandateId/revocations
     POST /internal/v1/recurrence/tick
 
-The browser uses the Next.js BFF for principal actions. Direct agent and merchant endpoints require signed proofs. The recurrence endpoint accepts only the Supabase Cron shared bearer secret and is not public.
+The browser uses the Next.js BFF for principal actions. Direct agent and merchant endpoints require signed proofs. The recurrence endpoint accepts only the Supabase Cron shared bearer secret and is not public. `POST /v1/merchant/verifications` is the sole merchant-to-Mandate settlement handoff: once it verifies the quote-bound capability, the Mandate service owns the authorization/capture saga. A merchant never receives a Vault reference and has no capture route.
 
 ### Payment Vault API
 
@@ -298,7 +297,7 @@ Each operation locks state it changes and writes its audit event in the same com
 
 There is no distributed ACID transaction across Postgres and the Vault. `claim_capability_for_authorization` creates the operation and claims the capability in one local transaction. It then calls the Vault with `authorize:<operationId>` as a durable idempotency key. The Vault forwards the same key through Mock Yuno and the selected gateway. A timeout or unknown network result enters `reconciliation_required`; the worker queries `GET /payment-authorizations/:id` and may resend only the same idempotency key.
 
-Capture uses a separate durable `capture:<operationId>` key. Before the call, `begin_capture_claimed_capability` locks the operation and rechecks mandate revocation, quote expiry/cart hash, and current capability state. On success, `finalize_capture_result` records `captured`, debits the final budget, and consumes the capability. On failure or revocation, it drives a void/reconciliation path and releases the outstanding slot only after the Vault confirms no authorization is held.
+Capture uses a separate durable `capture:<operationId>` key. Before the call, `begin_capture_claimed_capability` locks the operation and rechecks mandate revocation, quote expiry/cart hash, and current capability state. On success, `finalize_capture_result` records `captured`, debits the final budget, and consumes the capability. On failure or revocation, it drives a void/reconciliation path and releases the outstanding slot only after the Vault confirms no authorization is held. The Mandate API runs this saga after the merchant verification handoff and returns a signed receipt containing only the resulting settlement state and opaque operation identifier; the merchant may fulfill only after the receipt reports `captured`.
 
 The revocation/capture race is defined by committed local state. If revocation commits while an operation is `authorized`, it changes the operation to `void_pending` and capture cannot begin. If `begin_capture_claimed_capability` commits `capture_pending` first, the external capture may already be in flight; revocation records that race and reconciliation determines the result. A confirmed capture follows the post-capture dispute/refund path rather than a false promise that it was voided.
 

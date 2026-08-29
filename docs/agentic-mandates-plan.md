@@ -497,7 +497,7 @@ For Supabase-backed storage, payment references, capabilities, and audit events 
 2. **Create mandate:** agent-led plain-language intake, Vault-hosted test-method setup/selection, advanced rules, generated contract review, and passkey activation.
 3. **Agent console:** discovered offers, decision rationale, submit purchase, attack-mode toggles.
 4. **Approval inbox:** immutable purchase summary, reason codes, passkey approve/reject, and expiration timer.
-5. **Merchant console:** verification badge, minimal proof, decision reason, capture action.
+5. **Merchant console:** verification badge, minimal proof, decision reason, and settlement status. It has no payment-method access or capture action.
 6. **Evidence timeline:** the principal's correlated events, policy diff, evidence, and dispute outcome.
 
 ## 16. Delivery plan
@@ -568,7 +568,7 @@ For Supabase-backed storage, payment references, capabilities, and audit events 
 | Audit integrity | Append-only hash-chained events | Mutable transaction log | Gives a clear, demoable tamper-evidence property. |
 | HITL | Conversational contract creation plus contextual, quote-bound exception approval | Blanket approvals or broad overrides | Keeps contract creation low-friction while ensuring exceptions do not mutate future authority. |
 | Contract approval | App-owned WebAuthn assertion bound to the approval payload | Session-only approval or Supabase sign-in passkey alone | Produces contract-specific, auditable approval evidence while retaining Supabase for principal identity. |
-| Payment settlement | Idempotent saga across Postgres and the Vault | Pretend cross-service ACID transaction | Makes timeout and retry behavior correct and demoable. |
+| Payment settlement | Mandate-owned idempotent saga across Postgres and the Vault | Merchant capture route or pretend cross-service ACID transaction | Keeps Vault authority isolated from merchants while making timeout and retry behavior correct and demoable. |
 | Mock rails | Vault → Mock Yuno router → two card gateways | One monolithic success-only capture mock or PIX | Demonstrates routing and adverse outcomes without handling real funds or bank login. |
 | Recurrence | Data-driven schedules plus one Supabase Cron tick | One cron job per contract or Vercel-plan-dependent scheduler | Supports dynamic contract schedules and deterministic run idempotency. |
 | MCP | Stdio as the committed transport; authenticated HTTP as a stretch | Anonymous remote endpoint or custom OAuth server | Proves MCP interoperability without replacing core safety work with identity infrastructure. |
