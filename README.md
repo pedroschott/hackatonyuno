@@ -22,3 +22,8 @@ Add application code under `src/` and document any required environment variable
 - Database host: `db.oieakzvyonhoddqukmse.supabase.co`
 
 Never commit Supabase secret or service-role keys. See `AGENTS.md` for development and collaboration rules.
+
+## Architecture
+
+- [Agentic Mandates product and delivery plan](docs/agentic-mandates-plan.md)
+- [Technical architecture and stack decisions](docs/technical-architecture.md)
