@@ -38,7 +38,12 @@ export async function POST(request: Request) {
         userName: user.email ?? user.id,
         userDisplayName: user.email ?? "AgentPay user",
         attestationType: "none",
-        authenticatorSelection: { residentKey: "preferred", userVerification: "required" },
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          residentKey: "required",
+          userVerification: "required",
+        },
+        preferredAuthenticatorType: "localDevice",
         excludeCredentials: (credentials.data ?? []).map((credential) => ({
           id: credential.id,
           transports: (credential.transports ?? undefined) as AuthenticatorTransportFuture[] | undefined,

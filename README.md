@@ -22,7 +22,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3210/dashboard. Localhost is a WebAuthn secure context; use the production HTTPS URL or `npm run tunnel` when testing from a phone.
+Open http://localhost:3210/dashboard. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
 
 ## Verify
 

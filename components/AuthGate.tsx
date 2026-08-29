@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Logo } from "@/components/Logo";
 import { Button, Card, Field, Input } from "@/components/ui";
-import { registerPasskey } from "@/lib/passkey";
+import { platformPasskeyAvailable, registerPasskey } from "@/lib/passkey";
 import { useStore } from "@/lib/store";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
@@ -26,6 +26,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [platformPasskey, setPlatformPasskey] = useState<boolean | null>(null);
 
   const loadAccount = useCallback(async (nextUser: User | null) => {
     setUser(nextUser);
@@ -53,6 +54,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       data.subscription.unsubscribe();
     };
   }, [loadAccount, supabase]);
+
+  useEffect(() => {
+    let active = true;
+    void platformPasskeyAvailable().then((available) => {
+      if (active) setPlatformPasskey(available);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function submit() {
     setBusy(true);
@@ -163,6 +174,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <p className="mt-1 text-[13.5px] text-muted">
               This is the only approval credential AgentPay needs. Your device verifies every mandate and exception.
             </p>
+            {platformPasskey === false && (
+              <p className="mt-4 rounded-md bg-warn-soft px-3 py-2 text-[12.5px] text-warn-ink" role="alert">
+                Open AgentPay directly in Safari or Chrome on an iPhone, iPad, Mac, or another device with a screen lock.
+                Embedded browsers cannot always access Face ID or Touch ID.
+              </p>
+            )}
             {message && <p className="mt-4 rounded-md bg-danger-soft px-3 py-2 text-[12.5px] text-danger-ink">{message}</p>}
             <Button
               className="mt-5 w-full"
@@ -170,6 +187,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               variant="primary"
               icon={<Fingerprint className="size-4" />}
               loading={busy}
+              disabled={platformPasskey !== true}
               onClick={createPasskey}
             >
               Create passkey

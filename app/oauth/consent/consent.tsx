@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Logo } from "@/components/Logo";
 import { Button, Card, Field, Input } from "@/components/ui";
-import { registerPasskey } from "@/lib/passkey";
+import { platformPasskeyAvailable, registerPasskey } from "@/lib/passkey";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 export function OAuthConsent() {
@@ -22,6 +22,7 @@ export function OAuthConsent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [platformPasskey, setPlatformPasskey] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     if (!authorizationId) {
@@ -53,6 +54,16 @@ export function OAuthConsent() {
   useEffect(() => {
     queueMicrotask(() => void load());
   }, [load]);
+
+  useEffect(() => {
+    let active = true;
+    void platformPasskeyAvailable().then((available) => {
+      if (active) setPlatformPasskey(available);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function authenticate() {
     setBusy(true);
@@ -172,10 +183,16 @@ export function OAuthConsent() {
                 <p className="mt-0.5 opacity-80">
                   Create the passkey that will authorize mandates and one-time exceptions.
                 </p>
+                {platformPasskey === false && (
+                  <p className="mt-2 rounded bg-white/60 px-2 py-2 text-[12px]" role="alert">
+                    Open this page directly in Safari or Chrome so AgentPay can use Face ID or Touch ID on this device.
+                  </p>
+                )}
                 <Button
                   className="mt-3 w-full"
                   icon={<Fingerprint className="size-4" />}
                   loading={busy}
+                  disabled={platformPasskey !== true}
                   onClick={createPasskey}
                 >
                   Create authorization passkey
