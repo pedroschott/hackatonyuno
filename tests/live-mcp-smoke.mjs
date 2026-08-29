@@ -58,8 +58,12 @@ if (!initialized?.result?.serverInfo) throw new Error("MCP initialization failed
 await call({ jsonrpc: "2.0", method: "notifications/initialized" });
 const listed = await call({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
 const names = listed?.result?.tools?.map((tool) => tool.name) ?? [];
-for (const required of ["get_account", "create_mandate", "get_mandate", "revoke_mandate", "purchase"]) {
+for (const required of ["get_account", "get_payment_setup_link", "create_mandate", "get_mandate", "revoke_mandate", "purchase"]) {
   if (!names.includes(required)) throw new Error(`Missing MCP tool: ${required}`);
+}
+const setupDescriptor = listed.result.tools.find((tool) => tool.name === "get_payment_setup_link");
+if (Object.keys(setupDescriptor?.inputSchema?.properties ?? {}).length !== 0) {
+  throw new Error("get_payment_setup_link must not accept payment-card fields");
 }
 const account = await call({
   jsonrpc: "2.0",
@@ -68,11 +72,26 @@ const account = await call({
   params: { name: "get_account", arguments: {} },
 });
 if (account?.result?.isError) throw new Error("get_account returned an error");
+const setup = await call({
+  jsonrpc: "2.0",
+  id: 4,
+  method: "tools/call",
+  params: { name: "get_payment_setup_link", arguments: {} },
+});
+if (setup?.result?.isError) throw new Error("get_payment_setup_link returned an error");
+const setupContent = setup.result.structuredContent;
+if (!setupContent?.setup_url?.startsWith(`${baseUrl}/payment-methods/setup?token=`)) {
+  throw new Error("Payment setup URL is missing or invalid");
+}
+if (setupContent?.safety?.agent_receives_card_details !== false) {
+  throw new Error("Payment setup safety contract is missing");
+}
 
 console.log(
   JSON.stringify({
     server: initialized.result.serverInfo.name,
     tools: names,
     account_connected: true,
+    payment_setup_link: true,
   }),
 );

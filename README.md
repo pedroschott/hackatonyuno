@@ -53,6 +53,7 @@ npm run test:mcp -- user@example.com 'password'
 ## MCP tools
 
 - `get_account`
+- `get_payment_setup_link` — returns a 15-minute, user-bound AgentPay browser link and accepts no card data
 - `create_mandate`
 - `get_mandate`
 - `purchase`

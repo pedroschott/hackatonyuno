@@ -41,7 +41,7 @@ export default function NewContractPage() {
   const [expires, setExpires] = useState(() => toLocalInputValue(nextSunday2359()));
   const [cardId, setCardId] = useState(cards[0]?.id ?? "");
   const [addingCard, setAddingCard] = useState(false);
-  const [newCard, setNewCard] = useState({ brand: "visa" as "visa" | "mastercard", number: "" });
+  const [newCard, setNewCard] = useState({ brand: "visa" as "visa" | "mastercard", last4: "" });
   const [ceremony, setCeremony] = useState(false);
   const [pendingMandate, setPendingMandate] = useState<Mandate | null>(null);
   const [done, setDone] = useState<Mandate | null>(null);
@@ -197,19 +197,26 @@ export default function NewContractPage() {
                       <option value="mastercard">Mastercard</option>
                     </Select>
                   </Field>
-                  <Field label="Card number" hint="Only the last 4 digits are kept.">
-                    <Input inputMode="numeric" placeholder="4242 4242 4242 4242" value={newCard.number} onChange={(e) => setNewCard({ ...newCard, number: e.target.value.replace(/[^\d ]/g, "") })} />
+                  <Field label="Last four digits" hint="Display data only. Never enter the full card number.">
+                    <Input
+                      aria-label="Last four digits"
+                      autoComplete="off"
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="4242"
+                      value={newCard.last4}
+                      onChange={(e) => setNewCard({ ...newCard, last4: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                    />
                   </Field>
                   <Button className="mb-[22px]" onClick={() => setAddingCard(false)}>Cancel</Button>
                   <Button
                     className="mb-[22px]"
                     variant="primary"
-                    disabled={newCard.number.replace(/\s/g, "").length < 12}
+                    disabled={newCard.last4.length !== 4}
                     onClick={async () => {
-                      const digits = newCard.number.replace(/\s/g, "");
-                      const c = await addCard({ brand: newCard.brand, last4: digits.slice(-4), label: newCard.brand === "visa" ? "Visa" : "Mastercard" });
+                      const c = await addCard({ brand: newCard.brand, last4: newCard.last4, label: newCard.brand === "visa" ? "Visa" : "Mastercard" });
                       setCardId(c.id);
-                      setNewCard({ brand: "visa", number: "" });
+                      setNewCard({ brand: "visa", last4: "" });
                       setAddingCard(false);
                     }}
                   >
