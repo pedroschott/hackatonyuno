@@ -105,6 +105,54 @@ export const PurchaseCapabilitySchema = PurchaseCapabilityPayloadSchema.extend({
   signature: CompactJwsSchema,
 }).strict();
 
+/** Response to an agent's request to evaluate a quote and issue authority. */
+export const AgentIntentResultSchema = z
+  .object({
+    decision: VerificationDecisionSchema,
+    reasonCode: ReasonCodeSchema,
+    mandateStatus: z.enum(['active', 'revoked', 'expired']),
+    purchaseCapability: CompactJwsSchema.optional(),
+    expiresAt: IsoDateTimeSchema.optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const hasCapability = value.purchaseCapability !== undefined;
+    const hasExpiry = value.expiresAt !== undefined;
+
+    if (hasCapability !== hasExpiry) {
+      context.addIssue({
+        code: 'custom',
+        message: 'purchaseCapability and expiresAt must be present together.',
+        path: hasCapability ? ['expiresAt'] : ['purchaseCapability'],
+      });
+    }
+
+    if (value.decision === 'approved' && (!hasCapability || !hasExpiry)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'An approved intent must contain a short-lived purchase capability.',
+        path: ['purchaseCapability'],
+      });
+    }
+
+    if (value.decision !== 'approved' && (hasCapability || hasExpiry)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Only an approved intent may contain a purchase capability.',
+        path: ['purchaseCapability'],
+      });
+    }
+  });
+
+/** The browser-BFF response after an authenticated principal revokes a mandate. */
+export const MandateRevocationResponseSchema = z
+  .object({
+    mandateId: OpaqueIdSchema,
+    status: z.literal('revoked'),
+    revokedAt: IsoDateTimeSchema,
+  })
+  .strict();
+
 export const PolicyEvaluationCandidateSchema = z
   .object({
     actorAgentId: OpaqueIdSchema,
@@ -156,6 +204,8 @@ export type Mandate = z.infer<typeof MandateSchema>;
 export type CapabilityStatus = z.infer<typeof CapabilityStatusSchema>;
 export type PurchaseCapabilityPayload = z.infer<typeof PurchaseCapabilityPayloadSchema>;
 export type PurchaseCapability = z.infer<typeof PurchaseCapabilitySchema>;
+export type AgentIntentResult = z.infer<typeof AgentIntentResultSchema>;
+export type MandateRevocationResponse = z.infer<typeof MandateRevocationResponseSchema>;
 export type PolicyEvaluationCandidate = z.infer<typeof PolicyEvaluationCandidateSchema>;
 export type PolicyUsageSnapshot = z.infer<typeof PolicyUsageSnapshotSchema>;
 export type PolicyDecisionInput = z.infer<typeof PolicyDecisionInputSchema>;

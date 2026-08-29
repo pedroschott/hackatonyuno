@@ -37,6 +37,7 @@ const MERCHANT_PROOF_HEADER = 'x-merchant-request-proof';
 
 const MerchantOrderStatusSchema = z.enum([
   'quoted',
+  'settlement_pending',
   'verification_approved',
   'verification_rejected',
   'approval_required',
