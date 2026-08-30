@@ -3,7 +3,14 @@
 // lib/policy.ts and the database function it mirrors. Nothing here does I/O.
 
 import type {
-  Agent, Approval, Attempt, AuditEntry, Mandate, Merchant, Product, VaultCard,
+  Agent,
+  Approval,
+  Attempt,
+  AuditEntry,
+  Mandate,
+  Merchant,
+  Product,
+  VaultCard,
 } from "./types";
 
 export type Data = {
@@ -18,7 +25,12 @@ export type Data = {
   usedNonces: string[];
 };
 
-export type CheckoutOpts = { exception_id?: string; source?: "manual" | "store" | "api"; productId?: string };
+export type CheckoutOpts = {
+  exception_id?: string;
+  source?: "manual" | "store" | "api" | "trial";
+  productId?: string;
+  revocation_window_ms?: number;
+};
 
 export function sameMonth(iso: string, now: Date) {
   const d = new Date(iso);
@@ -37,6 +49,17 @@ export function usageFor(data: Pick<Data, "attempts">, mandateId: string, now = 
 export function effectiveStatus(m: Mandate, now = Date.now()) {
   if (m.status === "active" && now > new Date(m.validity.expires_at).getTime()) return "expired";
   return m.status;
+}
+
+/** Keep the newest authorized mandate as the authority an agent holds, even after revocation. */
+export function latestHeldMandate(mandates: Mandate[]): Mandate | undefined {
+  return (
+    mandates.find(
+      (mandate) =>
+        mandate.authorization !== undefined &&
+        (mandate.status === "active" || mandate.status === "revoked" || mandate.status === "expired"),
+    ) ?? mandates.find((mandate) => mandate.status === "draft")
+  );
 }
 
 export class EngineError extends Error {

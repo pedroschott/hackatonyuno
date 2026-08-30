@@ -276,6 +276,42 @@ describe('Mandate API critical authorization circuit', () => {
     expect(harness.paymentVault.calls).toEqual(['authorize', 'void']);
   });
 
+  it('cancels an in-flight turn when revocation commits during authorization', async () => {
+    const harness = await createMandateApiTestHarness({ paymentScenario: 'authorization_blocked' });
+    const quote = await harness.addQuote();
+    const issued = (await (await submitIntent(harness, quote.id, quote.merchantId)).json()) as IntentResult;
+
+    const verificationPromise = submitVerification(harness, {
+      merchantId: quote.merchantId,
+      merchantOrderRef: quote.merchantOrderRef,
+      quoteId: quote.id,
+      purchaseCapability: issued.purchaseCapability!,
+      idempotencyKey: 'verify-mid-turn-revocation-001',
+      requestId: 'request-mid-turn-revocation-001',
+    });
+    await harness.paymentVault.authorizationStarted;
+
+    const revoke = await harness.app.request(`/v1/mandates/${harness.mandate.id}/revocations`, {
+      method: 'POST',
+      headers: harness.principalHeaders(),
+    });
+    expect(revoke.status).toBe(200);
+    harness.paymentVault.releaseAuthorization();
+
+    const verification = await verificationPromise;
+    expect((await verification.json()) as VerificationResult).toMatchObject({
+      decision: 'rejected',
+      reasonCode: 'MANDATE_REVOKED',
+      mandateStatus: 'revoked',
+      settlementStatus: 'failed',
+    });
+    expect(harness.paymentVault.calls).toEqual(['authorize', 'void']);
+    await expect(harness.stateStore.getUsage(harness.mandate.id)).resolves.toEqual({
+      capturedAmountMinor: 0,
+      capturedUses: 0,
+    });
+  });
+
   it('allows only one simultaneous verification to claim a one-time capability', async () => {
     const harness = await createMandateApiTestHarness();
     const quote = await harness.addQuote();

@@ -21,6 +21,7 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
   const revoke = useStore((s) => s.revokeMandate);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -36,12 +37,15 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
 
   async function turnOff() {
     setBusy(true);
+    setRevokeError(null);
     try {
       await revoke(mandate.id, "user");
       onTurnedOff?.();
+      setConfirming(false);
+    } catch (cause) {
+      setRevokeError(cause instanceof Error ? cause.message : "Turning off spending failed");
     } finally {
       setBusy(false);
-      setConfirming(false);
     }
   }
 
@@ -103,6 +107,7 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
                   Turn off spending
                 </Button>
               </div>
+              {revokeError && <p className="text-[12px] text-danger-ink">{revokeError}</p>}
             </div>
           ) : (
             <Button

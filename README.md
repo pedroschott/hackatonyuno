@@ -12,7 +12,7 @@ Production: https://agentpay-yuno.vercel.app
 4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The web app has no form for this: a mandate only ever exists because an agent asked for one.
 5. The user opens the approval link and authorizes the mandate with their passkey.
 6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
-7. The user or agent can revoke the mandate immediately. The next checkout is refused by the live registry check.
+7. The user or agent can revoke the mandate immediately. A checkout still in progress performs a final live registry check before settlement and is refused if revocation committed first; every later checkout is refused too.
 
 ## Run locally
 
@@ -37,6 +37,12 @@ npm run sdk:pack
 ```bash
 npm run test:mcp -- user@example.com 'password'
 ```
+
+### Verify mid-turn revocation
+
+The automated Mandate API test starts a payment authorization, revokes the mandate while that authorization is in flight, then confirms the authorization is voided and no usage is recorded. The deployed checkout route also accepts a bounded, test-only pre-settlement window for live failure rehearsals.
+
+The delay is only a test affordance. The security boundary is the final Supabase transaction: checkout and revocation take the same per-mandate advisory lock, so their outcome has one defensible order under concurrency.
 
 ## Main surfaces
 

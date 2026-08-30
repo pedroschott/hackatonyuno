@@ -29,12 +29,16 @@ sequenceDiagram
     AgentPay->>Store: Signed checkout request
     Store->>Registry: Fetch signed live status
     Store->>Store: Verify signatures, nonce and policy
-    Store-->>AgentPay: Mock single-use payment token
+    Store-->>AgentPay: Verification result
+    AgentPay->>Registry: Final atomic status + policy check
+    Registry-->>AgentPay: Mock single-use payment token
     AgentPay-->>Agent: Approved purchase
     User->>Agent: Stop buying
     Agent->>AgentPay: revoke_mandate
     AgentPay->>Registry: Revoke immediately
 ```
+
+Checkout settlement and revocation use the same per-mandate transaction lock. A revocation that commits before the final check produces `MANDATE_REVOKED` and no token, including when the checkout began earlier.
 
 ## Trust boundaries
 
