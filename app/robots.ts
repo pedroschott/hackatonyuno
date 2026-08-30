@@ -21,6 +21,7 @@ export default function robots(): MetadataRoute.Robots {
         "/audit",
         "/payment-methods/",
         "/m/",
+        "/disputes",
       ],
     },
     sitemap: new URL("/sitemap.xml", baseUrl).toString(),

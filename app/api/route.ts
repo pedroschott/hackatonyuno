@@ -7,7 +7,7 @@ export async function GET(req: Request) {
   const base = publicBaseUrl(req);
   return json({
     name: "AgentPay",
-    version: "0.2.0",
+    version: "0.3.0",
     description:
       "OAuth-protected mandate and payment enforcement for autonomous agents.",
     documentation: `${base}/docs`,

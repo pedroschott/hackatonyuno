@@ -22,13 +22,14 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | `/docs/discovery` | Publishing `/.well-known/agentpay.json`. | Yes | Allowed |
 | `/docs/checkout` | Protecting a checkout route and handling each decision. | Yes | Allowed |
 | `/docs/frameworks` | Route code for Next.js, Hono, Express, Fastify and edge runtimes. | Yes | Allowed |
+| `/docs/orders` | Delivery quoting, the merchant transaction API and answering a disputed charge. | Yes | Allowed |
 | `/docs/testing` | Offline signed-request tests and the live revocation rehearsal. | Yes | Allowed |
 | `/docs/reference` | Exported functions and types of `@agentpay/merchant-sdk`. | Yes | Allowed |
 | `/docs/reference/protocol` | Signed request format and the four registry endpoints. | Yes | Allowed |
 | `/docs/reference/decisions` | Decisions and reason codes. | Yes | Allowed |
 | `/docs/troubleshooting` | Common integration failures and fixes. | Yes | Allowed |
-| `/dashboard` | Account summary: month-to-date charges, active mandates and recent activity. | No | Disallowed |
-| `/activity` | Full purchase-attempt history with the mandate decision on each. | No | Disallowed |
+| `/dashboard` | Account summary: month-to-date charges, active mandates and recent activity. Any purchase opens its full trail. | No | Disallowed |
+| `/activity` | Full purchase-attempt history with the mandate decision on each. Any purchase opens its full trail. | No | Disallowed |
 | `/account` | Didit identity/fraud-verification state, compliance and delivery profile, plus complete saved-card management. | No | Disallowed |
 | `/audit` | Security log: every account decision, hash-chained. | No | Disallowed |
 | `/payment-methods/setup?token=...` | User-bound hosted payment setup callback. | No | Disallowed |
@@ -39,7 +40,7 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | `/developers` | Developer overview with merchant, catalog, attempt and test-volume metrics. | No | Disallowed |
 | `/developers/merchants` | Owned merchant integrations. | No | Disallowed |
 | `/developers/merchants/new` | Create a hosted test merchant or register a live store. | No | Disallowed |
-| `/developers/merchants/:id` | Integration checklist, endpoints, products, keys, activity and settings for one owned merchant. | No | Disallowed |
+| `/developers/merchants/:id` | Integration checklist, endpoints, products, keys, activity, disputes and settings for one owned merchant. | No | Disallowed |
 | `/developers/stores` | Human view of verified live stores and their public URLs. | No | Disallowed |
 | `/stores/:id` | Shareable hosted test storefront. Exact URL only; test stores are not publicly listed. | No | Disallowed |
 
@@ -49,7 +50,7 @@ The documentation site at `/docs` is public canonical content and is listed in `
 |---|---|---|---|
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource` | MCP client | OAuth protected-resource metadata for AgentPay MCP. |
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource/mcp` | MCP client | Alias of the protected-resource metadata for the MCP endpoint. |
-| `GET`, `POST` | `/mcp` | OAuth-authenticated MCP client | Streamable HTTP MCP server. Exposes `get_account`, `get_payment_setup_link`, `find_products`, `create_mandate`, `amend_mandate`, `get_mandate`, `check_purchase`, `purchase` and `revoke_mandate`. |
+| `GET`, `POST` | `/mcp` | OAuth-authenticated MCP client | Streamable HTTP MCP server. Exposes `get_account`, `get_payment_setup_link`, `find_products`, `create_mandate`, `amend_mandate`, `get_mandate`, `check_purchase`, `purchase`, `search_security_log` and `revoke_mandate`. |
 | `GET` | `/api` | Developer or health-style discovery client | JSON description of the AgentPay MCP, OAuth metadata and merchant-discovery model. |
 | `GET` | `/api/stores` | Agent, developer or public client | Opt-in verified live-store IDs, store URLs and discovery URLs. Returns an empty list until a real live merchant qualifies. It contains no product catalog. |
 | `GET` | `/api/stores/:id` | Hosted test-store client | Exact-ID hosted store metadata and active products. |
@@ -81,7 +82,10 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | `POST` | `/api/approvals/:id/authorize` | Get or verify the passkey ceremony for a one-time exception after the latest Didit identity decision passes. |
 | `POST` | `/api/approvals/:id/decide` | Approve or deny a one-time exception. |
 | `POST` | `/api/passkeys/register` | Register a WebAuthn credential. |
-| `GET` | `/api/state` | Read the authenticated demo state. |
+| `GET`, `POST` | `/api/disputes` | List the account's disputes, or open one against an approved attempt the account owns. One open dispute per charge. |
+| `GET` | `/api/disputes/:id` | Read one dispute and its timeline. RLS answers it for the buyer and the merchant owner alike. |
+| `POST` | `/api/disputes/:id/withdraw` | Withdraw the buyer's own open dispute. A merchant cannot call this. |
+| `GET` | `/api/state` | Read the authenticated demo state, including the account's disputes. |
 
 ## Merchant console API
 
@@ -96,7 +100,22 @@ Browser routes require a Supabase-authenticated owner session and remain protect
 | `PATCH`, `DELETE` | `/api/developers/merchants/:id/products/:productId` | Update or remove an owned product. |
 | `GET`, `POST` | `/api/developers/merchants/:id/keys` | List key metadata or mint a key whose plaintext is returned once. |
 | `DELETE` | `/api/developers/merchants/:id/keys/:keyId` | Revoke a merchant API key immediately. |
+| `GET` | `/api/developers/merchants/:id/disputes` | Disputes raised against an owned merchant, each with the charge it is about. |
+| `PATCH` | `/api/developers/merchants/:id/disputes/:disputeId` | Answer a dispute and move it to `under_review`, `evidence_requested`, `resolved_refunded` or `resolved_upheld`. |
+| `POST` | `/api/developers/merchants/:id/disputes/:disputeId/analyze` | Read the dispute against that buyer's history at this merchant and store the result. Advisory: it never changes `status`. |
+
+## Merchant integration API
+
+Key-authenticated (`Authorization: Bearer ap_live_…`) so a merchant's own systems can reach the same data as the console without a browser session. Buyers appear as a stable per-merchant pseudonym — `sha256(user_id + '|' + merchant_id)` — which is enough to recognise a repeat customer and not enough to identify a person.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
 | `GET`, `POST` | `/api/v1/merchants/:id/products` | Read an active public catalog or create a product with a merchant bearer key. |
+| `GET` | `/api/v1/merchants/:id/transactions` | Every attempt against the merchant with the reason the buyer gave their agent, where it shipped, the delivery quoted, and any dispute. Filters: `decision`, `since`, `until`, `product_id`, `disputed`, `limit` (max 200), `before` for cursoring. |
+| `GET` | `/api/v1/merchants/:id/disputes` | Disputes against the merchant, filterable by `status`. |
+| `GET` | `/api/v1/merchants/:id/disputes/:disputeId` | Everything one dispute is judged on: the charge, the mandate that allowed it, that buyer's full purchase history here, and their prior disputes. |
+| `POST` | `/api/v1/merchants/:id/disputes/:disputeId` | Answer a dispute and set its status. |
+| `POST` | `/api/v1/merchants/:id/disputes/:disputeId/analyze` | Run the analysis and store it on the dispute. |
 
 ## Merchant verification registry
 

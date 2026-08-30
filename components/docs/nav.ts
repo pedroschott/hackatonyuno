@@ -69,6 +69,12 @@ export const DOC_GROUPS: DocGroup[] = [
         keywords: ["next.js", "express", "hono", "fastify", "cloudflare", "workers", "vercel"],
       },
       {
+        href: "/docs/orders",
+        title: "Delivery and disputes",
+        description: "Quote delivery for the buyer's address, read your transaction history over the API, and answer a disputed charge.",
+        keywords: ["shipping", "delivery", "fulfillment", "address", "disputes", "chargeback", "refund", "transactions", "history", "api key"],
+      },
+      {
         href: "/docs/testing",
         title: "Test the integration",
         description: "Sign a request locally, replay the attack suite, and rehearse a live revocation before you demo.",
