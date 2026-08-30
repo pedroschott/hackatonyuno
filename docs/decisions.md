@@ -203,3 +203,13 @@ The hash-chained log already held everything, interleaved with every other event
 Clicking any purchase on `/dashboard` or `/activity` now opens its trail: the four verifications, the mandate it was checked against with that month's usage, the delivery, the reason it was bought, the log entries that name it with their hashes, and the dispute action. Nothing new is stored — it is the same rows, assembled around one attempt.
 
 `search_security_log` gives an agent the same access, including `attempt_id` and `mandate_id` filters for one item's full trail. It verifies the chain over the whole log rather than the matching slice, because verification over a filtered subset would let a removed entry pass unnoticed, and it reports the result on every call so an agent can tell the user the history is intact.
+
+## A published demo account, still an empty one
+
+Signing up depends on one thing that lives outside the system: a confirmation email from a young sending domain, which Gmail, Outlook and iCloud all file as spam, under a 30-per-hour project cap. Someone who never receives it never sees anything.
+
+`demo7421@fwdco.space` is an ordinary account, created through the same public sign-up endpoint as everyone else's and confirmed through the same confirmation link. Its password is published in the README. That does not contradict *No seeded account data*: what is seeded is an account, not account data. It holds no passkey, no card, no identity decision and no mandate, so it renders the same empty dashboard as any new account, and the same passkey signature, Didit decision and mandate check stand between it and a charge. Publishing the password grants what an email address grants — the right to start the flow.
+
+Its one real limit is the passkey: the app offers registration only while an account holds none, so the first device to register a passkey for the shared account is the only one that can sign for it, and the README says so.
+
+The rejected alternative was a demo account pre-loaded with an approved identity decision and a saved card. It would have saved two minutes and cost the property a payments console cannot afford to lose: that what is on the screen was actually enforced, and can be checked.

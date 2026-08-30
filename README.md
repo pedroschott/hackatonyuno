@@ -78,6 +78,25 @@ It holds one thing: permission you signed, with limits you chose.
 
 Once confirmed, come back and **sign in**.
 
+### 🆘 If the email never arrives — sign in with this account
+
+Nothing here should stall on a spam filter. This account already exists and is **already confirmed**, so it works the moment you type it:
+
+| Field | Value |
+|---|---|
+| **Email** | `demo7421@fwdco.space` |
+| **Password** | `oxen2026win` |
+
+Sign in at **https://agentpay-yuno.vercel.app/dashboard**.
+
+It is a real, **empty** AgentPay account — not a demo mode and not a bypass. Nothing is pre-approved, and it can still spend only inside a mandate someone signs with a passkey. Three things are yours and are still done on your own device, exactly when the agent asks for them:
+
+- 🔑 **The passkey.** WebAuthn credentials live on a device, so the first person to sign in registers one with their own Face ID or Touch ID, and the app then treats the account as set up. **Whoever registers it is the only one who can sign mandates on this account.** If a signature fails on your device with "no AgentPay passkey on this device", someone else got there first — create your own account instead.
+- 🪪 **Identity verification.** A real Didit check: about two minutes with an ID document. Every account needs it. A database trigger refuses any approved charge without a current passing decision, so there is no account, this one included, that skips it.
+- 💳 **A card.** The mocked capture form — brand and last four, no PAN anywhere.
+
+⚠️ It is a **shared** account. Two people using it at once see each other's mandates and purchases, and either can revoke the other's. For a demo you want to yourself, create your own account above — it is the same product, minus the wait for an email.
+
 > ⚠️ **Open AgentPay directly in Safari or Chrome.** Passkeys are bound to the exact hostname `agentpay-yuno.vercel.app`. Embedded browsers — the little in-app browser inside Slack, Instagram, LinkedIn or a QR-scanner app — often cannot reach Face ID or Touch ID, and you will get a confusing failure later at signing time.
 
 ---
@@ -477,8 +496,8 @@ Every screen is responsive and works from a phone. `/m` is a deliberately narrow
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| **No confirmation email** | It is in spam. It is always in spam. | Open the spam folder, search `fwdco.space`, mark **Not spam**. Nothing works until you confirm. |
-| **Email never arrives, even in spam** | 30-emails-per-hour project cap, or a strict corporate filter | Wait an hour, or use a personal Gmail. |
+| **No confirmation email** | It is in spam. It is always in spam. | Open the spam folder, search `fwdco.space`, mark **Not spam**. Nothing works until you confirm — or skip it with the ready-made account in **Step 1**. |
+| **Email never arrives, even in spam** | 30-emails-per-hour project cap, or a strict corporate filter | Wait an hour, use a personal Gmail, or sign in with the ready-made account in **Step 1** (`demo7421@fwdco.space` / `oxen2026win`). |
 | **Create passkey button is greyed out** | Embedded browser, or no screen lock | Open `https://agentpay-yuno.vercel.app` directly in Safari or Chrome. |
 | **Passkey prompt never appears** | Wrong hostname | Passkeys are bound to the exact host. Use the canonical production URL — not an IP, not a preview deployment. |
 | **Agent cannot sign in** | Popup blocked | Allow popups for your assistant, or copy the OAuth URL into a normal tab. |
