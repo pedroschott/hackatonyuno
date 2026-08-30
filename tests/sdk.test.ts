@@ -5,6 +5,7 @@ import { generateEd25519KeyPair, signText } from "@/lib/crypto";
 import type { RegistryMandate } from "@/lib/domain";
 import {
   createAgentPayCheckoutHandler,
+  discoverAgentPayCatalog,
   discoverAgentPayMerchant,
   merchantManifest,
   signAgentPayRequest,
@@ -25,6 +26,42 @@ describe("merchant discovery", () => {
     await expect(discoverAgentPayMerchant("https://autoparts.example/products/tires", fetcher)).resolves.toEqual(
       manifest,
     );
+    expect(manifest).toMatchObject({
+      catalog_endpoint: "https://autoparts.example/api/agentpay/catalog",
+      mcp_endpoint: "https://agentpay.example/mcp",
+      oauth_protected_resource: "https://agentpay.example/.well-known/oauth-protected-resource/mcp",
+      documentation_url: "https://autoparts.example/llms.txt",
+    });
+  });
+
+  it("validates the machine catalog and preserves exact checkout product IDs", async () => {
+    const fetcher: typeof fetch = async (input) => {
+      expect(input.toString()).toBe("https://autoparts.example/api/agentpay/catalog");
+      return Response.json({
+        protocol: "agentpay-catalog/1.0",
+        merchant: { id: "mrc_autoparts", name: "AutoParts" },
+        products: [
+          {
+            product_id: "prd_tire_std",
+            merchant_id: "mrc_autoparts",
+            sku: "TR-205-STD-4",
+            name: "Standard tire set",
+            description: "Fleet tires",
+            category: "tires",
+            price_cents: 154_800,
+            currency: "BRL",
+            availability: "in_stock",
+            product_url: "https://autoparts.example/store#product-prd_tire_std",
+          },
+        ],
+      });
+    };
+
+    const catalog = await discoverAgentPayCatalog(
+      "https://autoparts.example/api/agentpay/catalog",
+      fetcher,
+    );
+    expect(catalog.products[0].product_id).toBe("prd_tire_std");
   });
 });
 
@@ -84,19 +121,22 @@ describe("merchant checkout handler", () => {
       registryUrl: "https://agentpay.example",
       fetcher,
       now: () => new Date("2026-08-29T12:00:00.000Z"),
-      resolveProduct: async () => ({
-        id: "prd_standard_tires",
-        merchant_id: "mrc_autoparts",
-        name: "Standard tire set",
-        category: "tires",
-        price_cents: 154_800,
-        currency: "BRL",
-      }),
+      resolveProduct: async (productId) => {
+        expect(productId).toBe("prd_tire_std");
+        return {
+          id: productId,
+          merchant_id: "mrc_autoparts",
+          name: "Standard tire set",
+          category: "tires",
+          price_cents: 154_800,
+          currency: "BRL",
+        };
+      },
     });
     const body = JSON.stringify({
       mandate_id: mandate.mandate_id,
       merchant_id: "mrc_autoparts",
-      product_id: "prd_standard_tires",
+      product_id: "prd_tire_std",
     });
     const url = "https://autoparts.example/api/store/checkout";
     const headers = signAgentPayRequest({

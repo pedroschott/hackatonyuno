@@ -20,12 +20,13 @@ export default function ConnectPage() {
 When authentication is requested, open the AgentPay browser flow and let the user sign in or create one account. The user approves mandates and one-time exceptions with their passkey.
 
 1. Find the product through normal search or the store's own tools.
-2. Discover AgentPay support on that store at /.well-known/agentpay.json. AgentPay is not a store directory.
-3. Use get_account. If there is no saved payment method, call get_payment_setup_link. Explain that the secure browser form stays inside AgentPay and that you never see or use the full card number, CVC, PIN, bank password or vault credential. Never ask the user to send those details in chat. Wait for the user to finish, then call get_account again.
-4. Create_mandate from the user's original request with the narrowest useful merchant, category, amount, use-count and expiry limits.
-5. Ask the user to open approval_url. Do not purchase until get_mandate reports active.
-6. Use purchase. Respect every refusal; if an exception is required, wait for passkey approval and retry only that purchase.
-7. If the user says stop, call revoke_mandate immediately.`;
+2. Call discover_merchant with that product or store URL. It reads the store's /.well-known/agentpay.json and catalog_endpoint. AgentPay is not a store directory.
+3. Copy merchant ID, category, price and product ID exactly from the discovery result. Never derive product_id from a name, SKU, URL slug or list position.
+4. Use get_account. If there is no saved payment method, call get_payment_setup_link. Explain that the secure browser form stays inside AgentPay and that you never see or use the full card number, CVC, PIN, bank password or vault credential. Never ask the user to send those details in chat. Wait for the user to finish, then call get_account again.
+5. Create_mandate from the user's original request with the narrowest useful merchant, category, amount, use-count and expiry limits.
+6. Ask the user to open approval_url. Do not purchase until get_mandate reports active.
+7. Use purchase with the exact product_id from discover_merchant. Respect every refusal; if an exception is required, wait for passkey approval and retry only that purchase.
+8. If the user says stop, call revoke_mandate immediately.`;
 
   const mcpConfig = `{
   "mcpServers": {
@@ -107,6 +108,7 @@ When authentication is requested, open the AgentPay browser flow and let the use
                   ["POST", "/mcp", "OAuth-protected tools: account, secure payment setup, mandate, purchase and revoke"],
                   ["GET", "/.well-known/oauth-protected-resource/mcp", "MCP authorization-server discovery"],
                   ["GET", "/.well-known/agentpay.json", "store-owned AgentPay checkout discovery"],
+                  ["GET", "/api/store/catalog", "store-owned catalog with exact product IDs"],
                   ["POST", "/api/store/checkout", "merchant SDK verifies signatures, status, replay and policy"],
                   ["GET", "/api/registry/mandates/:id", "live signed mandate status checked at purchase time"],
                 ].map(([m, p, d]) => (

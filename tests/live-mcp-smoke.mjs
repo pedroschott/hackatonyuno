@@ -58,7 +58,7 @@ if (!initialized?.result?.serverInfo) throw new Error("MCP initialization failed
 await call({ jsonrpc: "2.0", method: "notifications/initialized" });
 const listed = await call({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
 const names = listed?.result?.tools?.map((tool) => tool.name) ?? [];
-for (const required of ["get_account", "get_payment_setup_link", "create_mandate", "get_mandate", "revoke_mandate", "purchase"]) {
+for (const required of ["get_account", "get_payment_setup_link", "discover_merchant", "create_mandate", "get_mandate", "revoke_mandate", "purchase"]) {
   if (!names.includes(required)) throw new Error(`Missing MCP tool: ${required}`);
 }
 const setupDescriptor = listed.result.tools.find((tool) => tool.name === "get_payment_setup_link");
@@ -86,6 +86,20 @@ if (!setupContent?.setup_url?.startsWith(`${baseUrl}/payment-methods/setup?token
 if (setupContent?.safety?.agent_receives_card_details !== false) {
   throw new Error("Payment setup safety contract is missing");
 }
+const discovery = await call({
+  jsonrpc: "2.0",
+  id: 5,
+  method: "tools/call",
+  params: { name: "discover_merchant", arguments: { merchant_url: `${baseUrl}/store` } },
+});
+if (discovery?.result?.isError) throw new Error("discover_merchant returned an error");
+const discoveryContent = discovery.result.structuredContent;
+if (discoveryContent?.manifest?.catalog_endpoint !== `${baseUrl}/api/store/catalog`) {
+  throw new Error("Merchant manifest does not publish the expected catalog endpoint");
+}
+if (!discoveryContent?.catalog?.products?.some((product) => product.product_id === "prd_tire_std")) {
+  throw new Error("Merchant catalog does not publish the Standard tire set checkout ID");
+}
 
 console.log(
   JSON.stringify({
@@ -93,5 +107,6 @@ console.log(
     tools: names,
     account_connected: true,
     payment_setup_link: true,
+    merchant_discovery: true,
   }),
 );

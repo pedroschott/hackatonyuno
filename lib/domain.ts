@@ -68,7 +68,35 @@ export type PolicyDecision =
 export type AgentPayMerchantManifest = {
   protocol: "agentpay/1.0";
   merchant: { id: string; name: string };
+  catalog_endpoint: string;
   checkout_endpoint: string;
   registry_url: string;
-  capabilities: ["intent-mandates", "live-revocation", "mock-payment"];
+  mcp_endpoint: string;
+  oauth_protected_resource: string;
+  documentation_url: string;
+  capabilities: [
+    "store-owned-catalog",
+    "intent-mandates",
+    "live-revocation",
+    "mock-payment",
+  ];
+};
+
+export type AgentPayCatalogProduct = {
+  product_id: string;
+  merchant_id: string;
+  sku: string;
+  name: string;
+  description: string;
+  category: string;
+  price_cents: number;
+  currency: string;
+  availability: "in_stock" | "out_of_stock";
+  product_url: string;
+};
+
+export type AgentPayMerchantCatalog = {
+  protocol: "agentpay-catalog/1.0";
+  merchant: { id: string; name: string };
+  products: AgentPayCatalogProduct[];
 };

@@ -13,7 +13,9 @@ sequenceDiagram
     Agent->>Store: Search or use the store's product tools
     Store-->>Agent: Product URL and details
     Agent->>Store: GET /.well-known/agentpay.json
-    Store-->>Agent: Store-owned checkout and registry URLs
+    Store-->>Agent: Store-owned catalog, checkout, MCP and registry URLs
+    Agent->>Store: GET catalog_endpoint
+    Store-->>Agent: Stable product IDs, categories, prices and availability
     Agent->>AgentPay: Connect /mcp
     AgentPay-->>Agent: OAuth protected-resource metadata
     Agent->>Auth: OAuth authorization + PKCE
@@ -42,4 +44,5 @@ sequenceDiagram
 - Supabase Auth owns user sessions and OAuth grants. AgentPay stores WebAuthn public credentials, never private passkey material.
 - The registry signs canonical mandates and exposes only the exact signed records required for merchant verification.
 - The store owns products, discovery and checkout. The SDK checks live revocation on every purchase.
+- The merchant manifest is the machine contract. Agents copy product IDs from its live catalog endpoint rather than deriving them from display names, SKUs or URLs.
 - The payment rail is the only mocked boundary. The mock token is issued only after the real authorization and enforcement path succeeds.

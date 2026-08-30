@@ -7,6 +7,7 @@ import {
 } from "@/lib/crypto";
 import { canonicalJson } from "@/lib/canonical-json";
 import type {
+  AgentPayMerchantCatalog,
   AgentPayMerchantManifest,
   CheckoutCart,
   PolicyDecision,
@@ -17,9 +18,14 @@ import { evaluatePolicy } from "@/lib/agentpay-policy";
 const manifestSchema = z.object({
   protocol: z.literal("agentpay/1.0"),
   merchant: z.object({ id: z.string().min(1), name: z.string().min(1) }),
+  catalog_endpoint: z.url(),
   checkout_endpoint: z.url(),
   registry_url: z.url(),
+  mcp_endpoint: z.url(),
+  oauth_protected_resource: z.url(),
+  documentation_url: z.url(),
   capabilities: z.tuple([
+    z.literal("store-owned-catalog"),
     z.literal("intent-mandates"),
     z.literal("live-revocation"),
     z.literal("mock-payment"),
@@ -31,6 +37,25 @@ const checkoutBodySchema = z.object({
   merchant_id: z.string().min(1),
   product_id: z.string().min(1),
   exception_id: z.uuid().optional(),
+});
+
+const catalogSchema = z.object({
+  protocol: z.literal("agentpay-catalog/1.0"),
+  merchant: z.object({ id: z.string().min(1), name: z.string().min(1) }),
+  products: z.array(
+    z.object({
+      product_id: z.string().min(1),
+      merchant_id: z.string().min(1),
+      sku: z.string().min(1),
+      name: z.string().min(1),
+      description: z.string(),
+      category: z.string().min(1),
+      price_cents: z.number().int().positive(),
+      currency: z.string().length(3),
+      availability: z.enum(["in_stock", "out_of_stock"]),
+      product_url: z.url(),
+    }),
+  ),
 });
 
 export type MerchantProduct = {
@@ -58,16 +83,36 @@ export function merchantManifest(input: {
   origin: string;
   merchantId: string;
   merchantName: string;
+  catalogPath?: string;
   checkoutPath?: string;
   registryUrl?: string;
+  mcpUrl?: string;
+  oauthProtectedResourceUrl?: string;
+  documentationUrl?: string;
 }): AgentPayMerchantManifest {
   const origin = new URL(input.origin).origin;
+  const registryUrl = input.registryUrl ? new URL(input.registryUrl) : new URL(origin);
   return {
     protocol: "agentpay/1.0",
     merchant: { id: input.merchantId, name: input.merchantName },
+    catalog_endpoint: new URL(input.catalogPath ?? "/api/agentpay/catalog", origin).toString(),
     checkout_endpoint: new URL(input.checkoutPath ?? "/api/store/checkout", origin).toString(),
-    registry_url: input.registryUrl ? new URL(input.registryUrl).toString() : origin,
-    capabilities: ["intent-mandates", "live-revocation", "mock-payment"],
+    registry_url: registryUrl.toString(),
+    mcp_endpoint: input.mcpUrl
+      ? new URL(input.mcpUrl).toString()
+      : new URL("/mcp", registryUrl).toString(),
+    oauth_protected_resource: input.oauthProtectedResourceUrl
+      ? new URL(input.oauthProtectedResourceUrl).toString()
+      : new URL("/.well-known/oauth-protected-resource/mcp", registryUrl).toString(),
+    documentation_url: input.documentationUrl
+      ? new URL(input.documentationUrl).toString()
+      : new URL("/llms.txt", origin).toString(),
+    capabilities: [
+      "store-owned-catalog",
+      "intent-mandates",
+      "live-revocation",
+      "mock-payment",
+    ],
   };
 }
 
@@ -86,6 +131,19 @@ export async function discoverAgentPayMerchant(
     throw new Error(`Merchant does not publish AgentPay discovery metadata (${response.status})`);
   }
   return manifestSchema.parse(await response.json());
+}
+
+export async function discoverAgentPayCatalog(
+  catalogUrl: string,
+  fetcher: FetchLike = fetch,
+): Promise<AgentPayMerchantCatalog> {
+  const response = await fetcher(new URL(catalogUrl), {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) {
+    throw new Error(`Merchant catalog is unavailable (${response.status})`);
+  }
+  return catalogSchema.parse(await response.json());
 }
 
 export function signAgentPayRequest(input: {

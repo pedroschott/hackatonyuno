@@ -9,7 +9,7 @@ Production: https://agentpay-yuno.vercel.app
 1. The user connects `https://agentpay-yuno.vercel.app/mcp` to an MCP client.
 2. Supabase OAuth opens AgentPay for sign-in, account creation and consent.
 3. The user registers one passkey and saves one or more cards. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
-4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions.
+4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, follows its `catalog_endpoint`, and requests a mandate using the exact merchant, category, price and product IDs published by the store.
 5. The user opens the approval link and authorizes the mandate with their passkey.
 6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
 7. The user or agent can revoke the mandate immediately. The next checkout is refused by the live registry check.
@@ -46,7 +46,8 @@ npm run test:mcp -- user@example.com 'password'
 | `/connect` | MCP/OAuth connection instructions and discovery endpoints |
 | `/contracts/new` | Create and passkey-authorize a mandate manually |
 | `/m` | Phone-first approval inbox and kill switch, opened by QR from the desktop app |
-| `/store` | Merchant demo with AgentPay checkout verification |
+| `/store` | AutoParts merchant demo; products are server-rendered for people and agents, with no user-facing AgentPay checkout |
+| `/api/store/catalog` | Store-owned machine catalog with stable product IDs used by the MCP purchase tool |
 | `/audit` | Hash-chained decision log |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
 
@@ -56,6 +57,7 @@ Every route above is responsive and usable from a phone. `/m` is a separate, del
 
 - `get_account`
 - `get_payment_setup_link` — returns a 15-minute, user-bound AgentPay browser link and accepts no card data
+- `discover_merchant` — reads a specific store's well-known manifest and machine catalog; it is not a directory
 - `create_mandate`
 - `get_mandate`
 - `purchase`

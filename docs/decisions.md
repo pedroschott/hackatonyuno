@@ -8,6 +8,8 @@ The challenge flow uses one account owner with multiple saved cards. There are n
 
 Agents find products through search or store tools, then read `/.well-known/agentpay.json` on that store. This avoids central catalog drift and lets every merchant own its products and checkout URL.
 
+The manifest publishes a machine-readable `catalog_endpoint` alongside the checkout and AgentPay MCP metadata. Catalog rows carry stable checkout product IDs, categories and integer minor-unit prices. Human pages should also server-render product content and structured data, but agents use the catalog ID verbatim; they never infer it from a name, SKU, URL slug or list position.
+
 ## OAuth-protected MCP as the agent connection
 
 The remote `/mcp` server publishes protected-resource metadata and delegates OAuth/OIDC, PKCE and dynamic client registration to Supabase. An access token identifies the user; tool input never selects an arbitrary user.

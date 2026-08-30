@@ -13,7 +13,7 @@ const handler = createMcpHandler((server) => {
 }, {
   serverInfo: { name: "agentpay", version: "0.2.0" },
   instructions:
-    "AgentPay enforces user-authorized purchase mandates. Start with get_account. If no payment method is saved, call get_payment_setup_link, explain that payment setup happens only in AgentPay's browser UI, and wait for the user before calling get_account again. Never ask for or accept a full card number, CVC, PIN, bank password, or vault credential in chat; tools expose only safe payment metadata. Never purchase before a mandate is active. Discover each merchant from its own product page or /.well-known/agentpay.json; AgentPay is not a store directory. Revoke immediately when the user says stop.",
+    "AgentPay enforces user-authorized purchase mandates. Start with get_account. If no payment method is saved, call get_payment_setup_link, explain that payment setup happens only in AgentPay's browser UI, and wait for the user before calling get_account again. Never ask for or accept a full card number, CVC, PIN, bank password, or vault credential in chat; tools expose only safe payment metadata. Use discover_merchant with the store or product URL and copy its merchant ID, category and product ID exactly. Never guess a product ID. Never purchase before a mandate is active. AgentPay is not a store directory. Revoke immediately when the user says stop.",
 });
 
 async function verifyToken(request: Request, bearerToken?: string): Promise<AuthInfo | undefined> {

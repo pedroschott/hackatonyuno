@@ -5,12 +5,19 @@ import { appendAudit, ensureAgent, getAgentPrivateKey } from "@/lib/data";
 import { agentPayBaseUrl } from "@/lib/env";
 import { createPaymentSetupToken } from "@/lib/payment-setup";
 import { createBearerSupabase } from "@/lib/supabase/bearer";
-import { discoverAgentPayMerchant, signAgentPayRequest } from "@/sdk";
+import {
+  discoverAgentPayCatalog,
+  discoverAgentPayMerchant,
+  signAgentPayRequest,
+} from "@/sdk";
 
 function mcpResult(data: Record<string, unknown>, narration: string) {
   return {
     structuredContent: data,
-    content: [{ type: "text" as const, text: narration }],
+    content: [
+      { type: "text" as const, text: narration },
+      { type: "text" as const, text: JSON.stringify(data) },
+    ],
   };
 }
 
@@ -160,18 +167,49 @@ export function registerAgentPayTools(server: McpServer) {
   );
 
   server.registerTool(
+    "discover_merchant",
+    {
+      title: "Discover an AgentPay merchant",
+      description:
+        "Use this after finding a product page or store URL. It reads the store-owned AgentPay manifest and catalog, returning exact merchant, category, price and product IDs required by create_mandate and purchase. AgentPay does not provide a store directory.",
+      inputSchema: z.object({
+        merchant_url: z.url().describe(
+          "The product page, store URL, or /.well-known/agentpay.json URL on the merchant's own domain.",
+        ),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+        idempotentHint: true,
+      },
+    },
+    async ({ merchant_url }) => {
+      const manifest = await discoverAgentPayMerchant(merchant_url);
+      const catalog = await discoverAgentPayCatalog(manifest.catalog_endpoint);
+      if (catalog.merchant.id !== manifest.merchant.id) {
+        throw new Error("Merchant manifest and catalog identify different merchants");
+      }
+      return mcpResult(
+        { manifest, catalog },
+        `Discovered ${manifest.merchant.name}. Use catalog.products[].product_id verbatim when calling purchase; do not substitute a SKU, name, URL slug, or list position.`,
+      );
+    },
+  );
+
+  server.registerTool(
     "create_mandate",
     {
       title: "Create purchase mandate",
       description: "Use this when the user has described a purchase scope and needs a draft Intent Mandate. Return the authorization URL and wait for passkey approval before purchasing.",
       inputSchema: z.object({
-        merchant_ids: z.array(z.string().min(1)).min(1).max(10),
-        categories: z.array(z.string().min(1)).min(1).max(10),
-        per_purchase_cents: z.number().int().positive(),
-        cumulative_cents: z.number().int().positive(),
-        max_uses: z.number().int().positive().max(100),
-        expires_at: z.iso.datetime(),
-        vault_card_id: z.uuid(),
+        merchant_ids: z.array(z.string().min(1)).min(1).max(10).describe("Exact merchant IDs returned by discover_merchant."),
+        categories: z.array(z.string().min(1)).min(1).max(10).describe("Exact product categories returned by discover_merchant."),
+        per_purchase_cents: z.number().int().positive().describe("Maximum amount for one purchase in minor currency units."),
+        cumulative_cents: z.number().int().positive().describe("Maximum cumulative amount in minor currency units."),
+        max_uses: z.number().int().positive().max(100).describe("Maximum number of approved purchases."),
+        expires_at: z.iso.datetime().describe("ISO 8601 expiry timestamp after the expected purchase window."),
+        vault_card_id: z.uuid().describe("Saved card ID returned by get_account."),
       }),
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
     },
@@ -233,18 +271,27 @@ export function registerAgentPayTools(server: McpServer) {
     "purchase",
     {
       title: "Purchase with AgentPay",
-      description: "Use this when the agent found a product at a merchant that publishes AgentPay metadata. The merchant URL comes from the product page or search result; AgentPay does not provide a store directory.",
+      description: "Use this only after discover_merchant returned the exact merchant and product IDs and get_mandate reports an active mandate. Never guess a product ID from its name, SKU, URL slug, or list position.",
       inputSchema: z.object({
-        mandate_id: z.uuid(),
-        merchant_url: z.url(),
-        product_id: z.string().min(1),
-        exception_id: z.uuid().optional(),
+        mandate_id: z.uuid().describe("Active mandate ID returned by create_mandate and confirmed by get_mandate."),
+        merchant_url: z.url().describe("Merchant store or product URL previously passed to discover_merchant."),
+        product_id: z.string().min(1).describe("Exact catalog.products[].product_id returned by discover_merchant."),
+        exception_id: z.uuid().optional().describe("One-time approved exception ID, only when the prior purchase result requested it."),
       }),
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true, idempotentHint: false },
     },
     async (input, ctx) => {
       const auth = authContext(ctx);
       const manifest = await discoverAgentPayMerchant(input.merchant_url);
+      const catalog = await discoverAgentPayCatalog(manifest.catalog_endpoint);
+      const catalogProduct = catalog.products.find(
+        (product) => product.product_id === input.product_id,
+      );
+      if (!catalogProduct || catalogProduct.merchant_id !== manifest.merchant.id) {
+        throw new Error(
+          `Merchant did not publish product_id "${input.product_id}". Call discover_merchant and use catalog.products[].product_id verbatim.`,
+        );
+      }
       const mandateResult = await auth.supabase
         .from("mandates")
         .select("id, agent_id, status")

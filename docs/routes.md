@@ -24,7 +24,7 @@ This inventory is the canonical map of the AgentPay web application and the isol
 
 | Method | Endpoint | Consumer | Purpose |
 |---|---|---|---|
-| `GET` | `/.well-known/agentpay.json` | Agent on a merchant domain | Merchant-owned AgentPay manifest for the AutoParts demo. A real merchant publishes its own manifest. |
+| `GET` | `/.well-known/agentpay.json` | Agent on a merchant domain | Merchant-owned AgentPay manifest for the AutoParts demo. Publishes catalog, checkout, registry, MCP, OAuth metadata and documentation URLs. A real merchant publishes its own manifest. |
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource` | MCP client | OAuth protected-resource metadata for AgentPay MCP. |
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource/mcp` | MCP client | Alias of the protected-resource metadata for the MCP endpoint. |
 | `GET`, `POST` | `/mcp` | OAuth-authenticated MCP client | Streamable HTTP MCP server. Exposes `get_account`, `get_payment_setup_link`, `create_mandate`, `get_mandate`, `purchase` and `revoke_mandate`. |
@@ -53,6 +53,7 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | `GET` | `/api/state` | Read the authenticated demo state. |
 | `POST` | `/api/reset` | Reset the authenticated demo state. |
 | `POST` | `/api/store/checkout` | AutoParts demo store checkout. |
+| `GET`, `OPTIONS` | `/api/store/catalog` | Public AutoParts machine catalog. Returns the exact stable product IDs required by `purchase`. |
 
 ## Merchant verification registry
 

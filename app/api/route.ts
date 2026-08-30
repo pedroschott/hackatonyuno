@@ -16,6 +16,7 @@ export async function GET(req: Request) {
       "Stores publish /.well-known/agentpay.json on their own domain. AgentPay does not maintain a store directory.",
     instructions: [
       "Connect the AgentPay MCP server using OAuth.",
+      "Call discover_merchant with the product or store URL and use its exact catalog identifiers.",
       "Create a draft mandate from the user's stated scope and limits.",
       "Wait for passkey authorization before purchasing.",
       "Discover AgentPay on the merchant found through search, then submit a signed purchase.",

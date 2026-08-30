@@ -8,7 +8,9 @@ export async function GET(request: Request) {
       origin,
       merchantId: "mrc_autoparts",
       merchantName: "AutoParts",
+      catalogPath: "/api/store/catalog",
       registryUrl: origin,
+      documentationUrl: `${origin}/llms.txt`,
     }),
     {
       headers: {
