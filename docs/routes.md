@@ -27,7 +27,7 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | `/docs/troubleshooting` | Common integration failures and fixes. | Yes | Allowed |
 | `/dashboard` | Account summary: month-to-date charges, active mandates and recent activity. | No | Disallowed |
 | `/activity` | Full purchase-attempt history with the mandate decision on each. | No | Disallowed |
-| `/account` | Compliance and delivery profile plus complete saved-card management. | No | Disallowed |
+| `/account` | Didit identity/fraud-verification state, compliance and delivery profile, plus complete saved-card management. | No | Disallowed |
 | `/audit` | Security log: every account decision, hash-chained. | No | Disallowed |
 | `/payment-methods/setup?token=...` | User-bound hosted payment setup callback. | No | Disallowed |
 | `/m` | Mobile signing and revocation inbox. | No | Disallowed |
@@ -62,18 +62,21 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | Method | Endpoint | Purpose |
 |---|---|---|
 | `GET`, `PATCH` | `/api/account` | Read or update the user-owned compliance and fulfillment profile plus account state. |
+| `POST` | `/api/identity-verification/session` | Create or resume the authenticated user's hosted Didit v3 verification session. Returns only the hosted URL and status. |
+| `GET` | `/api/identity-verification/return` | Reconcile Didit's redirect against the server-retrieved decision, then return the authenticated user to `/account`. |
+| `POST` | `/api/webhooks/didit` | Receive Didit v3 status events, verify the timestamp and HMAC signature, de-duplicate the event, and persist only minimal verification state. |
 | `POST` | `/api/cards` | Save non-sensitive payment-method display metadata and an opaque mock-vault reference. The first card becomes the default. |
 | `PATCH`, `DELETE` | `/api/cards/:id` | Set an owned card as default or remove it when no draft/active mandate is bound to it. |
-| `POST` | `/api/checkout` | Execute the deployed demo checkout path. A test-only request may use a bounded pre-settlement revocation window; the final database decision always rechecks live mandate state. |
+| `POST` | `/api/checkout` | Execute the deployed demo checkout path. The route requires a current passing Didit decision. A test-only request may use a bounded pre-settlement revocation window; the final database decision always rechecks live mandate and identity state. |
 | `GET`, `POST` | `/api/mandates` | List mandates or create a draft mandate. Mandates are only ever created by an agent through MCP; the web app has no manual creation form. |
 | `GET` | `/api/mandates/:id` | Read a mandate. |
-| `GET`, `POST` | `/api/mandates/:id/authorize` | Fetch a passkey challenge or authorize the mandate. |
+| `GET`, `POST` | `/api/mandates/:id/authorize` | Fetch a passkey challenge or authorize the mandate after the latest Didit identity decision passes. |
 | `POST` | `/api/mandates/:id/decline` | Decline a draft mandate. |
 | `PATCH` | `/api/mandates/:id/limits` | Update a mandate's permitted limits. |
 | `PATCH` | `/api/mandates/:id/payment` | Switch the saved card on a draft mandate before passkey authorization. |
 | `POST` | `/api/mandates/:id/revoke` | Revoke a mandate immediately. |
 | `GET` | `/api/mandates/:id/status` | Read live mandate status for the UI. |
-| `POST` | `/api/approvals/:id/authorize` | Get or verify the passkey ceremony for a one-time exception. |
+| `POST` | `/api/approvals/:id/authorize` | Get or verify the passkey ceremony for a one-time exception after the latest Didit identity decision passes. |
 | `POST` | `/api/approvals/:id/decide` | Approve or deny a one-time exception. |
 | `POST` | `/api/passkeys/register` | Register a WebAuthn credential. |
 | `GET` | `/api/state` | Read the authenticated demo state. |

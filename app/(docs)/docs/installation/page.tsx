@@ -188,21 +188,38 @@ AGENTPAY_REGISTRY_URL=https://agentpay-yuno.vercel.app`}
         },
         {
           id: "agentpay-operator",
-          title: "AgentPay operator setup",
+          title: "AgentPay operator configuration",
           body: (
             <>
               <P>
-                Merchants do not need an email-provider key. AgentPay&apos;s hosted Supabase Auth service sends its own
-                transactional email through Resend. Only contributors running the local Supabase stack need to set the
-                server-only <C>RESEND_API_KEY</C> value before starting Supabase.
+                Merchants do not need email-provider or identity-provider credentials. AgentPay&apos;s hosted Supabase
+                Auth service sends its own transactional email through Resend. Only contributors running the local
+                Supabase stack need to set the server-only <C>RESEND_API_KEY</C> value before starting Supabase.
               </P>
               <CodeBlock lang="bash" code={`export RESEND_API_KEY=re_your_resend_api_key\nsupabase start`} />
-              <Callout tone="warn" title="Keep the SMTP key server-only">
+              <Callout tone="warn" title="Keep provider credentials server-only">
                 <p>
-                  Never prefix this value with <C>NEXT_PUBLIC_</C>, add it to Vercel, or commit it. Supabase reads it
-                  directly from the operator environment for local Auth email delivery.
+                  Never prefix these values with <C>NEXT_PUBLIC_</C> or commit them. Supabase reads the Resend key
+                  directly from the operator environment for local Auth email delivery; do not add that key to Vercel.
                 </p>
               </Callout>
+              <P>
+                These values configure the AgentPay deployment, not a merchant store. Didit credentials and the
+                Supabase secret key stay server-only and must never use a <C>NEXT_PUBLIC_</C> prefix.
+              </P>
+              <CodeBlock
+                lang="bash"
+                filename=".env.local"
+                code={`SUPABASE_SECRET_KEY=your-supabase-secret-key
+DIDIT_API_KEY=your-didit-api-key
+DIDIT_WORKFLOW_ID=00000000-0000-0000-0000-000000000000
+DIDIT_WEBHOOK_SECRET=your-webhook-destination-secret`}
+              />
+              <P>
+                Configure the Didit v3 destination at <C>https://your-agentpay-host/api/webhooks/didit</C> for
+                <C>status.updated</C>, <C>data.updated</C>, <C>user.status.updated</C>, and <C>user.data.updated</C>.
+                The selected workflow controls which document, liveness, AML, IP, and fraud checks run.
+              </P>
             </>
           ),
         },

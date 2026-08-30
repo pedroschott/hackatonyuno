@@ -56,6 +56,18 @@ Checkout validates that the signed card still belongs to the mandate owner, bind
 
 Legal name, tax ID, phone and delivery address live in a dedicated user-owned table with RLS and explicit authenticated grants. The authenticated MCP account view may use these fields for a user-requested order, with an instruction to disclose only what that merchant needs. The public merchant registry and payment tokens never include this profile.
 
+## Didit gates new spending authority, without copying biometric data
+
+AgentPay uses Didit's hosted v3 session rather than uploading documents through its own UI. The account holder sees an explicit disclosure and affirmative consent before leaving AgentPay. The server sends Didit a stable Supabase user UUID as `vendor_data`, receives only the hosted `url`, and never exposes the API key or session token to application code beyond the redirect URL Didit generated.
+
+Didit is the source of truth for identity, document, liveness, AML, IP, and other fraud checks selected in the configured workflow. A mandate or one-time exception cannot be passkey-authorized or used unless the latest session is `Approved` and Didit's linked user entity is neither `FLAGGED` nor `BLOCKED`. The user-facing and MCP paths fail before merchant contact, while a database trigger independently prevents any approved attempt or mock payment token from committing. That final gate also covers mandates that were already active when this integration shipped. The workflow—not hard-coded frontend claims—determines which checks actually ran.
+
+The database trigger has a one-way rollout latch. A schema migration alone does not interrupt the currently deployed demo; the server turns the latch on only after it successfully creates and stores a real Didit session. From that point onward the database gate stays enabled. This makes deployment order safe without creating a runtime bypass once the provider is demonstrably configured.
+
+The normal result path is a v3 webhook authenticated with `X-Signature-V2` over Didit's canonical JSON, with the raw-body signature accepted as a full-body fallback. Events older than five minutes are refused, stable event IDs are de-duplicated in one database transaction, and older status events cannot overwrite newer ones. The browser return route independently retrieves the decision from Didit, checks the session, user and workflow binding, and reconciles state if a webhook was missed.
+
+AgentPay deliberately persists only the session ID, workflow ID, overall status, environment, linked-entity status and timestamps. It does not store Didit's decision payload, identity documents, selfies, videos, biometric templates, extracted identity data, or provider session token. That makes the fraud boundary demonstrable while keeping AgentPay outside the document and biometric data path.
+
 ## Exact-ID public registry functions are intentional
 
 Merchant checkout must retrieve a signed agent key and mandate without a user session. Two `SECURITY DEFINER` functions expose only exact-ID registry projections; base tables remain protected by RLS. Supabase's linter flags the public executability, but it is the deliberate protocol boundary rather than general table access.

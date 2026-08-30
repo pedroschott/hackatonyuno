@@ -7,7 +7,9 @@ import {
   getAgentPrivateKey,
   getOwnedPaymentCard,
 } from "@/lib/data";
+import { isIdentityVerified } from "@/lib/didit";
 import { agentPayBaseUrl } from "@/lib/env";
+import { loadLatestIdentityVerification, requireVerifiedIdentity } from "@/lib/identity-verification";
 import { createPaymentSetupToken } from "@/lib/payment-setup";
 import { createBearerSupabase } from "@/lib/supabase/bearer";
 import { discoverAgentPayMerchant, signAgentPayRequest } from "@/sdk";
@@ -105,11 +107,12 @@ export function registerAgentPayTools(server: McpServer) {
     },
     async (_input, ctx) => {
       const auth = authContext(ctx);
-      const [profile, cards, mandates, approvals, attempts] = await Promise.all([
+      const [profile, identityVerification, cards, mandates, approvals, attempts] = await Promise.all([
         auth.supabase
           .from("customer_profiles")
           .select("legal_name, tax_id, phone, address_line1, address_line2, city, region, postal_code, country_code, updated_at")
           .maybeSingle(),
+        loadLatestIdentityVerification(auth.supabase),
         auth.supabase
           .from("vault_cards")
           .select("id, brand, last4, label, is_default, created_at")
@@ -143,6 +146,8 @@ export function registerAgentPayTools(server: McpServer) {
         };
       });
       const approvalRows = approvals.data ?? [];
+      const identityReady = isIdentityVerified(identityVerification);
+      const verificationUrl = `${auth.origin}/account`;
       const orderProfile = profile.data
         ? {
             ...profile.data,
@@ -161,11 +166,19 @@ export function registerAgentPayTools(server: McpServer) {
       return mcpResult(
         {
           order_profile: orderProfile,
+          identity_verification: {
+            status: identityVerification?.status ?? "Required",
+            entity_status: identityVerification?.entity_status ?? null,
+            verified: identityReady,
+            verification_url: verificationUrl,
+          },
           cards: cardRows,
           mandates: mandateRows,
           pending_approvals: approvalRows,
         },
-        cardRows.length === 0
+        !identityReady
+          ? `AgentPay is connected, but identity verification is required before a mandate can be authorized or used. Ask the user to open ${verificationUrl} and complete the hosted Didit flow, then call get_account again.`
+          : cardRows.length === 0
           ? `AgentPay is connected, but no payment method is saved. Call get_payment_setup_link and ask the user to complete the secure AgentPay browser flow. Never ask the user to send a card number, CVC, PIN, bank password, or vault credential in chat.`
           : `AgentPay is connected. Found ${cardRows.length} card(s), ${mandateRows.length} mandate(s), and ${approvalRows.length} pending approval(s).`,
       );
@@ -312,6 +325,7 @@ export function registerAgentPayTools(server: McpServer) {
     },
     async (input, ctx) => {
       const auth = authContext(ctx);
+      await requireVerifiedIdentity(auth.supabase);
       const manifest = await discoverAgentPayMerchant(input.merchant_url);
       const mandateResult = await auth.supabase
         .from("mandates")

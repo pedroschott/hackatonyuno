@@ -30,6 +30,14 @@ type Profile = {
   country_code: string;
 };
 
+type IdentityVerification = {
+  session_id: string;
+  status: "Not Started" | "In Progress" | "Approved" | "Declined" | "In Review" | "Expired" | "Abandoned" | "Kyc Expired" | "Resubmitted" | "Awaiting User";
+  entity_status: "ACTIVE" | "FLAGGED" | "BLOCKED" | null;
+  environment: "sandbox" | "live" | null;
+  approved_at: string | null;
+};
+
 const emptyProfile: Profile = {
   legal_name: "",
   tax_id: "",
@@ -65,6 +73,10 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [identityVerification, setIdentityVerification] = useState<IdentityVerification | null>(null);
+  const [verificationConsent, setVerificationConsent] = useState(false);
+  const [verificationBusy, setVerificationBusy] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [brand, setBrand] = useState<"visa" | "mastercard">("visa");
   const [last4, setLast4] = useState("");
   const [label, setLabel] = useState("");
@@ -81,11 +93,16 @@ export default function AccountPage() {
           error?: string;
           user?: { email?: string };
           profile?: Partial<Profile> | null;
+          identity_verification?: IdentityVerification | null;
         };
         if (!response.ok) throw new Error(result.error ?? "Could not load the account");
         if (!active) return;
         setEmail(result.user?.email ?? "");
         setProfile(profileFrom(result.profile));
+        setIdentityVerification(result.identity_verification ?? null);
+        const callbackState = new URLSearchParams(window.location.search).get("verification");
+        if (callbackState === "complete") setVerificationMessage("Didit returned your latest verification decision.");
+        if (callbackState === "error") setVerificationMessage("We could not reconcile the Didit result. Please try again.");
       })
       .catch((error) => active && setProfileMessage(error instanceof Error ? error.message : "Could not load the account"));
     return () => {
@@ -149,6 +166,20 @@ export default function AccountPage() {
     }
   }
 
+  async function startIdentityVerification() {
+    setVerificationBusy(true);
+    setVerificationMessage(null);
+    try {
+      const response = await fetch("/api/identity-verification/session", { method: "POST" });
+      const result = (await response.json()) as { error?: string; url?: string };
+      if (!response.ok || !result.url) throw new Error(result.error ?? "Could not start identity verification");
+      window.location.assign(result.url);
+    } catch (error) {
+      setVerificationMessage(error instanceof Error ? error.message : "Could not start identity verification");
+      setVerificationBusy(false);
+    }
+  }
+
   async function mutateCard(id: string, method: "PATCH" | "DELETE") {
     setRemoving(method === "DELETE" ? id : null);
     setCardBusy(true);
@@ -183,7 +214,70 @@ export default function AccountPage() {
 
       <Card>
         <CardHeader
-          title="Identity and compliance"
+          title="Identity and fraud verification"
+          description="Didit verifies your identity, document integrity, liveness, and the risk checks configured in AgentPay's workflow before you can authorize a mandate."
+          actions={
+            identityVerification?.status === "Approved" && identityVerification.entity_status !== "FLAGGED" && identityVerification.entity_status !== "BLOCKED" ? (
+              <Badge tone="success"><ShieldCheck className="size-3" /> Verified</Badge>
+            ) : identityVerification?.status === "Declined" || identityVerification?.entity_status === "BLOCKED" ? (
+              <Badge tone="danger">Not verified</Badge>
+            ) : identityVerification?.entity_status === "FLAGGED" ? (
+              <Badge tone="warn">Needs review</Badge>
+            ) : identityVerification?.status === "In Review" ? (
+              <Badge tone="warn">In review</Badge>
+            ) : (
+              <Badge tone="neutral">Required</Badge>
+            )
+          }
+        />
+        <div className="space-y-4 p-5">
+          <p className="text-[13px] leading-5 text-ink-2">
+            AgentPay stores only the session status. Identity documents, selfies, biometric captures, and the full verification decision remain with Didit.
+          </p>
+          {identityVerification && (
+            <div className="rounded-md border border-line bg-canvas px-3 py-2 text-[12.5px] text-muted">
+              Latest result: <span className="font-medium text-ink-2">{identityVerification.status}</span>
+              {identityVerification.environment ? ` · ${identityVerification.environment}` : ""}
+              {identityVerification.entity_status && identityVerification.entity_status !== "ACTIVE" ? ` · ${identityVerification.entity_status.toLowerCase()}` : ""}
+            </div>
+          )}
+          {identityVerification?.status !== "Approved" && identityVerification?.status !== "In Review" && (
+            <label className="flex items-start gap-2 text-[12.5px] leading-5 text-ink-2">
+              <input
+                type="checkbox"
+                checked={verificationConsent}
+                onChange={(event) => setVerificationConsent(event.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand)]"
+              />
+              <span>
+                I agree to continue to Didit, where identity documents, selfie or liveness captures, biometrics, device data, and fraud signals may be processed for verification. I have read Didit&apos;s{" "}
+                <a className="underline" href="https://didit.me/terms/verification-privacy-notice/" target="_blank" rel="noreferrer">Verification Privacy Notice</a>{" "}
+                and <a className="underline" href="https://didit.me/terms/identity-verification/" target="_blank" rel="noreferrer">End User Terms</a>.
+              </span>
+            </label>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">
+          {identityVerification?.status !== "Approved" && identityVerification?.status !== "In Review" && (
+            <Button
+              variant="primary"
+              size="lg"
+              loading={verificationBusy}
+              disabled={!verificationConsent}
+              onClick={startIdentityVerification}
+            >
+              {identityVerification && ["Not Started", "In Progress", "Resubmitted", "Awaiting User"].includes(identityVerification.status)
+                ? "Resume with Didit"
+                : "Verify with Didit"}
+            </Button>
+          )}
+          {verificationMessage && <p className="text-[12.5px] text-muted">{verificationMessage}</p>}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Order and compliance details"
           description="Kept inside your protected AgentPay account. Agents receive it only through your authenticated connection."
           actions={
             complianceReady ? (

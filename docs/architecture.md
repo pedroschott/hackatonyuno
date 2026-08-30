@@ -6,6 +6,7 @@ sequenceDiagram
     participant Agent as Claude / ChatGPT / MCP client
     participant AgentPay as AgentPay on Vercel
     participant Auth as Supabase Auth + OAuth
+    participant Didit as Didit identity + fraud verification
     participant Registry as Supabase mandate registry
     participant Store as Store + merchant SDK
     participant Console as Merchant console
@@ -24,6 +25,11 @@ sequenceDiagram
     Agent->>Auth: OAuth authorization + PKCE
     Auth->>User: AgentPay sign-in and consent screen
     User->>AgentPay: Create account/passkey if needed
+    User->>AgentPay: Consent to identity and fraud verification
+    AgentPay->>Didit: Create hosted v3 session (server API key)
+    Didit-->>User: Document, liveness and configured risk checks
+    Didit->>AgentPay: HMAC-signed status webhook
+    AgentPay->>Registry: Store minimal decision state
     Auth-->>Agent: Access token
     Agent->>AgentPay: get_account
     AgentPay-->>Agent: Order profile + saved-card metadata + default
@@ -32,8 +38,10 @@ sequenceDiagram
     AgentPay-->>Agent: approval_url
     User->>AgentPay: Review or switch the draft's saved card
     User->>AgentPay: Approve mandate with passkey
+    AgentPay->>Registry: Require latest Didit decision to pass
     AgentPay->>Registry: Verify WebAuthn and co-sign active mandate
     Agent->>AgentPay: purchase
+    AgentPay->>Registry: Recheck latest Didit decision
     AgentPay->>Store: Signed checkout request
     Store->>Registry: Fetch signed live status
     Store->>Store: Verify signatures, nonce and policy
@@ -52,6 +60,10 @@ Checkout settlement and revocation use the same per-mandate transaction lock. A 
 
 - The agent proposes scope and purchase details but cannot approve its own authority.
 - Supabase Auth owns user sessions and OAuth grants. AgentPay stores WebAuthn public credentials, never private passkey material.
+- Didit owns the hosted identity and fraud-verification capture. AgentPay sends a stable opaque user ID, authenticates API calls server-side, validates webhook freshness and HMAC signatures, and persists only session, workflow, environment, decision, and entity-risk state. Full decisions, identity documents, images, and biometric data are not copied into AgentPay.
+- A signed webhook is the normal decision path; the authenticated return route re-fetches the decision from Didit as a missed-webhook fallback. Both paths verify that the Didit session is bound to the same Supabase user and configured workflow.
+- The MCP and demo checkout paths fail before contacting a merchant when verification is not current. A database trigger independently refuses every approved attempt, so a direct call cannot mint a mock payment token for an unverified, flagged, or blocked account; this also covers mandates that were active before the integration shipped.
+- The database gate uses a one-way rollout latch that is enabled only after the deployed server successfully creates its first Didit session. Applying the migration before application deployment therefore leaves the current demo untouched, while a configured deployment cannot silently fall back to unchecked checkout.
 - The registry signs canonical mandates and exposes only the exact signed records required for merchant verification.
 - The store owns products, discovery and checkout. The SDK checks live revocation on every purchase.
 - The merchant console owns onboarding, not purchase authority. Supabase RLS binds each merchant, catalog, API-key hash and merchant-side attempt view to its developer owner. Hosted test stores are immediately usable but never publicly listed.

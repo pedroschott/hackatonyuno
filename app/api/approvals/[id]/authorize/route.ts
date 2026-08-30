@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { appendAudit, mandateChallenge } from "@/lib/data";
 import { apiError, authenticatedRequest } from "@/lib/http";
+import { requireVerifiedIdentity } from "@/lib/identity-verification";
 import {
   transactionAuthenticationOptions,
   verifyTransactionAuthentication,
@@ -22,6 +23,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { id } = await context.params;
     const input = requestSchema.parse(await request.json());
     const { supabase, user } = await authenticatedRequest();
+    await requireVerifiedIdentity(supabase);
     const approval = await supabase.from("approvals").select("*").eq("id", id).single();
     if (approval.error || approval.data.status !== "pending") throw new Error("Pending approval not found");
     const payload = {

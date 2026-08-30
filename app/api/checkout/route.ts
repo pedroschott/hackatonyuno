@@ -1,5 +1,6 @@
 import { ensureAgent, getAgentPrivateKey } from "@/lib/data";
 import { authenticatedRequest } from "@/lib/http";
+import { requireVerifiedIdentity } from "@/lib/identity-verification";
 import { publicBaseUrl } from "@/lib/server/db";
 import {
   parseRevocationWindowMs,
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
     }
 
     const { supabase, user } = await authenticatedRequest();
+    await requireVerifiedIdentity(supabase);
     const seededProduct = seedProducts.find((candidate) => candidate.id === productId);
     const productResult = seededProduct
       ? null
