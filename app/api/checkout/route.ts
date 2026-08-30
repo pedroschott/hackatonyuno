@@ -38,8 +38,6 @@ export async function POST(req: Request) {
       : "standard";
     const productId =
       body.productId ?? body.product_id ?? PRODUCT_BY_SCENARIO[scenario];
-    const product = seedProducts.find((candidate) => candidate.id === productId);
-    if (!product) return error("Product not found", 404);
     const revocationWindowMs = parseRevocationWindowMs(body.revocation_window_ms);
     if (revocationWindowMs === null) {
       return error("revocation_window_ms must be an integer from 0 to 10000", 400);
@@ -49,6 +47,28 @@ export async function POST(req: Request) {
     }
 
     const { supabase, user } = await authenticatedRequest();
+    const seededProduct = seedProducts.find((candidate) => candidate.id === productId);
+    const productResult = seededProduct
+      ? null
+      : await supabase
+          .from("products")
+          .select("id, merchant_id, name, description, category, price_cents, sku")
+          .eq("id", productId)
+          .eq("active", true)
+          .maybeSingle();
+    if (productResult?.error) throw new Error(productResult.error.message);
+    const product = seededProduct ?? (productResult?.data
+      ? {
+          id: productResult.data.id,
+          merchantId: productResult.data.merchant_id,
+          name: productResult.data.name,
+          description: productResult.data.description,
+          category: productResult.data.category,
+          priceCents: productResult.data.price_cents,
+          sku: productResult.data.sku,
+        }
+      : null);
+    if (!product) return error("Product not found", 404);
     const agent = await ensureAgent(supabase, user.id);
     const activeMandate = await supabase
       .from("mandates")
@@ -67,7 +87,17 @@ export async function POST(req: Request) {
       scenario === "unsigned" || scenario === "replay" || scenario === "pneufast";
     if (!directPolicyScenario) {
       const base = publicBaseUrl(req);
-      const manifest = await discoverAgentPayMerchant(base);
+      const merchantResult = await supabase
+        .from("merchants")
+        .select("discovery_url")
+        .eq("id", product.merchantId)
+        .maybeSingle();
+      if (merchantResult.error) throw new Error(merchantResult.error.message);
+      const discoveryUrl = product.merchantId === "mrc_autoparts"
+        ? base
+        : merchantResult.data?.discovery_url;
+      if (!discoveryUrl) return error("Merchant discovery URL is not configured", 409);
+      const manifest = await discoverAgentPayMerchant(discoveryUrl);
       const privateKey = await getAgentPrivateKey(supabase, user.id, agent.id);
       const checkoutBody = JSON.stringify({
         mandate_id: activeMandate.data.id,

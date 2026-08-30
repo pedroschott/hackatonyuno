@@ -17,10 +17,11 @@ export default function Page() {
             whether you accept AgentPay and where to send a purchase. That is what{" "}
             <C>/.well-known/agentpay.json</C> answers.
           </Lead>
-          <Callout tone="note" title="There is no merchant directory">
+          <Callout tone="note" title="The supported-store registry is not a catalog">
             <p>
-              AgentPay deliberately does not list stores. Discovery lives on your domain, under your control, and an
-              agent reads it from the origin it is already browsing. Nothing to register, nothing to wait for.
+              Discovery still lives on your domain, under your control, and an agent reads it from the origin it is
+              already browsing. AgentPay keeps only an opt-in list of verified live store URLs; it does not ingest,
+              rank, or search merchant products. Register the immutable ID in the <A href="/developers">merchant console</A>.
             </p>
           </Callout>
         </>
@@ -153,8 +154,8 @@ app.get("/.well-known/agentpay.json", (req, res) => {
                   required: true,
                   description: (
                     <>
-                      Your stable slug, for example <C>mrc_demo_store</C>. Buyers scope mandates to this exact value and
-                      the checkout handler refuses any request naming a different one.
+                      The immutable ID assigned by the AgentPay merchant console. Buyers scope mandates to this exact
+                      value and the checkout handler refuses any request naming a different one.
                     </>
                   ),
                 },

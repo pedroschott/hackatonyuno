@@ -8,6 +8,18 @@ The challenge flow uses one account owner with multiple saved cards. There are n
 
 Agents find products through search or store tools, then read `/.well-known/agentpay.json` on that store. This avoids central catalog drift and lets every merchant own its products and checkout URL.
 
+The supported-store endpoint is a deliberately smaller object than a directory: it contains only merchants that verified a live HTTPS discovery document and opted into listing, with the store URL and discovery URL needed to continue research on that store. AgentPay stores no copied catalog and provides no search ranking. Hosted mock stores work by exact shared URL and never enter this public list.
+
+## One identity, a separate merchant control plane
+
+The existing Supabase Auth account can own buyer data and any number of merchant integrations, but developer sign-in does not require a buyer passkey. A passkey authorizes spending; making it a prerequisite for registering a store would confuse two trust decisions.
+
+The merchant console generates immutable random `mrc_...` identifiers instead of accepting developer-chosen slugs. Mandates use exact IDs, so changing one later would invalidate policy intent. Merchant ownership, product writes, API-key metadata, and merchant-side attempt reads are isolated by RLS. Merchant activity deliberately excludes buyer identity, card data, and full mandate details.
+
+Ownership lives in a separate RLS-protected membership table so Supabase user UUIDs never become public merchant metadata. Authenticated developers receive column-level updates for editable business fields, but cannot mark themselves agent-ready or verified. Live verification is a server-only registry mutation: an owner-bound database function also requires a dedicated high-entropy proof held only by AgentPay's server. This avoids putting a general Supabase secret key in the application environment. Any later website or discovery URL change clears that result automatically.
+
+Server-side catalog keys are returned once and stored only as SHA-256 hashes. Exact high-entropy key authentication is a narrow `SECURITY DEFINER` boundary with explicit grants; it can create products only for an active merchant. Live merchants remain inactive until AgentPay fetches a public HTTPS manifest, rejects redirects and private network addresses, and verifies that its merchant ID matches the registered identity.
+
 ## OAuth-protected MCP as the agent connection
 
 The remote `/mcp` server publishes protected-resource metadata and delegates OAuth/OIDC, PKCE and dynamic client registration to Supabase. An access token identifies the user; tool input never selects an arbitrary user.

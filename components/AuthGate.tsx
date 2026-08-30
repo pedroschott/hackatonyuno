@@ -15,7 +15,15 @@ type Account = {
   passkeys: Array<{ id: string }>;
 };
 
-export function AuthGate({ children }: { children: React.ReactNode }) {
+export function AuthGate({
+  children,
+  requirePasskey = true,
+  audience = "account",
+}: {
+  children: React.ReactNode;
+  requirePasskey?: boolean;
+  audience?: "account" | "developers";
+}) {
   const supabase = createBrowserSupabase();
   const refresh = useStore((state) => state.refresh);
   const [user, setUser] = useState<User | null>(null);
@@ -35,11 +43,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
+    if (!requirePasskey) {
+      setAccount({ user: { id: nextUser.id, email: nextUser.email }, passkeys: [] });
+      setLoading(false);
+      return;
+    }
     const response = await fetch("/api/account", { cache: "no-store" });
     if (response.ok) setAccount((await response.json()) as Account);
     setLoading(false);
     await refresh();
-  }, [refresh]);
+  }, [refresh, requirePasskey]);
 
   useEffect(() => {
     let active = true;
@@ -109,10 +122,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <div className="border-b border-line px-5 py-5 sm:px-6">
             <Logo />
             <h1 className="mt-5 text-[21px] font-semibold">
-              {mode === "signin" ? "Sign in to AgentPay" : "Create your AgentPay account"}
+              {mode === "signin"
+                ? audience === "developers" ? "Sign in to AgentPay Developers" : "Sign in to AgentPay"
+                : audience === "developers" ? "Create your developer account" : "Create your AgentPay account"}
             </h1>
             <p className="mt-1 text-[13.5px] text-muted">
-              One account, your saved payment methods, and one passkey for purchase approvals.
+              {audience === "developers"
+                ? "Register merchants, create hosted test stores, and integrate agent payments."
+                : "One account, your saved payment methods, and one passkey for purchase approvals."}
             </p>
           </div>
           <div className="space-y-4 px-5 py-5 sm:px-6">
@@ -162,7 +179,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-canvas" />;
   }
 
-  if (account.passkeys.length === 0) {
+  if (requirePasskey && account.passkeys.length === 0) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-8">
         <Card className="w-full max-w-[440px]">

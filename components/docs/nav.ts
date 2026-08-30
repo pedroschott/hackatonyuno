@@ -39,6 +39,12 @@ export const DOC_GROUPS: DocGroup[] = [
         description: "Requirements, the one-command installer, and the manual tarball install for @agentpay/merchant-sdk.",
         keywords: ["npm", "install", "tarball", "pack", "node", "requirements"],
       },
+      {
+        href: "/docs/stores",
+        title: "Merchant console and stores",
+        description: "Create a merchant ID and hosted test store, then see which verified live stores AgentPay supports.",
+        keywords: ["merchant id", "developer dashboard", "console", "supported stores", "mock store", "api key"],
+      },
     ],
   },
   {

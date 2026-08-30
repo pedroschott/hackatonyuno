@@ -11,12 +11,22 @@ import { ChecksList } from "./ChecksList";
 import { Mark } from "../Logo";
 import { cn } from "@/lib/cn";
 
-export function CheckoutModal({ product, open, onClose }: { product: Product | null; open: boolean; onClose: () => void }) {
+export function CheckoutModal({
+  product,
+  open,
+  onClose,
+  merchantName = "AutoParts",
+}: {
+  product: Product | null;
+  open: boolean;
+  onClose: () => void;
+  merchantName?: string;
+}) {
   if (!open || !product) return null;
-  return <CheckoutBody product={product} onClose={onClose} />;
+  return <CheckoutBody product={product} onClose={onClose} merchantName={merchantName} />;
 }
 
-function CheckoutBody({ product, onClose }: { product: Product; onClose: () => void }) {
+function CheckoutBody({ product, onClose, merchantName }: { product: Product; onClose: () => void; merchantName: string }) {
   const checkout = useStore((s) => s.checkout);
   const agent = useStore((s) => s.agents[0]);
   const approvals = useStore((s) => s.approvals);
@@ -53,7 +63,7 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-5 py-3.5">
         <Mark size={20} />
         <span className="text-[14px] font-semibold">AgentPay checkout</span>
-        <span className="text-[12px] text-muted sm:ml-auto">AutoParts</span>
+        <span className="text-[12px] text-muted sm:ml-auto">{merchantName}</span>
       </div>
 
       {(

@@ -69,6 +69,9 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <DocsSearch className="hidden sm:inline-flex" />
+            <Link href="/developers" className="hidden rounded-md bg-brand px-2.5 py-1.5 text-[12.5px] font-medium text-white hover:bg-brand-hover md:inline-block">
+              Merchant console
+            </Link>
             <Link href="/store" className="hidden rounded-md px-2 py-1.5 text-[13px] text-muted hover:bg-line-2 hover:text-ink md:inline-block">
               Demo store
             </Link>
