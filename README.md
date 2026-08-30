@@ -26,6 +26,8 @@ npm run dev
 
 Open http://localhost:3210 for the landing page, or http://localhost:3210/dashboard for the app. A new account starts empty: nothing can be charged until an agent requests a mandate and you sign it. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
 
+The hosted Supabase Auth service delivers transactional email through Resend from `AgentPay <auth@fwdco.space>`, with a 30-email-per-hour project limit. This is separate from the mocked payment rail. If you run the local Supabase stack, set `RESEND_API_KEY` in your shell before `supabase start`; never expose or commit that key.
+
 ## Verify
 
 ```bash
@@ -111,5 +113,7 @@ Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml` — t
 ## Supabase
 
 Schema changes are versioned in `supabase/migrations/`. Every Data API table has Row Level Security. User-owned cards, credentials, agents and mandates are isolated by `auth.uid()` policies; merchant checkout decisions run through narrowly scoped database functions.
+
+Supabase Auth uses the verified `fwdco.space` domain through Resend SMTP for confirmation, recovery and security emails. The SMTP credential lives only in the hosted Supabase configuration (and in a developer's local environment when running the local stack), never in Vercel or the browser bundle. The 30-email-per-hour Auth limit keeps the live demo usable while bounding accidental or abusive sends.
 
 The payment rail is intentionally mocked for the challenge. Authentication, passkey ceremonies, mandate signatures, enforcement, OAuth, MCP, live revocation and merchant verification are functional.
