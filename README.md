@@ -9,7 +9,7 @@ Production: https://agentpay-yuno.vercel.app
 1. The user connects `https://agentpay-yuno.vercel.app/mcp` to an MCP client.
 2. Supabase OAuth opens AgentPay for sign-in, account creation and consent.
 3. The user registers one passkey and saves one or more cards. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
-4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions.
+4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The web app has no form for this: a mandate only ever exists because an agent asked for one.
 5. The user opens the approval link and authorizes the mandate with their passkey.
 6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
 7. The user or agent can revoke the mandate immediately. The next checkout is refused by the live registry check.
@@ -22,7 +22,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3210/dashboard. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
+Open http://localhost:3210/dashboard. A new account starts empty: nothing can spend until an agent asks and you approve. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
 
 ## Verify
 
@@ -42,12 +42,12 @@ npm run test:mcp -- user@example.com 'password'
 
 | Route | Purpose |
 |---|---|
-| `/dashboard` | Existing AgentPay dashboard: mandates, pending approvals, limits, revocation and audit feed |
-| `/connect` | MCP/OAuth connection instructions and discovery endpoints |
-| `/contracts/new` | Create and passkey-authorize a mandate manually |
-| `/m` | Phone-first approval inbox and kill switch, opened by QR from the desktop app |
+| `/dashboard` | Summary: what was spent this month, who is allowed to spend, what is waiting for you |
+| `/activity` | Every purchase and every block, in plain language |
+| `/connect` | Connect an agent: one button per assistant, one link to paste |
+| `/m` | Phone-first approval inbox and off switch, opened by QR from the desktop app |
 | `/store` | Merchant demo with AgentPay checkout verification |
-| `/audit` | Hash-chained decision log |
+| `/audit` | Security log: hash-chained record of every decision |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
 
 Every route above is responsive and usable from a phone. `/m` is a separate, deliberately narrower surface — see the decision log.

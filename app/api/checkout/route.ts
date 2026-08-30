@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   return handle(async () => {
     const body = await readJson<{
       scenario?: Scenario;
-      source?: "heartbeat" | "manual" | "store" | "api";
+      source?: "manual" | "store" | "api";
       productId?: string;
       product_id?: string;
       exception_id?: string;

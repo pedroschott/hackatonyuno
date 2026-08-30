@@ -7,8 +7,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AgentPay — the kill switch for agent payments",
-  description: "Mandate acceptance and enforcement for agentic checkout.",
+  title: "AgentPay — let your agent pay, on your terms",
+  description: "Decide what your AI agents may buy, see every purchase, and turn spending off in one tap.",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#ffffff" };

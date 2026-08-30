@@ -6,8 +6,8 @@ import type { Attempt, Product } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import { REASON_LABEL } from "@/lib/policy";
 import { brl, timeShort } from "@/lib/format";
-import { Modal, Mono, Badge, Button } from "../ui";
-import { ChecksList } from "../dashboard/AttemptFeed";
+import { Modal, Badge, Button } from "../ui";
+import { ChecksList } from "./ChecksList";
 import { Mark } from "../Logo";
 import { cn } from "@/lib/cn";
 
@@ -22,7 +22,7 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
   const approvals = useStore((s) => s.approvals);
   const attempts = useStore((s) => s.attempts);
   const cards = useStore((s) => s.cards);
-  const mandate = useStore((s) => s.mandates.find((m) => m.id === s.agents[0].currentMandateId));
+  const mandate = useStore((s) => s.mandates.find((m) => m.id === s.agents[0]?.currentMandateId));
 
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [step, setStep] = useState(0); // how many checks revealed
@@ -53,7 +53,7 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-5 py-3.5">
         <Mark size={20} />
         <span className="text-[14px] font-semibold">AgentPay checkout</span>
-        <span className="text-[12px] text-muted sm:ml-auto">merchant <Mono>mrc_autoparts</Mono></span>
+        <span className="text-[12px] text-muted sm:ml-auto">AutoParts</span>
       </div>
 
       {(
@@ -70,17 +70,9 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
           </div>
 
           {/* Buyer */}
-          <div className="mt-3 grid grid-cols-1 gap-2 text-[12.5px] sm:grid-cols-2">
-            <div className="rounded-md border border-line px-3 py-2">
-              <div className="text-[11px] uppercase tracking-wide text-faint">Purchasing agent</div>
-              <div className="mt-0.5 font-medium">{agent.name}</div>
-              <Mono>{agent.id}</Mono>
-            </div>
-            <div className="rounded-md border border-line px-3 py-2">
-              <div className="text-[11px] uppercase tracking-wide text-faint">On behalf of</div>
-              <div className="mt-0.5 font-medium">Locadora Atlas</div>
-              <Mono>{agent.currentMandateId ?? "no mandate"}</Mono>
-            </div>
+          <div className="mt-3 rounded-md border border-line px-3 py-2 text-[12.5px]">
+            <div className="text-[11px] uppercase tracking-wide text-faint">Paying agent</div>
+            <div className="mt-0.5 font-medium">{agent?.name ?? "Connected agent"}</div>
           </div>
 
           {/* Verification */}
@@ -114,12 +106,12 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
                   <div className="text-[13px] text-success-ink">
                     <div className="font-semibold">Order accepted</div>
                     <div className="mt-0.5">
-                      Charged {brl(final.amount_cents)} to •••• {card?.last4 ?? "????"} with single-use token <Mono className="bg-white/60 text-success-ink">{final.payment_token?.token}</Mono>.
-                      The card never moved.
+                      Charged {brl(final.amount_cents)} to •••• {card?.last4 ?? "????"} with a single-use token. The card
+                      number never reached the store.
                     </div>
                     {final.exception_id && (
                       <div className="mt-1">
-                        <Badge tone="warn">exception: true</Badge> <span className="opacity-80">approved by a human via passkey · {timeShort(final.created_at)}</span>
+                        <Badge tone="warn">Approved by the buyer</Badge> <span className="opacity-80">{timeShort(final.created_at)}</span>
                       </div>
                     )}
                   </div>
@@ -131,8 +123,8 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
                     <X className="size-3" strokeWidth={3} />
                   </span>
                   <div className="text-[13px] text-danger-ink">
-                    <div className="font-semibold">Refused — {final.reason_code}</div>
-                    <div className="mt-0.5">{final.reason_code ? REASON_LABEL[final.reason_code] : ""}. Nothing was charged. This attempt is logged and visible to the buyer, the merchant and the auditor.</div>
+                    <div className="font-semibold">Refused</div>
+                    <div className="mt-0.5">{final.reason_code ? REASON_LABEL[final.reason_code] : "Outside the mandate"}. Nothing was charged, and the buyer sees this attempt too.</div>
                   </div>
                 </div>
               )}
@@ -142,9 +134,9 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
                   <div className="text-[13px] text-warn-ink">
                     <div className="font-semibold">Waiting for human approval</div>
                     <div className="mt-0.5">
-                      Over the per-purchase limit. Approval <Mono className="bg-white/60 text-warn-ink">{approval?.id}</Mono> sent to the CFO. Never silently approved.
+                      Over the per-purchase limit. The buyer was asked to approve this one purchase. Never approved silently.
                     </div>
-                    {approval?.status === "denied" && <div className="mt-1 font-medium">Denied by {approval.decided_by}.</div>}
+                    {approval?.status === "denied" && <div className="mt-1 font-medium">The buyer declined.</div>}
                     {approval?.status === "pending" && (
                       <div className="mt-1.5 flex items-center gap-1.5 text-[12px] opacity-80">
                         <Loader2 className="size-3 animate-spin" /> Listening for the decision…
@@ -156,10 +148,7 @@ function CheckoutBody({ product, onClose }: { product: Product; onClose: () => v
             </div>
           )}
 
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-[11.5px] text-faint">
-              attempt <Mono>{attempt?.id ?? "…"}</Mono>
-            </span>
+          <div className="mt-4 flex items-center justify-end">
             <Button onClick={onClose} disabled={!revealed}>
               {final?.decision === "approved" ? "Done" : "Close"}
             </Button>

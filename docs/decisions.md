@@ -36,6 +36,20 @@ Merchant checkout must retrieve a signed agent key and mandate without a user se
 
 ## The full app is responsive; `/m` stays a separate surface
 
-The console at `/dashboard`, `/contracts/new`, `/audit` and `/connect` is fully responsive: below `lg` the sidebar becomes an off-canvas drawer behind a top bar, side rails collapse into a single column, and the fixed limit and scope grids reflow. Judges can therefore drive the entire demo from a phone without a second implementation.
+The console at `/dashboard`, `/activity`, `/audit` and `/connect` is fully responsive: a single centred column with a tab bar that scrolls horizontally on small screens. Judges can therefore drive the entire demo from a phone without a second implementation.
 
-`/m` is kept anyway because it answers a different question. The console is the owner's full control surface; `/m` is the approval inbox someone opens from a QR code on another device to approve a mandate or exception with a passkey and revoke in one tap. Collapsing the two would either bloat the phone approval flow or strip the console. The audit log keeps its columns behind a horizontal scroll rather than dropping data, since an auditor reading it on a phone still needs the actor, action, entity and hash chain.
+`/m` is kept anyway because it answers a different question. The console is the owner's full control surface; `/m` is the approval inbox someone opens from a QR code on another device to approve a mandate or exception with a passkey and turn spending off in one tap. Collapsing the two would either bloat the phone approval flow or strip the console.
+
+## The account holder never sees protocol vocabulary
+
+Mandate ids, payment tokens, nonces, reason codes, cart hashes and canonical JSON were on every screen. They proved the system worked, to a reader who already knew the system. The app now says "Paid", "Blocked — that store is not on your list", "Turn off spending"; `lib/plain.ts` is the single place where registry vocabulary becomes a sentence, so no screen can quietly reintroduce a token.
+
+The technical record was not deleted, only moved to where its audience is: the merchant checkout view still shows the four verification checks, and `/audit` still exposes every payload and the hash chain behind each entry. The gain is that a judge who changes an input live sees a plain sentence explaining the refusal instead of `CATEGORY_NOT_IN_SCOPE`.
+
+## The app cannot create a mandate; only an agent can ask for one
+
+`/contracts/new` let a person hand-build a mandate in the browser. That is the wrong shape for the product: a mandate is an answer to something an agent asked for, and hand-authoring one skips the conversation that gives it meaning. The form is gone. Mandates are created only through `create_mandate` over MCP, land in "Waiting for you", and become active only after a passkey approval. This also removes the one code path where a mandate existed without an originating agent request.
+
+## No seeded account data
+
+The build shipped with a fictional agent, card, company and pre-authorized mandate so the dashboard looked populated before sign-in. A judge could not tell demo scaffolding from real state, which is the worst property a payments console can have. Agents, cards, mandates, purchases and the audit chain now come only from Supabase for the signed-in user; an empty account renders an empty account. The demo merchant catalogue in `lib/seed.ts` stays, because a store that a real agent buys from has to exist and it is explicitly a merchant fixture, not account data.

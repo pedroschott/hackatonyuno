@@ -1,23 +1,8 @@
-import type { Agent, AuditEntry, Mandate, Merchant, Product, VaultCard } from "./types";
+// Catalogue for the demo merchant that ships with this repo (app/(store)) plus the
+// canonical mandate hashing and audit-chain helpers. No AgentPay account data is
+// seeded: agents, cards, mandates and purchases all come from Supabase.
+import type { AuditEntry, Mandate, Merchant, Product } from "./types";
 import { canonicalJson, GENESIS_HASH, sha256 } from "./hash";
-import { nextSunday2359 } from "./format";
-
-export const CFO = { user_id: "u_cfo", display_name: "CFO — Locadora Atlas" };
-
-export const AGENT_ID = "agt_fleetbuyer";
-
-export const seedCards: VaultCard[] = [
-  { id: "card_9281", brand: "mastercard", last4: "9281", label: "Corporate Mastercard" },
-];
-
-export const seedAgents: Agent[] = [
-  {
-    id: AGENT_ID,
-    name: "FleetBuyer",
-    publicKey: "MCowBQYDK2VwAyEA5c3xXJ9wQ2t7mFq0Y1kZb8rP4vHn2sL6dT0aE9uK1cM=",
-    currentMandateId: null,
-  },
-];
 
 export const seedMerchants: Merchant[] = [
   { id: "mrc_autoparts", name: "AutoParts", category: "auto", agentReady: true },
@@ -111,33 +96,4 @@ export function verifyChain(log: AuditEntry[]): { ok: boolean; brokenAt?: number
     prev = e.hash;
   }
   return { ok: true };
-}
-
-export function buildSeedMandate(now = new Date()): Mandate {
-  const notBefore = new Date(now.getTime() - 5 * 60_000);
-  const m: Mandate = {
-    id: "mnd_7f2a",
-    type: "intent",
-    issuer: CFO,
-    agent: { agent_id: AGENT_ID, public_key: seedAgents[0].publicKey },
-    scope: { merchants: ["mrc_autoparts"], categories: ["tires"] },
-    limits: { per_purchase_cents: 160_000, cumulative_cents: 400_000, max_uses: 3, period: "month", currency: "BRL" },
-    validity: { not_before: notBefore.toISOString(), expires_at: nextSunday2359(now).toISOString() },
-    payment: { vault_card_id: "card_9281" },
-    natural_language_description: "Restock fleet tires at AutoParts this week — standard sets only.",
-    origin: { requested_by: "CFO — Locadora Atlas", via: "panel", requested_at: notBefore.toISOString() },
-    status: "draft",
-    created_at: notBefore.toISOString(),
-  };
-  const challenge = mandateHash(m);
-  m.authorization = {
-    method: "simulated",
-    webauthn_credential_id: "sim_seed_cfo",
-    assertion: sha256(`sim|u_cfo|${challenge}`),
-    challenge,
-    signed_at: notBefore.toISOString(),
-  };
-  m.server_sig = sha256(`registry|${challenge}`);
-  m.status = "active";
-  return m;
 }

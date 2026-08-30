@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Fingerprint, PauseCircle } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { brl, relative } from "@/lib/format";
-import { Badge, Button, Mono } from "@/components/ui";
+import { brl } from "@/lib/format";
+import { storeName } from "@/lib/plain";
+import { Badge, Button } from "@/components/ui";
 import { PasskeyCeremony } from "@/components/PasskeyCeremony";
+import { agentLabel } from "@/components/app/agent-label";
 import { KV, StickyActions, Status } from "@/components/mobile/bits";
 
 export default function ApprovalSheet() {
@@ -16,39 +17,46 @@ export default function ApprovalSheet() {
   const approval = useStore((s) => s.approvals.find((a) => a.id === id));
   const attempts = useStore((s) => s.attempts);
   const mandates = useStore((s) => s.mandates);
+  const agents = useStore((s) => s.agents);
+  const merchants = useStore((s) => s.merchants);
   const decide = useStore((s) => s.decideApproval);
   const [ceremony, setCeremony] = useState(false);
 
-  if (!approval) return <Status tone="neutral" title="Approval not found" body={<Link className="underline" href="/m">Back to inbox</Link>} />;
+  if (!approval)
+    return (
+      <Status
+        tone="neutral"
+        title="Not found"
+        body={
+          <Link className="underline" href="/m">
+            Back
+          </Link>
+        }
+      />
+    );
 
   const original = attempts.find((a) => a.id === approval.attempt_id);
   const mandate = mandates.find((m) => m.id === original?.mandate_id);
+  const name = agentLabel(mandate, agents);
+  const store = storeName(merchants, approval.merchant_id);
   const over = mandate ? approval.amount_cents - mandate.limits.per_purchase_cents : 0;
-  const retry = approval.exception_id ? attempts.find((a) => a.exception_id === approval.exception_id) : undefined;
 
   return (
     <div className="flex flex-1 flex-col space-y-4">
       <div className="rounded-lg bg-white px-4 py-4 shadow-[var(--shadow-card)]">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-full bg-warn-soft text-warn">
-            <PauseCircle className="size-5" />
-          </div>
+        <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[15px] font-semibold">FleetBuyer needs an exception</div>
-            <div className="text-[12.5px] text-muted">{relative(approval.created_at)} · one-time · bound to this cart</div>
+            <div className="text-[16px] font-semibold">Approve this purchase?</div>
           </div>
-          {approval.status === "pending" && <Badge tone="warn">Pending</Badge>}
+          {approval.status === "pending" && <Badge tone="warn">Waiting</Badge>}
           {approval.status === "approved" && <Badge tone="success">Approved</Badge>}
-          {approval.status === "denied" && <Badge tone="danger">Denied</Badge>}
+          {approval.status === "denied" && <Badge tone="danger">Declined</Badge>}
         </div>
         <p className="mt-3 text-[14px] leading-snug text-ink-2">
-          It wants <b className="text-ink">{approval.product_name}</b> for <b className="text-ink tabular">{brl(approval.amount_cents)}</b> at AutoParts —{" "}
-          {over > 0 ? (
-            <>
-              <b className="text-warn-ink tabular">{brl(over)}</b> over your per-purchase limit.
-            </>
-          ) : (
-            "outside the mandate."
+          {name} wants to buy <b className="text-ink">{approval.product_name}</b> at {store} for{" "}
+          <b className="text-ink tabular">{brl(approval.amount_cents)}</b>.
+          {over > 0 && mandate && (
+            <> That is {brl(over)} more than the {brl(mandate.limits.per_purchase_cents)} you allowed per purchase.</>
           )}
         </p>
       </div>
@@ -56,34 +64,39 @@ export default function ApprovalSheet() {
       <KV
         rows={[
           { k: "Item", v: approval.product_name },
+          { k: "Store", v: store },
           { k: "Amount", v: brl(approval.amount_cents) },
           { k: "Your limit", v: mandate ? brl(mandate.limits.per_purchase_cents) : "—" },
-          { k: "Cart hash", v: <Mono>{approval.cart_hash.slice(0, 12)}…</Mono> },
         ]}
       />
 
       {approval.status === "approved" && (
-        <Status
-          tone="success"
-          title={retry ? "Approved — purchase completed" : "Approved"}
-          body={retry ? <>Token <Mono className="bg-white/60 text-success-ink">{retry.payment_token?.token}</Mono> · recorded with <b>exception: true</b>.</> : `Exception ${approval.exception_id} minted for this cart only.`}
-        />
+        <Status tone="success" title="Approved" body="This covered one purchase only. Your limits are unchanged." />
       )}
-      {approval.status === "denied" && <Status tone="danger" title="Denied" body="The agent was refused. Nothing was charged." />}
+      {approval.status === "denied" && <Status tone="danger" title="Declined" body="Nothing was paid." />}
 
       {approval.status === "pending" ? (
         <StickyActions>
-          <Button size="lg" className="flex-1" onClick={async () => { await decide(approval.id, "denied", "user:cfo"); router.push("/m"); }}>
-            Deny
+          <Button
+            size="lg"
+            className="flex-1"
+            onClick={async () => {
+              await decide(approval.id, "denied", "user");
+              router.push("/m");
+            }}
+          >
+            Decline
           </Button>
-          <Button size="lg" variant="primary" className="flex-[2]" icon={<Fingerprint className="size-4" />} onClick={() => setCeremony(true)}>
-            Approve with passkey
+          <Button size="lg" variant="primary" className="flex-[2]" onClick={() => setCeremony(true)}>
+            Approve
           </Button>
         </StickyActions>
       ) : (
         <StickyActions>
           <Link href="/m" className="flex-1">
-            <Button size="lg" className="w-full">Back to inbox</Button>
+            <Button size="lg" className="w-full">
+              Back
+            </Button>
           </Link>
         </StickyActions>
       )}
@@ -93,18 +106,20 @@ export default function ApprovalSheet() {
         endpoint={`/api/approvals/${approval.id}/authorize`}
         onClose={() => setCeremony(false)}
         challenge={approval.cart_hash}
-        title="Approve one-time exception"
-        cta="Approve with passkey"
-        successTitle="Exception minted"
-        cosignLabel="Minting exception…"
+        title="Approve this purchase?"
+        subtitle="This approval covers this purchase only. Your limits stay exactly as they are."
+        cta="Approve"
+        successTitle="Approved"
+        successBody="Your agent can complete this one purchase."
         facts={[
           { label: "Item", value: approval.product_name },
+          { label: "Store", value: store },
           { label: "Amount", value: brl(approval.amount_cents) },
-          { label: "Scope", value: "This cart only · single use" },
+          { label: "Covers", value: "This purchase only" },
         ]}
         onComplete={async (pk) => {
-          await decide(approval.id, "approved", "user:cfo", pk);
-          setTimeout(() => setCeremony(false), 900);
+          await decide(approval.id, "approved", "user", pk);
+          setTimeout(() => setCeremony(false), 800);
         }}
       />
     </div>
