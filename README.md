@@ -509,7 +509,174 @@ Every screen is responsive and works from a phone. `/m` is a deliberately narrow
 | **Refused: category not in scope** | Mandate is narrower than the product | Ask the agent to **amend** — not revoke. |
 | **Purchase escalated** | Over the per-purchase limit | Approve that single purchase with your passkey. Your limits stay as you set them. |
 
-# Part 2 — Under the hood
+# Part 2 — Setting up a store (the merchant path) 🏪
+
+> ⏱️ **About ten minutes.** Part 1 bought from a store someone else integrated. This part is the other side of the same transaction: you create your own merchant, put products in its catalog, and have your agent buy from *your* store.
+> You do not have to write any code to test this. A hosted test store gives you a real storefront, a real discovery manifest, a real catalog endpoint and a real signed-checkout endpoint in one click. Writing code is only needed for **your own domain**, and that is the last step here.
+
+---
+
+## Step 1 · Open the merchant console
+
+Go to **https://agentpay-yuno.vercel.app/developers** and sign in with the **same account you created in Part 1** — buyer and merchant are the same login, and the console is protected by the same Row Level Security as the rest of the app.
+
+The left rail has three places:
+
+| Where | What it is |
+|---|---|
+| **Overview** | Your merchants at a glance, and the volume across them |
+| **Merchants** | Create and open a merchant |
+| **Supported stores** | The public registry — intentionally empty until a real HTTPS store verifies and opts in |
+
+---
+
+## Step 2 · Create a hosted test merchant
+
+**Merchants → Create a merchant**, then:
+
+1. Pick **Hosted test store** — AgentPay hosts the catalog, manifest and checkout so you can test immediately. (The other option, **Existing live store**, is Step 6.)
+2. **Business name** — anything, e.g. `Northwind Supplies`
+3. **Primary category** — a slug your mandates will reference, e.g. `office-supplies`. It is also the category of the sample product.
+4. **Description** — optional
+5. **Create merchant**
+
+> ⚠️ **The merchant ID is permanent.** AgentPay assigns it — you never invent one. Mandates allowlist that exact `mrc_…` id, so it cannot be changed after creation without invalidating what buyers signed.
+
+You land on the merchant page. For a merchant id such as `mrc_abc123` you now have four live URLs, all on the **Integration** tab:
+
+```
+Storefront   https://agentpay-yuno.vercel.app/stores/mrc_abc123
+Manifest     https://agentpay-yuno.vercel.app/api/stores/mrc_abc123/agentpay.json
+Checkout     https://agentpay-yuno.vercel.app/api/stores/mrc_abc123/checkout
+Catalog API  https://agentpay-yuno.vercel.app/api/v1/merchants/mrc_abc123/products
+```
+
+Open the manifest URL in a browser. That document — not a scraped page — is what an agent reads to learn your merchant id, your categories, your currency and where your checkout lives:
+
+```bash
+curl https://agentpay-yuno.vercel.app/api/stores/mrc_abc123/agentpay.json
+```
+
+The **Integration checklist** on the same tab tracks the four things that make a merchant complete: identity created, discovery live, catalog products, first checkout received. Two are already green.
+
+> 🔒 Hosted storefronts are **shareable by exact URL and never publicly listed**. They are test fixtures, not a directory.
+
+---
+
+## Step 3 · Put products in the catalog
+
+Two ways, and both write to the same catalog the agent reads.
+
+**From the console —** the **Catalog** tab → **Add product**: name, description, category, SKU, price. Prices are entered in dollars and stored as USD integer cents.
+
+**From your backend —** the **API keys** tab → **Create key**. The plaintext key is shown **once**; AgentPay stores only a SHA-256 hash. Put it in a server-side environment variable, never in browser code or Git.
+
+```bash
+export AGENTPAY_MERCHANT_KEY=ap_test_...   # ap_live_… once the merchant is a verified live store
+
+curl -X POST https://agentpay-yuno.vercel.app/api/v1/merchants/mrc_abc123/products \
+  -H "Authorization: Bearer $AGENTPAY_MERCHANT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Desk lamp","description":"LED task lamp","category":"office","sku":"LAMP-01","price_cents":12900,"currency":"USD"}'
+```
+
+> 🔑 **The merchant is authoritative for category and price, never the agent.** The agent sends a product id at checkout and no amount; price, currency and category are resolved from your catalog at settlement. This is why an agent cannot talk a store into a cheaper number.
+
+Give the catalog at least two categories if you want to rehearse a scope refusal in Step 5.
+
+---
+
+## Step 4 · Buy from your own store
+
+Back in your assistant — the same connection you set up in Part 1 — paste **your storefront URL** into a prompt:
+
+> *"Buy a desk lamp from https://agentpay-yuno.vercel.app/stores/mrc_abc123, under $200."*
+
+The agent runs the identical path it ran against PartsRoute: `find_products` against your manifest and catalog → `create_mandate` scoped to **your** merchant id and categories → you sign with your passkey → `purchase`, which posts a signed request to **your** checkout endpoint, which verifies the signature, the registry's mandate signature and the live mandate status before anything settles.
+
+Nothing about this path is special-cased for hosted stores. The same code answers PartsRoute on its own domain.
+
+---
+
+## Step 5 · Watch it from the merchant's side
+
+This is the part that is worth doing slowly, because it is the half a buyer never sees.
+
+**Activity tab** — every checkout attempt against your merchant, approved or not, with the amount, the delivery quoted and the decision. Approved volume and attempt counts are on top.
+
+**Disputes tab** — cases raised against you. Answer one, and the analysis button reads a dispute against everything else that buyer has bought from you and recommends refund, uphold or ask-for-evidence. It is advisory: it writes to one field and structurally cannot close a case.
+
+**From your backend —** the same records, key-authenticated:
+
+```bash
+# Every attempt, with the reason the buyer gave their agent and where it shipped
+curl -H "authorization: Bearer $AGENTPAY_MERCHANT_KEY" \
+  "https://agentpay-yuno.vercel.app/api/v1/merchants/mrc_abc123/transactions?decision=approved&limit=50"
+
+# Disputes raised against you
+curl -H "authorization: Bearer $AGENTPAY_MERCHANT_KEY" \
+  "https://agentpay-yuno.vercel.app/api/v1/merchants/mrc_abc123/disputes?status=open"
+```
+
+Buyers appear as a **stable per-merchant pseudonym** — enough to recognise a repeat customer, never an account id.
+
+### 🧪 Refusals worth rehearsing
+
+Every one of these is a live behaviour, not a screenshot. Try them in the same conversation:
+
+| Ask the agent to… | What your store sees | Why |
+|---|---|---|
+| Buy a product in a **category not in the mandate** | `CATEGORY_NOT_IN_SCOPE`, no charge | The mandate is narrower than the catalog. Fix with `amend_mandate`, never revoke |
+| Buy from **a different merchant** on the same mandate | `MERCHANT_NOT_IN_SCOPE` | Mandates allowlist merchant ids |
+| Buy something **above the per-purchase limit** | `escalated` — charge nothing | The buyer approves that one purchase with a passkey; limits stay as set |
+| Buy **after you revoke** the mandate | `MANDATE_REVOKED` | Live status is checked at settlement, never cached in the token |
+
+The full reason-code table is at [`/docs/reference/decisions`](https://agentpay-yuno.vercel.app/docs/reference/decisions).
+
+---
+
+## Step 6 · Put it on your own domain
+
+The hosted store proves the protocol. A real store publishes the same three routes itself, on its own origin, using `@agentpay/merchant-sdk`.
+
+1. In the console, create a merchant with **Existing live store** and give it your public HTTPS origin. AgentPay assigns the `mrc_…` id and will check `/.well-known/agentpay.json` on your domain.
+2. Install the SDK from this repository, pointed at your store:
+
+   ```bash
+   npm run sdk:install -- ../my-store
+   ```
+
+   It builds, packs, copies the tarball into `my-store/vendor/` and installs from there, so the dependency is a relative path you can commit. Requires Node 22+ and zod 4.
+3. Publish the three routes — the manifest with `merchantManifest`, the catalog with `createAgentPayCatalogHandler`, checkout with `createAgentPayCheckoutHandler`. The console's **Integration** tab shows both files filled in with your own merchant id, ready to paste.
+4. Click **Verify now**. AgentPay fetches your manifest over HTTPS and checks that it declares the merchant id it assigned you.
+5. Test offline before you demo: the SDK exports the signing and canonical-JSON helpers AgentPay itself uses, so you can drive approved, refused and escalated paths against a stubbed registry and a deterministic clock, plus `filterCatalogProducts` to test the catalog route without HTTP. The copy-paste test is at [`/docs/testing`](https://agentpay-yuno.vercel.app/docs/testing).
+
+**PartsRoute is the worked example.** It lives in its own repository ([`pedroschott/autoparts`](https://github.com/pedroschott/autoparts)), on its own domain, vendors the SDK under `vendor/` and serves all three routes itself:
+
+```bash
+curl https://partsroute.vercel.app/.well-known/agentpay.json
+curl 'https://partsroute.vercel.app/api/agentpay/catalog?category=brakes'
+```
+
+The complete integration guide — quickstart, installation, discovery, checkout, framework recipes, testing, reference and troubleshooting, **plus a prompt you can paste into a coding agent to do the integration in your store** — is the docs site at [`/docs`](https://agentpay-yuno.vercel.app/docs).
+
+---
+
+## ❓ Common problems, merchant side
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| **Agent says the store has no products** | Empty catalog | Add one on the **Catalog** tab, or POST to the products API |
+| **Agent guesses a wrong product id** | It was given a storefront page instead of the store URL | Paste the storefront URL and let `find_products` return exact ids |
+| **`CATEGORY_NOT_IN_SCOPE` on every purchase** | Catalog category differs from the one in the mandate | The catalog and `resolveProduct` must return the **same** category string |
+| **Verification fails on your own domain** | Manifest not served, not HTTPS, or the wrong merchant id | `curl https://your-store/.well-known/agentpay.json` and compare the id with the console |
+| **Signature verification fails at checkout** | A JSON body parser or a path rewrite in front of the route | The handler reads the raw body itself — give it the untouched request |
+| **Non-USD product refused** | AgentPay is USD-only, integer cents, no FX | Price in USD cents |
+| **API key lost** | It is shown once and only a hash is stored | Revoke it and create a new one |
+
+---
+
+# Part 3 — Under the hood
 
 ## Architecture
 
