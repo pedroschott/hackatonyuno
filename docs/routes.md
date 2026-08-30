@@ -11,6 +11,8 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | Route | Purpose | Sitemap | Crawl policy |
 |---|---|---:|---|
 | `/` | Public landing page: what AgentPay does for a buyer, plus the merchant entry point. | Yes | Allowed |
+| `/privacy` | Privacy Policy for the AgentPay web application and services. | Yes | Allowed |
+| `/terms` | Terms of Service for the AgentPay web application and services. | Yes | Allowed |
 | `/connect` | Connect an agent: one-click instructions per assistant. | Yes | Allowed |
 | `/store` | Public AutoParts merchant demonstration. | Yes | Allowed |
 | `/docs` | Merchant documentation: introduction and integration overview. | Yes | Allowed |

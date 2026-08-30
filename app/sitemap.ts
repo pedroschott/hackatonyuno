@@ -18,6 +18,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 1,
     },
+    {
+      url: new URL("/privacy", baseUrl).toString(),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: new URL("/terms", baseUrl).toString(),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
     ...DOC_PAGES.map((page) => ({
       url: new URL(page.href, baseUrl).toString(),
       changeFrequency: "weekly" as const,

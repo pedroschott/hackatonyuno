@@ -59,6 +59,8 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | Route | Purpose |
 |---|---|
 | `/` | Landing page: what AgentPay does for a buyer, and where a merchant starts |
+| `/privacy` | Privacy Policy: data handling, sharing, security, retention, and user rights |
+| `/terms` | Terms of Service: mandate use, responsibilities, and challenge-build limitations |
 | `/dashboard` | Summary: what was charged this month, which mandates are active, what is waiting for your signature |
 | `/activity` | Every purchase attempt and the mandate decision made on it |
 | `/connect` | See connected assistants and connect another with one link |

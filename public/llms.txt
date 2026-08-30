@@ -5,6 +5,8 @@
 ## Public entry points
 
 - [Landing page](https://agentpay-yuno.vercel.app/): what AgentPay does, for buyers and for merchants.
+- [Privacy Policy](https://agentpay-yuno.vercel.app/privacy): how AgentPay handles personal information.
+- [Terms of Service](https://agentpay-yuno.vercel.app/terms): the terms governing use of AgentPay.
 - [Connect an MCP client](https://agentpay-yuno.vercel.app/connect): user-facing instructions for connecting an authenticated agent.
 - [Merchant demo](https://agentpay-yuno.vercel.app/store): an example merchant checkout experience.
 - [MCP endpoint](https://agentpay-yuno.vercel.app/mcp): OAuth-protected Streamable HTTP MCP server.
