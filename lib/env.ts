@@ -18,7 +18,6 @@ export function merchantVerificationSecret(): string {
 export function diditEnv() {
   return {
     apiKey: required("DIDIT_API_KEY"),
-    workflowId: required("DIDIT_WORKFLOW_ID"),
     webhookSecret: required("DIDIT_WEBHOOK_SECRET"),
   };
 }

@@ -4,6 +4,10 @@ import { diditEnv } from "@/lib/env";
 
 const DIDIT_API_BASE = "https://verification.didit.me/v3";
 
+// Didit workflow configuration is public and selected per session. This is the
+// published "Free KYC" workflow supplied for the AgentPay demo.
+export const DIDIT_FREE_KYC_WORKFLOW_ID = "51f322cc-7a71-4259-a8e2-015fd7017ca9";
+
 export const diditSessionStatuses = [
   "Not Started",
   "In Progress",
@@ -99,11 +103,10 @@ export async function createDiditSession(input: {
   userId: string;
   callbackUrl: string;
 }): Promise<DiditSessionResponse> {
-  const { workflowId } = diditEnv();
   const session = await diditRequest<DiditSessionResponse>("/session/", {
     method: "POST",
     body: JSON.stringify({
-      workflow_id: workflowId,
+      workflow_id: DIDIT_FREE_KYC_WORKFLOW_ID,
       vendor_data: input.userId,
       callback: input.callbackUrl,
       callback_method: "both",
@@ -116,7 +119,7 @@ export async function createDiditSession(input: {
     session.session_kind !== "user" ||
     !session.url ||
     session.vendor_data !== input.userId ||
-    session.workflow_id !== workflowId ||
+    session.workflow_id !== DIDIT_FREE_KYC_WORKFLOW_ID ||
     !isDiditSessionStatus(session.status)
   ) {
     throw new Error("Didit returned an invalid verification session");

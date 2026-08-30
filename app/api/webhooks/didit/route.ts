@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { diditEnv } from "@/lib/env";
-import { verifyDiditWebhook } from "@/lib/didit";
+import { DIDIT_FREE_KYC_WORKFLOW_ID, verifyDiditWebhook } from "@/lib/didit";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 
 const webhookSchema = z.object({
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   if (!event.vendor_data) return Response.json({ error: "Missing vendor_data" }, { status: 400 });
   if (
     (event.webhook_type === "status.updated" || event.webhook_type === "data.updated") &&
-    (!event.session_id || event.workflow_id !== env.workflowId)
+    (!event.session_id || event.workflow_id !== DIDIT_FREE_KYC_WORKFLOW_ID)
   ) {
     return Response.json({ error: "Unexpected verification workflow" }, { status: 400 });
   }

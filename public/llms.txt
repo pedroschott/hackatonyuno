@@ -20,7 +20,7 @@
 
 ## Identity and fraud boundary
 
-- Account holders complete a hosted Didit v3 identity and fraud-verification workflow before authorizing a mandate or one-time exception.
+- Account holders complete Didit's hosted v3 Free KYC workflow before authorizing a mandate or one-time exception.
 - AgentPay stores only Didit's minimal session and entity status. Documents, images, biometrics, provider tokens, and the full decision are not copied into AgentPay.
 - Didit webhooks are timestamp-bounded, HMAC-verified, de-duplicated, and reconciled against the decision API after the hosted redirect.
 

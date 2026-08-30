@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createDiditSession,
+  DIDIT_FREE_KYC_WORKFLOW_ID,
   diditCanonicalJson,
   isIdentityVerified,
   verifyDiditWebhook,
@@ -19,7 +20,6 @@ afterEach(() => {
 describe("Didit hosted verification", () => {
   it("creates a v3 session without exposing the API key in the request body", async () => {
     process.env.DIDIT_API_KEY = "didit-test-key";
-    process.env.DIDIT_WORKFLOW_ID = "11111111-2222-4333-8444-555555555555";
     process.env.DIDIT_WEBHOOK_SECRET = "webhook-test-secret";
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json(
@@ -28,7 +28,7 @@ describe("Didit hosted verification", () => {
           session_kind: "user",
           url: "https://verify.didit.me/session/token",
           status: "Not Started",
-          workflow_id: process.env.DIDIT_WORKFLOW_ID,
+          workflow_id: DIDIT_FREE_KYC_WORKFLOW_ID,
           vendor_data: "99999999-8888-4777-8666-555555555555",
         },
         { status: 201 },
@@ -46,7 +46,7 @@ describe("Didit hosted verification", () => {
     expect(init?.headers).toMatchObject({ "x-api-key": "didit-test-key" });
     expect(init?.body).not.toContain("didit-test-key");
     expect(JSON.parse(String(init?.body))).toMatchObject({
-      workflow_id: process.env.DIDIT_WORKFLOW_ID,
+      workflow_id: DIDIT_FREE_KYC_WORKFLOW_ID,
       vendor_data: "99999999-8888-4777-8666-555555555555",
       callback_method: "both",
     });
@@ -54,7 +54,6 @@ describe("Didit hosted verification", () => {
 
   it("rejects a response bound to a different user", async () => {
     process.env.DIDIT_API_KEY = "didit-test-key";
-    process.env.DIDIT_WORKFLOW_ID = "11111111-2222-4333-8444-555555555555";
     process.env.DIDIT_WEBHOOK_SECRET = "webhook-test-secret";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({
@@ -62,7 +61,7 @@ describe("Didit hosted verification", () => {
         session_kind: "user",
         url: "https://verify.didit.me/session/token",
         status: "Not Started",
-        workflow_id: process.env.DIDIT_WORKFLOW_ID,
+        workflow_id: DIDIT_FREE_KYC_WORKFLOW_ID,
         vendor_data: "another-user",
       }),
     );
@@ -77,7 +76,6 @@ describe("Didit hosted verification", () => {
 
   it("rejects a business session from a misconfigured workflow", async () => {
     process.env.DIDIT_API_KEY = "didit-test-key";
-    process.env.DIDIT_WORKFLOW_ID = "11111111-2222-4333-8444-555555555555";
     process.env.DIDIT_WEBHOOK_SECRET = "webhook-test-secret";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({
@@ -85,7 +83,7 @@ describe("Didit hosted verification", () => {
         session_kind: "business",
         url: "https://verify.didit.me/session/token",
         status: "Not Started",
-        workflow_id: process.env.DIDIT_WORKFLOW_ID,
+        workflow_id: DIDIT_FREE_KYC_WORKFLOW_ID,
         vendor_data: "99999999-8888-4777-8666-555555555555",
       }),
     );

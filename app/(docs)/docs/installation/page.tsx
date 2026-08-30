@@ -212,13 +212,13 @@ AGENTPAY_REGISTRY_URL=https://agentpay-yuno.vercel.app`}
                 filename=".env.local"
                 code={`SUPABASE_SECRET_KEY=your-supabase-secret-key
 DIDIT_API_KEY=your-didit-api-key
-DIDIT_WORKFLOW_ID=00000000-0000-0000-0000-000000000000
 DIDIT_WEBHOOK_SECRET=your-webhook-destination-secret`}
               />
               <P>
                 Configure the Didit v3 destination at <C>https://your-agentpay-host/api/webhooks/didit</C> for
                 <C>status.updated</C>, <C>data.updated</C>, <C>user.status.updated</C>, and <C>user.data.updated</C>.
-                The selected workflow controls which document, liveness, AML, IP, and fraud checks run.
+                AgentPay sends the public <C>Free KYC</C> workflow ID from server code with every session request.
+                Only the API key and webhook signing key are Didit secrets.
               </P>
             </>
           ),

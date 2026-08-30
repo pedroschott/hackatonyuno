@@ -1,8 +1,7 @@
 import { z } from "zod";
 
 import { appendAudit } from "@/lib/data";
-import { diditEnv } from "@/lib/env";
-import { retrieveDiditDecision } from "@/lib/didit";
+import { DIDIT_FREE_KYC_WORKFLOW_ID, retrieveDiditDecision } from "@/lib/didit";
 import { authenticatedRequest } from "@/lib/http";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 
@@ -22,7 +21,7 @@ export async function GET(request: Request) {
     if (
       decision.session_id !== sessionId ||
       decision.vendor_data !== user.id ||
-      decision.workflow_id !== diditEnv().workflowId ||
+      decision.workflow_id !== DIDIT_FREE_KYC_WORKFLOW_ID ||
       decision.session_kind === "business"
     ) {
       throw new Error("Verification decision does not match this account");
