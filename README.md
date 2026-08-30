@@ -684,6 +684,7 @@ Supabase Auth uses the verified `fwdco.space` domain through Resend SMTP for con
 | [docs/merchant-sdk.md](docs/merchant-sdk.md) | Repository-side summary of the same integration |
 | [docs/architecture.md](docs/architecture.md) | System diagram, trust boundaries, enforcement path |
 | [docs/decisions.md](docs/decisions.md) | Decision log: trade-offs, rejected alternatives, deliberate limits |
+| [docs/trial-by-fire-report.md](docs/trial-by-fire-report.md) | Judge-facing failure scenarios, remaining gaps and the release checklist |
 | [docs/routes.md](docs/routes.md) | Every web, MCP, API and V2-service endpoint |
 | [`/docs/orders`](https://agentpay-yuno.vercel.app/docs/orders) | Delivery quoting, the merchant transaction API, and answering a disputed charge |
 | [public/llms.txt](public/llms.txt) | Agent-readable summary of the public surfaces |
