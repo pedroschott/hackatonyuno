@@ -11,9 +11,9 @@ Production: https://agentpay-yuno.vercel.app
 1. The user connects `https://agentpay-yuno.vercel.app/mcp` to an MCP client.
 2. Supabase OAuth opens AgentPay for sign-in, account creation and consent.
 3. The user registers one passkey, saves one or more cards, chooses a default, completes the compliance and delivery profile, and passes a hosted Didit identity and fraud-verification workflow. AgentPay stores only Didit's session status; documents, images, biometrics, and the full decision remain with Didit. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
-4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The default card is used unless the agent selects another saved card. The web app has no form for this: a mandate only ever exists because an agent asked for one.
+4. The agent finds the store through normal search, then calls `find_products` with any URL on it. AgentPay reads the store's `/.well-known/agentpay.json` and the catalog endpoint it advertises, and returns the exact merchant id, category slugs, prices in cents and product ids. The agent requests a mandate with those values; a merchant or category the store cannot satisfy is rejected before the user is asked to sign. The default card is used unless the agent selects another saved card. The web app has no form for this: a mandate only ever exists because an agent asked for one.
 5. The user opens the approval link, may switch the draft to another saved card, and—only while Didit's latest decision is approved and the user is not flagged or blocked—authorizes that exact mandate and card choice with their passkey.
-6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
+6. The agent runs `check_purchase`, a dry run against the live mandate that records nothing, then `purchase`. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token. Every decision carries an explanation, a remedy and the next tool to call; a scope refusal is fixed with `amend_mandate`, which the user signs once and which retires the old mandate at that moment.
 7. The user or agent can revoke the mandate immediately. A checkout still in progress performs a final live registry check before settlement and is refused if revocation committed first; every later checkout is refused too.
 
 ## Run locally
@@ -65,7 +65,7 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | `/docs` | Merchant documentation: install and set up the SDK in a new store |
 | `/developers` | Merchant console: create identities, hosted test stores, products, keys, and inspect checkout activity |
 | `/developers/stores` | Verified live-store registry; currently empty until a real public merchant opts in |
-| `/store` | Merchant demo with AgentPay checkout verification |
+| `/store` | Merchant demo with AgentPay checkout verification. Server-rendered, with one canonical `/store/products/:id` page per product carrying `agentpay:*` meta tags and JSON-LD |
 | `/audit` | Security log: hash-chained record of every decision |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
 
@@ -73,20 +73,25 @@ Every route above is responsive and usable from a phone. `/m` is a separate, del
 
 ## MCP tools
 
-- `get_account` — includes the latest minimal Didit status and the account verification URL
-- `get_payment_setup_link` — returns a 15-minute, user-bound AgentPay browser link and accepts no card data
-- `create_mandate` — uses the account default unless `vault_card_id` selects another owned card
-- `get_mandate`
-- `purchase`
-- `revoke_mandate`
+The working order is `get_account → find_products → create_mandate → get_mandate → check_purchase → purchase`. Every tool returns its data both as `structuredContent` and as JSON text, so a model that only reads `content` still sees the ids it was given.
 
-The protected-resource metadata is at `/.well-known/oauth-protected-resource/mcp`. Supabase publishes OAuth authorization-server metadata and supports dynamic client registration for MCP clients.
+- `get_account` — identity-verification state, saved cards, every mandate with status and a one-line summary, pending approvals, and the single `next_step` for this account
+- `get_payment_setup_link` — returns a 15-minute, user-bound AgentPay browser link and accepts no card data
+- `find_products` — takes any URL on a store, reads its manifest and catalog endpoint, and returns the exact merchant id, category slugs, currency, prices in cents and product ids, plus a `mandate_hint` ready for `create_mandate`
+- `create_mandate` — accepts `merchant_urls` (resolved to exact ids) or `merchant_ids`; rejects a category the store does not sell before the user is asked to sign; defaults `max_uses` to 1, expiry to 7 days, the card to the account default, and `cumulative_cents` to `per_purchase_cents × max_uses`
+- `amend_mandate` — widens scope, raises limits or extends expiry. A draft is edited in place; a signed mandate is immutable, so it proposes a replacement that the user signs once and that revokes the old mandate at that moment
+- `get_mandate` — live status, remaining uses and budget, and the next step. A draft is a state, not an error
+- `check_purchase` — dry run of one product against the live mandate: same policy engine, no merchant contact, no attempt recorded
+- `purchase` — signed merchant checkout plus the final atomic registry decision. `escalated` carries `approval_url` and `retry_with`; `refused` carries `explanation`, `remedy` and `next_tool`
+- `revoke_mandate` — final; for the user saying stop, never for fixing scope
+
+The full flow with example payloads is at [`/docs/agents`](https://agentpay-yuno.vercel.app/docs/agents). The protected-resource metadata is at `/.well-known/oauth-protected-resource/mcp`. Supabase publishes OAuth authorization-server metadata and supports dynamic client registration for MCP clients.
 
 ## Merchant SDK
 
 A store first signs in at [`/developers`](https://agentpay-yuno.vercel.app/developers) and creates a merchant. AgentPay assigns the immutable merchant ID used in mandates; developers no longer invent an ID in configuration. A hosted test merchant immediately receives a working storefront, sample catalog, discovery manifest, checkout endpoint, and server-side catalog API key.
 
-A live store then integrates AgentPay with two routes: a discovery manifest and a verified checkout endpoint. Install the SDK into a merchant project with one command:
+A live store then integrates AgentPay with three routes: a discovery manifest, a catalog endpoint built with `createAgentPayCatalogHandler` (so agents query exact product ids, categories and prices instead of scraping rendered pages), and a verified checkout endpoint. The catalog is optional: the manifest fields added in SDK 0.2.0 are all optional, so a store on 0.1.0 is still discovered. Install the SDK into a merchant project with one command:
 
 ```bash
 npm run sdk:install -- ../my-store

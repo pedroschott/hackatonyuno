@@ -6,10 +6,12 @@
 
 - [Landing page](https://agentpay-yuno.vercel.app/): what AgentPay does, for buyers and for merchants.
 - [Connect an MCP client](https://agentpay-yuno.vercel.app/connect): user-facing instructions for connecting an authenticated agent.
-- [Merchant demo](https://agentpay-yuno.vercel.app/store): an example merchant checkout experience.
+- [Merchant demo](https://agentpay-yuno.vercel.app/store): an example merchant with one canonical page per product at `/store/products/:id`.
+- [Merchant demo catalog](https://agentpay-yuno.vercel.app/api/store/catalog): the store-owned catalog endpoint an agent queries through `find_products`.
 - [MCP endpoint](https://agentpay-yuno.vercel.app/mcp): OAuth-protected Streamable HTTP MCP server.
 - [MCP protected-resource metadata](https://agentpay-yuno.vercel.app/.well-known/oauth-protected-resource): OAuth discovery for the MCP endpoint.
-- [Merchant discovery example](https://agentpay-yuno.vercel.app/.well-known/agentpay.json): an example of a merchant-owned AgentPay manifest.
+- [Merchant discovery example](https://agentpay-yuno.vercel.app/.well-known/agentpay.json): an example of a merchant-owned AgentPay manifest, including its catalog endpoint, categories and currency.
+- [Agent guide](https://agentpay-yuno.vercel.app/docs/agents): the MCP tool order, what each result means and how to act on every decision.
 - [Merchant documentation](https://agentpay-yuno.vercel.app/docs): how a store installs and sets up the AgentPay merchant SDK.
 - [Merchant console](https://agentpay-yuno.vercel.app/developers): register a merchant ID, create a hosted test store, manage products and keys, and inspect checkout decisions.
 - [Supported live stores](https://agentpay-yuno.vercel.app/api/stores): verified public store and discovery URLs. This list is empty until a real merchant verifies and opts in.
@@ -24,7 +26,7 @@
 
 - [Quickstart](https://agentpay-yuno.vercel.app/docs/quickstart): a new store accepting agent purchases with two routes.
 - [Install the SDK](https://agentpay-yuno.vercel.app/docs/installation): requirements and the one-command installer.
-- [Publish discovery](https://agentpay-yuno.vercel.app/docs/discovery): serving `/.well-known/agentpay.json`.
+- [Publish discovery](https://agentpay-yuno.vercel.app/docs/discovery): serving `/.well-known/agentpay.json` and a catalog endpoint.
 - [Protect checkout](https://agentpay-yuno.vercel.app/docs/checkout): verification, decisions and charging safely.
 - [Framework recipes](https://agentpay-yuno.vercel.app/docs/frameworks): Next.js, Hono, Express, Fastify and edge runtimes.
 - [Test the integration](https://agentpay-yuno.vercel.app/docs/testing): offline signed requests and a live revocation rehearsal.
@@ -44,11 +46,12 @@
 
 ## Agent operating rules
 
-- Authenticate to the MCP endpoint before using tools.
-- Discover products on store-owned pages. AgentPay's supported-store endpoint contains only verified URLs; it is not a copied catalog or product-ranking directory.
+- Authenticate to the MCP endpoint before using tools. The working order is `get_account`, `find_products`, `create_mandate`, `get_mandate`, `check_purchase`, `purchase`.
+- Discover each store from its own URL, which must come from the user or from search. AgentPay's supported-store endpoint contains only verified URLs; it is not a copied catalog or product-ranking directory.
+- Use `find_products` with any URL on the store. It returns the exact merchant id, category slugs, currency, prices in cents and product ids. Never guess any of these from a page, a name, a SKU or a URL slug. A store without a catalog endpoint puts the exact product id in `<meta name="agentpay:product_id">` and JSON-LD `productID` on its product page.
 - Start with `get_account`. If identity verification is required, direct the user to its `verification_url` and wait for the hosted Didit flow. If payment setup is required, use the browser link returned by `get_payment_setup_link` and never request card numbers, CVCs, PINs, bank passwords, or vault credentials in chat.
-- Create the narrowest mandate that matches the user's request, then wait for the user to approve it with a passkey before purchasing.
-- A purchase outside an active mandate must be escalated for a one-time approval. Do not retry a refused purchase without that approval.
+- Create the narrowest mandate that matches the user's request with `create_mandate`, passing `merchant_urls` and the exact categories. Send the user `authorization_url` and poll `get_mandate` until it is `active`; a draft is a normal state, never a reason to create a second mandate.
+- Call `check_purchase` before `purchase`. Both return `explanation`, `remedy` and `next_tool` on anything but approval. `escalated` means send the user `approval_url`, then call `purchase` again with `exception_id`. `MERCHANT_NOT_IN_SCOPE`, `CATEGORY_NOT_IN_SCOPE`, `CUMULATIVE_EXCEEDED` and `USES_EXCEEDED` are fixed with `amend_mandate`, which the user signs once and which retires the old mandate automatically. Never retry a refused purchase unchanged, and never revoke a mandate to fix its scope.
 - Revoke the mandate immediately when the user asks to stop.
 
 ## Indexing boundary

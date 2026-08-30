@@ -65,10 +65,58 @@ export type PolicyDecision =
   | { decision: "refused"; reason_code: PolicyReason }
   | { decision: "escalated"; reason_code: "AMOUNT_EXCEEDS_LIMIT" };
 
+export type AgentPayCapability =
+  | "intent-mandates"
+  | "live-revocation"
+  | "mock-payment"
+  | "catalog-search";
+
 export type AgentPayMerchantManifest = {
   protocol: "agentpay/1.0";
   merchant: { id: string; name: string };
   checkout_endpoint: string;
   registry_url: string;
-  capabilities: ["intent-mandates", "live-revocation", "mock-payment"];
+  /** Known values are listed in AgentPayCapability; unknown values are ignored. */
+  capabilities: string[];
+  /** Store-owned catalog endpoint. Optional: merchants on SDK 0.1.0 omit it. */
+  catalog_endpoint?: string;
+  /** Exact category slugs a mandate may be scoped to at this merchant. */
+  categories?: string[];
+  /** Currency every product is quoted in and every mandate must be denominated in. */
+  currency?: string;
+  /** Template containing `{id}`, resolved against the store origin, for a product page. */
+  product_url_template?: string;
+  documentation_url?: string;
+};
+
+export type AgentPayCatalogProduct = {
+  product_id: string;
+  name: string;
+  category: string;
+  price_cents: number;
+  currency: string;
+  description?: string;
+  sku?: string;
+  brand?: string;
+  availability?: "in_stock" | "out_of_stock";
+  url?: string;
+};
+
+export type AgentPayCatalogQuery = {
+  q: string | null;
+  category: string | null;
+  product_id: string | null;
+  max_price_cents: number | null;
+  limit: number;
+};
+
+export type AgentPayMerchantCatalog = {
+  protocol: "agentpay-catalog/1.0";
+  merchant: { id: string; name: string };
+  currency: string;
+  categories: string[];
+  query: AgentPayCatalogQuery;
+  /** Matches before `limit` was applied. */
+  total: number;
+  products: AgentPayCatalogProduct[];
 };

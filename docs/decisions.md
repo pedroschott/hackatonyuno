@@ -10,6 +10,26 @@ Agents find products through search or store tools, then read `/.well-known/agen
 
 The supported-store endpoint is a deliberately smaller object than a directory: it contains only merchants that verified a live HTTPS discovery document and opted into listing, with the store URL and discovery URL needed to continue research on that store. AgentPay stores no copied catalog and provides no search ranking. Hosted mock stores work by exact shared URL and never enter this public list.
 
+## The store owns a queryable catalog; AgentPay owns nothing but the question
+
+Agents could not reliably find products. The demo store was a client-rendered page, so the HTML an agent fetched contained no product at all, and the manifest said how to pay but not what existed or what a product id looked like. Agents guessed ids from names and URL slugs, then guessed merchant ids and categories for the mandate, and discovered every guess only at purchase time.
+
+The fix keeps discovery store-owned. The manifest gained optional `catalog_endpoint`, `categories`, `currency` and `product_url_template` fields, and the SDK ships `createAgentPayCatalogHandler`, a route that filters the store's own products by text, exact category, price ceiling and exact id with one shared, deterministic semantics. `find_products` over MCP reads the manifest and asks that endpoint one question. AgentPay never copies, indexes or ranks a catalog; it only relays the store's answer with a `mandate_hint` built from it. Every new manifest field is optional so a store on SDK 0.1.0 is still discovered, and its product pages can still carry the exact id in `agentpay:*` meta tags and JSON-LD, which the demo store and PartsRoute now do.
+
+The rejected alternative was scraping product pages inside AgentPay. It would have made AgentPay a crawler with an opinion about merchandising, put HTML parsing on the purchase path, and still not have produced an id the checkout handler would accept.
+
+## Validate the mandate before the passkey, and explain every refusal
+
+The mandate schema was unlearnable from the tool surface. `create_mandate` took free-text merchant and category strings, and the only feedback for a wrong one was `MERCHANT_NOT_IN_SCOPE` after the user had already signed. `get_mandate` threw on a draft, so an agent polling for authorization saw an exception instead of a status. Refusals named a rule and stopped, and the only tool that changed a mandate was `revoke_mandate`, so agents revoked and recreated, two or three times, for a category typo.
+
+Three changes, all on the enforcement side. `create_mandate` resolves `merchant_urls` to exact ids through discovery and checks the categories against the store's declared vocabulary, failing loud before the user is asked to sign; ids passed verbatim must at least look like `mrc_…`. `check_purchase` runs the same policy engine as checkout against the live mandate without contacting the merchant or recording an attempt, so the agent learns the outcome before the destructive call. Every decision, from `get_mandate`, `check_purchase` and `purchase` alike, carries `explanation`, `remedy` and `next_tool`, and an escalation carries the `approval_url` and the exact `retry_with` arguments. Tool results are also emitted as JSON text, not only `structuredContent`, because a client that renders only `content` was hiding the mandate id from the model.
+
+## A signed mandate is immutable; an amendment is a replacement the user signs
+
+`amend_mandate` exists so that "wrong category" has a path other than revoke-and-recreate, without weakening what a signature means. An unsigned draft is edited in place, since nothing has been signed. A signed mandate is never edited: the tool creates a replacement draft carrying everything forward plus the change, tagged with the mandate it supersedes. Nothing changes until the user signs the replacement with their passkey; at that moment, inside the same request, the old mandate is revoked. There is no window in which both are active with widened authority, and no window in which the agent has nothing.
+
+The rejected alternative was mutating an active mandate under a fresh passkey. It would have re-signed the artifact in place and broken the invariant that a merchant's cached copy of a mandate id always describes the same authority.
+
 ## One identity, a separate merchant control plane
 
 The existing Supabase Auth account can own buyer data and any number of merchant integrations, but developer sign-in does not require a buyer passkey. A passkey authorizes spending; making it a prerequisite for registering a store would confuse two trust decisions.

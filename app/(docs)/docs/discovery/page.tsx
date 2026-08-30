@@ -184,8 +184,107 @@ app.get("/.well-known/agentpay.json", (req, res) => {
                     </>
                   ),
                 },
+                {
+                  name: "catalogPath",
+                  type: "string",
+                  description: (
+                    <>
+                      Path of the route built with <C>createAgentPayCatalogHandler</C>. Advertised as{" "}
+                      <C>catalog_endpoint</C> and adds the <C>catalog-search</C> capability. This is what lets an agent
+                      get exact product ids instead of scraping your pages.
+                    </>
+                  ),
+                },
+                {
+                  name: "categories",
+                  type: "string[]",
+                  description:
+                    "The exact category slugs a buyer may scope a mandate to. AgentPay rejects a mandate naming any other category before the buyer signs it. Keep them coarse, lowercase and stable.",
+                },
+                {
+                  name: "currency",
+                  type: "string",
+                  description: "The ISO 4217 code every product is quoted in. Mandates must match it exactly; nothing is converted.",
+                },
+                {
+                  name: "productUrlTemplate",
+                  type: "string",
+                  description: (
+                    <>
+                      Path template with <C>{"{id}"}</C>, such as <C>/product/{"{id}"}</C>, so an agent can cite the
+                      canonical page for any product id.
+                    </>
+                  ),
+                },
+                {
+                  name: "documentationUrl",
+                  type: "string",
+                  description: "Optional link an agent may follow for store-specific instructions.",
+                },
               ]}
             />
+          ),
+        },
+        {
+          id: "catalog",
+          title: "Publish the catalog",
+          body: (
+            <>
+              <P>
+                The manifest says how to pay. The catalog says what exists, in the exact terms a mandate and a checkout
+                use: product id, category slug, price in minor units, currency. Without it an agent has to guess an id
+                from a name or a URL and learns it was wrong only at purchase time.
+              </P>
+              <CodeBlock
+                lang="ts"
+                filename="app/api/agentpay/catalog/route.ts"
+                code={`import { createAgentPayCatalogHandler } from "@agentpay/merchant-sdk";
+
+export const GET = createAgentPayCatalogHandler({
+  merchantId: process.env.AGENTPAY_MERCHANT_ID!,
+  merchantName: "Demo Store",
+  currency: "BRL",
+  products: async () =>
+    (await db.products.list()).map((p) => ({
+      product_id: p.id,
+      name: p.name,
+      description: p.description,
+      category: p.mandateCategory,   // the same slug resolveProduct returns at checkout
+      price_cents: p.priceCents,     // the same integer resolveProduct returns at checkout
+      currency: "BRL",
+      sku: p.sku,
+      availability: p.stock > 0 ? "in_stock" : "out_of_stock",
+      url: \`https://my-store.example/product/\${p.id}\`,
+    })),
+});`}
+              />
+              <P>
+                The handler owns the query semantics so every store on the SDK answers the same way: every word of{" "}
+                <C>q</C> must match the name, description, SKU, brand or category; <C>category</C> and{" "}
+                <C>product_id</C> are exact; <C>max_price_cents</C> is a ceiling; <C>limit</C> defaults to 10 and caps
+                at 50; in-stock items sort first. The response carries <C>total</C> (matches before the limit), the
+                normalized <C>query</C>, and the store&apos;s category vocabulary.
+              </P>
+              <CodeBlock
+                lang="bash"
+                code={`curl -s "https://my-store.example/api/agentpay/catalog?q=tire&max_price_cents=160000" | jq '.products[] | {product_id, category, price_cents}'`}
+              />
+              <Callout tone="warn" title="Catalog and checkout must agree">
+                <p>
+                  An agent sizes the mandate from <C>price_cents</C> and <C>category</C> in the catalog. If{" "}
+                  <C>resolveProduct</C> returns a different number or slug at checkout, the purchase is refused with a
+                  reason the buyer cannot explain. Derive both from the same function.
+                </p>
+              </Callout>
+              <Callout tone="note" title="No catalog? Put the id on the page">
+                <p>
+                  Every manifest field added for the catalog is optional, so a store that cannot publish one is still
+                  discovered. In that case put the exact id on the product page as{" "}
+                  <C>{'<meta name="agentpay:product_id" content="…">'}</C> or JSON-LD <C>productID</C>; AgentPay tells
+                  the agent to read it from there instead of guessing.
+                </p>
+              </Callout>
+            </>
           ),
         },
         {
@@ -202,8 +301,12 @@ app.get("/.well-known/agentpay.json", (req, res) => {
                 [<C key="r">registry_url</C>, "Where the agent asks for a mandate, and where your handler verifies one."],
                 [
                   <C key="cap">capabilities</C>,
-                  "Fixed for this version: intent mandates, live revocation, and the mocked payment rail.",
+                  "Intent mandates, live revocation and the mocked payment rail; plus catalog-search when a catalog endpoint is advertised.",
                 ],
+                [<C key="cat">catalog_endpoint</C>, "Optional. Where find_products sends its one question about your products."],
+                [<C key="cats">categories</C>, "Optional. The only category slugs a mandate for this store may name."],
+                [<C key="cur">currency</C>, "Optional. The currency a mandate must be denominated in to buy here."],
+                [<C key="tpl">product_url_template</C>, "Optional. Resolved with a product id to cite the canonical product page."],
               ]}
             />
           ),

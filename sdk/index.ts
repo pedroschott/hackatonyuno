@@ -7,6 +7,9 @@ import {
 } from "@/lib/crypto";
 import { canonicalJson } from "@/lib/canonical-json";
 import type {
+  AgentPayCatalogProduct,
+  AgentPayCatalogQuery,
+  AgentPayMerchantCatalog,
   AgentPayMerchantManifest,
   CheckoutCart,
   PolicyDecision,
@@ -27,7 +30,12 @@ export {
   verifyText,
 } from "@/lib/crypto";
 export { canonicalJson } from "@/lib/canonical-json";
+export { evaluatePolicy } from "@/lib/agentpay-policy";
 export type {
+  AgentPayCapability,
+  AgentPayCatalogProduct,
+  AgentPayCatalogQuery,
+  AgentPayMerchantCatalog,
   AgentPayMerchantManifest,
   CheckoutCart,
   MandateStatus,
@@ -36,16 +44,52 @@ export type {
   RegistryMandate,
 } from "@/lib/domain";
 
+/**
+ * Manifest schema. Every field added after protocol 0.1.0 is optional so an
+ * agent on the newest SDK still discovers a store that published the original
+ * three-field document, and a store on the newest SDK is still readable by an
+ * older agent that ignores what it does not know.
+ */
 const manifestSchema = z.object({
   protocol: z.literal("agentpay/1.0"),
   merchant: z.object({ id: z.string().min(1), name: z.string().min(1) }),
   checkout_endpoint: z.url(),
   registry_url: z.url(),
-  capabilities: z.tuple([
-    z.literal("intent-mandates"),
-    z.literal("live-revocation"),
-    z.literal("mock-payment"),
-  ]),
+  capabilities: z.array(z.string().min(1)).min(1),
+  catalog_endpoint: z.url().optional(),
+  categories: z.array(z.string().min(1)).optional(),
+  currency: z.string().length(3).optional(),
+  product_url_template: z.string().min(1).optional(),
+  documentation_url: z.url().optional(),
+});
+
+const catalogProductSchema = z.object({
+  product_id: z.string().min(1),
+  name: z.string().min(1),
+  category: z.string().min(1),
+  price_cents: z.number().int().positive(),
+  currency: z.string().length(3),
+  description: z.string().optional(),
+  sku: z.string().optional(),
+  brand: z.string().optional(),
+  availability: z.enum(["in_stock", "out_of_stock"]).optional(),
+  url: z.url().optional(),
+});
+
+const catalogSchema = z.object({
+  protocol: z.literal("agentpay-catalog/1.0"),
+  merchant: z.object({ id: z.string().min(1), name: z.string().min(1) }),
+  currency: z.string().length(3),
+  categories: z.array(z.string().min(1)),
+  query: z.object({
+    q: z.string().nullable(),
+    category: z.string().nullable(),
+    product_id: z.string().nullable(),
+    max_price_cents: z.number().int().nullable(),
+    limit: z.number().int(),
+  }),
+  total: z.number().int().nonnegative(),
+  products: z.array(catalogProductSchema),
 });
 
 const checkoutBodySchema = z.object({
@@ -76,20 +120,42 @@ export type MerchantCheckoutResult = PolicyDecision & {
 
 type FetchLike = typeof fetch;
 
+export const DEFAULT_CATALOG_LIMIT = 10;
+export const MAX_CATALOG_LIMIT = 50;
+
 export function merchantManifest(input: {
   origin: string;
   merchantId: string;
   merchantName: string;
   checkoutPath?: string;
   registryUrl?: string;
+  /** Path of the catalog route built with createAgentPayCatalogHandler. */
+  catalogPath?: string;
+  /** Exact category slugs a buyer may scope a mandate to. Keep them coarse and stable. */
+  categories?: string[];
+  /** The currency every product is quoted in. Mandates must match it exactly. */
+  currency?: string;
+  /** Path template containing `{id}` for a product page, e.g. "/product/{id}". */
+  productUrlTemplate?: string;
+  documentationUrl?: string;
 }): AgentPayMerchantManifest {
   const origin = new URL(input.origin).origin;
+  const capabilities = ["intent-mandates", "live-revocation", "mock-payment"];
+  if (input.catalogPath) capabilities.push("catalog-search");
   return {
     protocol: "agentpay/1.0",
     merchant: { id: input.merchantId, name: input.merchantName },
     checkout_endpoint: new URL(input.checkoutPath ?? "/api/store/checkout", origin).toString(),
     registry_url: input.registryUrl ? new URL(input.registryUrl).toString() : origin,
-    capabilities: ["intent-mandates", "live-revocation", "mock-payment"],
+    capabilities,
+    ...(input.catalogPath ? { catalog_endpoint: new URL(input.catalogPath, origin).toString() } : {}),
+    ...(input.categories ? { categories: uniqueSlugs(input.categories) } : {}),
+    ...(input.currency ? { currency: input.currency.toUpperCase() } : {}),
+    // Joined as text, not through URL, so the `{id}` placeholder survives.
+    ...(input.productUrlTemplate
+      ? { product_url_template: `${origin}${input.productUrlTemplate.startsWith("/") ? "" : "/"}${input.productUrlTemplate}` }
+      : {}),
+    ...(input.documentationUrl ? { documentation_url: new URL(input.documentationUrl).toString() } : {}),
   };
 }
 
@@ -108,6 +174,147 @@ export async function discoverAgentPayMerchant(
     throw new Error(`Merchant does not publish AgentPay discovery metadata (${response.status})`);
   }
   return manifestSchema.parse(await response.json());
+}
+
+export type CatalogSearch = {
+  q?: string;
+  category?: string;
+  productId?: string;
+  maxPriceCents?: number;
+  limit?: number;
+};
+
+/**
+ * Reads a store's catalog through the endpoint its manifest advertises. The
+ * store does the filtering, so an agent asks one question and receives exact
+ * product ids, categories and prices instead of scraping a rendered page.
+ */
+export async function discoverAgentPayCatalog(
+  source: string | AgentPayMerchantManifest,
+  search: CatalogSearch = {},
+  fetcher: FetchLike = fetch,
+): Promise<AgentPayMerchantCatalog> {
+  const manifest = typeof source === "string" ? await discoverAgentPayMerchant(source, fetcher) : source;
+  if (!manifest.catalog_endpoint) {
+    throw new Error(`${manifest.merchant.name} does not publish an AgentPay catalog endpoint`);
+  }
+  const url = new URL(manifest.catalog_endpoint);
+  if (search.q) url.searchParams.set("q", search.q);
+  if (search.category) url.searchParams.set("category", search.category);
+  if (search.productId) url.searchParams.set("product_id", search.productId);
+  if (typeof search.maxPriceCents === "number") url.searchParams.set("max_price_cents", String(search.maxPriceCents));
+  if (typeof search.limit === "number") url.searchParams.set("limit", String(search.limit));
+  const response = await fetcher(url, { headers: { Accept: "application/json" } });
+  if (!response.ok) {
+    throw new Error(`Merchant catalog is unavailable (${response.status})`);
+  }
+  const catalog = catalogSchema.parse(await response.json());
+  if (catalog.merchant.id !== manifest.merchant.id) {
+    throw new Error("Merchant manifest and catalog identify different merchants");
+  }
+  return catalog;
+}
+
+export function parseCatalogQuery(url: URL): AgentPayCatalogQuery {
+  const q = url.searchParams.get("q")?.trim() || null;
+  const category = url.searchParams.get("category")?.trim().toLowerCase() || null;
+  const productId = url.searchParams.get("product_id")?.trim() || null;
+  const rawMax = Number(url.searchParams.get("max_price_cents"));
+  const rawLimit = Number(url.searchParams.get("limit"));
+  return {
+    q,
+    category,
+    product_id: productId,
+    max_price_cents: Number.isInteger(rawMax) && rawMax > 0 ? rawMax : null,
+    limit:
+      Number.isInteger(rawLimit) && rawLimit > 0
+        ? Math.min(rawLimit, MAX_CATALOG_LIMIT)
+        : DEFAULT_CATALOG_LIMIT,
+  };
+}
+
+/**
+ * Deterministic catalog filtering shared by every store on the SDK, so an agent
+ * gets the same semantics everywhere: every search token must appear in the
+ * product text, category and product id are exact, and in-stock items sort
+ * first. Returns the matches before and after `limit`.
+ */
+export function filterCatalogProducts(
+  products: AgentPayCatalogProduct[],
+  query: AgentPayCatalogQuery,
+): { total: number; products: AgentPayCatalogProduct[] } {
+  const tokens = (query.q ?? "")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  const matches = products.filter((product) => {
+    if (query.product_id && product.product_id !== query.product_id) return false;
+    if (query.category && product.category.toLowerCase() !== query.category) return false;
+    if (query.max_price_cents !== null && product.price_cents > query.max_price_cents) return false;
+    if (tokens.length === 0) return true;
+    const haystack = [
+      product.product_id,
+      product.name,
+      product.description ?? "",
+      product.sku ?? "",
+      product.brand ?? "",
+      product.category,
+    ]
+      .join(" ")
+      .toLowerCase();
+    return tokens.every((token) => haystack.includes(token));
+  });
+  const ranked = [...matches].sort((a, b) => {
+    const stockA = a.availability === "out_of_stock" ? 1 : 0;
+    const stockB = b.availability === "out_of_stock" ? 1 : 0;
+    return stockA - stockB;
+  });
+  return { total: matches.length, products: ranked.slice(0, query.limit) };
+}
+
+/**
+ * Builds the catalog route a manifest advertises as `catalog_endpoint`. The
+ * store keeps ownership of its products; the handler only makes them
+ * addressable by exact id, category and price so an agent can size a mandate
+ * and purchase without guessing.
+ */
+export function createAgentPayCatalogHandler(config: {
+  merchantId: string;
+  merchantName: string;
+  currency: string;
+  /** Defaults to the distinct categories of the products returned. */
+  categories?: string[];
+  products: () => Promise<AgentPayCatalogProduct[]> | AgentPayCatalogProduct[];
+  /** Cache-control max-age in seconds. Defaults to 60. */
+  maxAgeSeconds?: number;
+}) {
+  return async function catalog(request: Request): Promise<Response> {
+    const query = parseCatalogQuery(new URL(request.url));
+    const all = (await config.products()).map((product) => ({
+      ...product,
+      currency: (product.currency ?? config.currency).toUpperCase(),
+    }));
+    const { total, products } = filterCatalogProducts(all, query);
+    const body: AgentPayMerchantCatalog = {
+      protocol: "agentpay-catalog/1.0",
+      merchant: { id: config.merchantId, name: config.merchantName },
+      currency: config.currency.toUpperCase(),
+      categories: config.categories ? uniqueSlugs(config.categories) : uniqueSlugs(all.map((p) => p.category)),
+      query,
+      total,
+      products,
+    };
+    return Response.json(body, {
+      headers: {
+        "access-control-allow-origin": "*",
+        "cache-control": `public, max-age=${config.maxAgeSeconds ?? 60}`,
+      },
+    });
+  };
+}
+
+function uniqueSlugs(values: string[]): string[] {
+  return Array.from(new Set(values.map((value) => value.trim().toLowerCase()).filter(Boolean))).sort();
 }
 
 export function signAgentPayRequest(input: {

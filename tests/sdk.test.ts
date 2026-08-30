@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { canonicalJson } from "@/lib/canonical-json";
 import { generateEd25519KeyPair, signText } from "@/lib/crypto";
-import type { RegistryMandate } from "@/lib/domain";
+import type { AgentPayCatalogProduct, RegistryMandate } from "@/lib/domain";
 import {
+  createAgentPayCatalogHandler,
   createAgentPayCheckoutHandler,
+  discoverAgentPayCatalog,
   discoverAgentPayMerchant,
+  filterCatalogProducts,
   merchantManifest,
+  parseCatalogQuery,
   signAgentPayRequest,
 } from "@/sdk";
 
@@ -25,6 +29,129 @@ describe("merchant discovery", () => {
     await expect(discoverAgentPayMerchant("https://autoparts.example/products/tires", fetcher)).resolves.toEqual(
       manifest,
     );
+  });
+
+  it("advertises the catalog, categories, currency and product URL template when given", () => {
+    const manifest = merchantManifest({
+      origin: "https://autoparts.example/anything",
+      merchantId: "mrc_autoparts",
+      merchantName: "AutoParts",
+      registryUrl: "https://agentpay.example",
+      catalogPath: "/api/agentpay/catalog",
+      categories: ["Tires", "accessories", "tires"],
+      currency: "brl",
+      productUrlTemplate: "/product/{id}",
+    });
+    expect(manifest.catalog_endpoint).toBe("https://autoparts.example/api/agentpay/catalog");
+    expect(manifest.categories).toEqual(["accessories", "tires"]);
+    expect(manifest.currency).toBe("BRL");
+    expect(manifest.product_url_template).toBe("https://autoparts.example/product/{id}");
+    expect(manifest.capabilities).toContain("catalog-search");
+  });
+
+  it("still accepts the original three-field manifest from SDK 0.1.0", async () => {
+    const legacy = {
+      protocol: "agentpay/1.0",
+      merchant: { id: "mrc_legacy", name: "Legacy Store" },
+      checkout_endpoint: "https://legacy.example/api/agentpay/checkout",
+      registry_url: "https://agentpay.example/",
+      capabilities: ["intent-mandates", "live-revocation", "mock-payment"],
+    };
+    const fetcher: typeof fetch = async () => Response.json(legacy);
+    const manifest = await discoverAgentPayMerchant("https://legacy.example/", fetcher);
+    expect(manifest.merchant.id).toBe("mrc_legacy");
+    expect(manifest.catalog_endpoint).toBeUndefined();
+    await expect(discoverAgentPayCatalog(manifest, {}, fetcher)).rejects.toThrow(/does not publish an AgentPay catalog/);
+  });
+});
+
+const PRODUCTS: AgentPayCatalogProduct[] = [
+  { product_id: "prd_tire_std", name: "Standard tire set", description: "4× 205/55 R16 all-season", category: "tires", price_cents: 154_800, currency: "BRL", sku: "TR-205-STD-4" },
+  { product_id: "prd_tire_prm", name: "Premium tire set", description: "4× 205/55 R16 performance", category: "tires", price_cents: 172_000, currency: "BRL", sku: "TR-205-PRM-4" },
+  { product_id: "prd_acc_jack", name: "Hydraulic jack 2t", description: "Low-profile trolley jack", category: "accessories", price_cents: 38_900, currency: "BRL", sku: "AC-JACK-2T", availability: "out_of_stock" },
+  { product_id: "prd_acc_mats", name: "All-weather floor mats", description: "Set of 4", category: "accessories", price_cents: 12_900, currency: "BRL", sku: "AC-MATS-4" },
+];
+
+describe("catalog filtering", () => {
+  it("matches every search token across name, description, sku and category", () => {
+    const query = parseCatalogQuery(new URL("https://s.example/api/catalog?q=tire%20205"));
+    expect(filterCatalogProducts(PRODUCTS, query).products.map((p) => p.product_id)).toEqual(["prd_tire_std", "prd_tire_prm"]);
+    expect(filterCatalogProducts(PRODUCTS, parseCatalogQuery(new URL("https://s.example/c?q=premium%20mats"))).total).toBe(0);
+  });
+
+  it("filters by exact category, price ceiling and product id, with in-stock items first", () => {
+    const cheap = parseCatalogQuery(new URL("https://s.example/c?category=Accessories&max_price_cents=40000"));
+    expect(filterCatalogProducts(PRODUCTS, cheap).products.map((p) => p.product_id)).toEqual(["prd_acc_mats", "prd_acc_jack"]);
+    const exact = parseCatalogQuery(new URL("https://s.example/c?product_id=prd_tire_prm"));
+    expect(filterCatalogProducts(PRODUCTS, exact).products).toHaveLength(1);
+  });
+
+  it("caps and defaults the limit while reporting the total", () => {
+    expect(parseCatalogQuery(new URL("https://s.example/c")).limit).toBe(10);
+    expect(parseCatalogQuery(new URL("https://s.example/c?limit=500")).limit).toBe(50);
+    const one = filterCatalogProducts(PRODUCTS, parseCatalogQuery(new URL("https://s.example/c?limit=1")));
+    expect(one.total).toBe(4);
+    expect(one.products).toHaveLength(1);
+  });
+});
+
+describe("catalog handler and discovery", () => {
+  const handler = createAgentPayCatalogHandler({
+    merchantId: "mrc_autoparts",
+    merchantName: "AutoParts",
+    currency: "BRL",
+    products: () => PRODUCTS,
+  });
+
+  it("serves the merchant's own products in the catalog shape", async () => {
+    const response = await handler(new Request("https://autoparts.example/api/agentpay/catalog?q=jack"));
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    const body = await response.json();
+    expect(body).toMatchObject({
+      protocol: "agentpay-catalog/1.0",
+      merchant: { id: "mrc_autoparts", name: "AutoParts" },
+      currency: "BRL",
+      categories: ["accessories", "tires"],
+      total: 1,
+      query: { q: "jack", category: null, product_id: null, max_price_cents: null, limit: 10 },
+    });
+    expect(body.products[0].product_id).toBe("prd_acc_jack");
+  });
+
+  it("lets an agent query the catalog through the manifest with one call", async () => {
+    const manifest = merchantManifest({
+      origin: "https://autoparts.example",
+      merchantId: "mrc_autoparts",
+      merchantName: "AutoParts",
+      registryUrl: "https://agentpay.example",
+      catalogPath: "/api/agentpay/catalog",
+    });
+    const fetcher: typeof fetch = async (input) => {
+      const url = new URL(input.toString());
+      if (url.pathname === "/.well-known/agentpay.json") return Response.json(manifest);
+      expect(url.pathname).toBe("/api/agentpay/catalog");
+      expect(url.searchParams.get("category")).toBe("tires");
+      expect(url.searchParams.get("max_price_cents")).toBe("160000");
+      return handler(new Request(url));
+    };
+    const catalog = await discoverAgentPayCatalog(
+      "https://autoparts.example/store/products/prd_tire_std",
+      { category: "tires", maxPriceCents: 160_000 },
+      fetcher,
+    );
+    expect(catalog.products.map((p) => p.product_id)).toEqual(["prd_tire_std"]);
+  });
+
+  it("refuses a catalog that names a different merchant than the manifest", async () => {
+    const manifest = merchantManifest({
+      origin: "https://autoparts.example",
+      merchantId: "mrc_autoparts",
+      merchantName: "AutoParts",
+      catalogPath: "/api/agentpay/catalog",
+    });
+    const other = createAgentPayCatalogHandler({ merchantId: "mrc_other", merchantName: "Other", currency: "BRL", products: () => [] });
+    const fetcher: typeof fetch = async (input) => other(new Request(input.toString()));
+    await expect(discoverAgentPayCatalog(manifest, {}, fetcher)).rejects.toThrow(/different merchants/);
   });
 });
 
