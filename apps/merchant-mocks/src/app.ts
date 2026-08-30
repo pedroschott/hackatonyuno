@@ -187,7 +187,7 @@ function createMerchantRouter(
       merchant: { id: merchant.id, name: merchant.name },
       checkout_endpoint: `${merchant.basePath}/v1/agents-pay/orders/verification`,
       capabilities: ['intent-mandates', 'live-revocation', 'mock-payment'],
-      currency: 'BRL',
+      currency: 'USD',
     }),
   );
 
@@ -695,7 +695,7 @@ async function createQuote(
     shippingMinor,
     taxMinor,
     totalMinor,
-    currency: 'BRL',
+    currency: 'USD',
     expiresAt,
     keyId,
   };

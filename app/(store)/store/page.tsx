@@ -21,7 +21,7 @@ export default function StorePage() {
       {/* Merchant header */}
       <div className="border-b border-[#eee] bg-[#111] text-[12px] text-white/80">
         <div className="mx-auto flex max-w-[1100px] items-center gap-4 px-4 py-1.5 sm:px-6">
-          <span className="hidden items-center gap-1.5 sm:inline-flex"><Truck className="size-3.5" /> Free fleet delivery over R$ 1.000</span>
+          <span className="hidden items-center gap-1.5 sm:inline-flex"><Truck className="size-3.5" /> Free fleet delivery over $1,000</span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2 py-0.5 sm:ml-auto">
             <Mark size={14} /> Agent-ready · accepts AgentPay mandates
           </span>

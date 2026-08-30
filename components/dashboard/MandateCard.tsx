@@ -184,7 +184,7 @@ export function CardBrand({ brand }: { brand: "mastercard" | "visa" }) {
 
 function EditableMoney({ label, valueCents, onSave, disabled, sub }: { label: string; valueCents: number; onSave: (v: number) => void; disabled?: boolean; sub?: React.ReactNode }) {
   return (
-    <EditableBase label={label} value={valueCents} onSave={onSave} disabled={disabled} sub={sub} display={(v) => brl(v)} toInput={(v) => String(Math.round(v / 100))} fromInput={(s) => Math.round(Number(s) * 100)} prefix="R$" />
+    <EditableBase label={label} value={valueCents} onSave={onSave} disabled={disabled} sub={sub} display={(v) => brl(v)} toInput={(v) => String(Math.round(v / 100))} fromInput={(s) => Math.round(Number(s) * 100)} prefix="$" />
   );
 }
 

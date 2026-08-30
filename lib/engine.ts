@@ -259,7 +259,7 @@ export function checkout(d: Data, scenario: Scenario, opts: CheckoutOpts = {}): 
       allowance: {
         reason: "one_time",
         max_amount_cents: product.priceCents,
-        currency: "BRL",
+        currency: "USD",
         merchant_id: merchant.id,
         attempt_id: attemptId,
         expires_at: new Date(now.getTime() + 5 * 60_000).toISOString(),

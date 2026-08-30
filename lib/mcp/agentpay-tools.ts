@@ -54,7 +54,7 @@ async function createMandate(input: {
         cumulative_cents: input.cumulativeCents,
         max_uses: input.maxUses,
         period: "month",
-        currency: "BRL",
+        currency: "USD",
       },
       validity: { not_before: new Date().toISOString(), expires_at: input.expiresAt },
       payment: { vault_card_id: input.vaultCardId },

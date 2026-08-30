@@ -45,7 +45,7 @@ export default function NewContractPage() {
 
   const [merchantIds, setMerchantIds] = useState<string[]>(["mrc_autoparts"]);
   const [categories, setCategories] = useState<string[]>(["automotive.tires"]);
-  const [limits, setLimits] = useState<MandateLimits>({ per_purchase_cents: 160_000, cumulative_cents: 400_000, max_uses: 3, period: "month", currency: "BRL" });
+  const [limits, setLimits] = useState<MandateLimits>({ per_purchase_cents: 160_000, cumulative_cents: 400_000, max_uses: 3, period: "month", currency: "USD" });
   const [expires, setExpires] = useState(() => toLocalInputValue(nextSunday2359()));
   const [cardId, setCardId] = useState(cards[0]?.id ?? "");
   const [addingCard, setAddingCard] = useState(false);

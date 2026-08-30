@@ -23,7 +23,7 @@ function guessRequester(req: Request) {
   return "Agent";
 }
 
-/** Accepts the spec shape and a few LLM-friendly aliases (names instead of ids, BRL instead of cents). */
+/** Accepts the spec shape and a few LLM-friendly aliases (names instead of ids, USD instead of cents). */
 export function normalizeCreate(body: Body, d: Data, req: Request): MandateDraftInput {
   const now = new Date();
   const scope = obj(body.scope);
@@ -35,15 +35,23 @@ export function normalizeCreate(body: Body, d: Data, req: Request): MandateDraft
   const categories = arr(scope.categories ?? body.categories ?? body.category ?? ["tires"]).map((c) => String(c).trim().toLowerCase());
   if (merchants.length === 0 || categories.length === 0) throw new EngineError("scope needs at least one merchant and one category", 400);
 
-  const cents = (c: unknown, brl: unknown, def: number) => {
+  const cents = (c: unknown, usdVal: unknown, def: number) => {
     const a = num(c);
     if (a !== undefined) return Math.round(a);
-    const b = num(brl);
+    const b = num(usdVal);
     if (b !== undefined) return Math.round(b * 100);
     return def;
   };
-  const per = cents(limits.per_purchase_cents ?? body.per_purchase_cents, limits.per_purchase_brl ?? body.per_purchase_brl ?? body.per_purchase, 160_000);
-  const cum = cents(limits.cumulative_cents ?? body.cumulative_cents, limits.cumulative_brl ?? body.cumulative_brl ?? body.monthly_cap, 400_000);
+  const per = cents(
+    limits.per_purchase_cents ?? body.per_purchase_cents,
+    limits.per_purchase_usd ?? limits.per_purchase_brl ?? body.per_purchase_usd ?? body.per_purchase_brl ?? body.per_purchase,
+    160_000,
+  );
+  const cum = cents(
+    limits.cumulative_cents ?? body.cumulative_cents,
+    limits.cumulative_usd ?? limits.cumulative_brl ?? body.cumulative_usd ?? body.cumulative_brl ?? body.monthly_cap,
+    400_000,
+  );
   const maxUses = Math.max(1, Math.round(num(limits.max_uses ?? body.max_uses) ?? 3));
   if (per <= 0) throw new EngineError("per_purchase must be > 0", 400);
   if (cum < per) throw new EngineError("cumulative limit must be ≥ per-purchase limit", 400);
@@ -67,7 +75,7 @@ export function normalizeCreate(body: Body, d: Data, req: Request): MandateDraft
     id: via === "panel" && typeof body.id === "string" ? body.id : undefined,
     agent_id: typeof body.agent_id === "string" ? body.agent_id : undefined,
     scope: { merchants, categories },
-    limits: { per_purchase_cents: per, cumulative_cents: cum, max_uses: maxUses, period: "month", currency: "BRL" },
+    limits: { per_purchase_cents: per, cumulative_cents: cum, max_uses: maxUses, period: "month", currency: "USD" },
     validity: { not_before: notBefore.toISOString(), expires_at: expires.toISOString() },
     vault_card_id: card.id,
     natural_language_description: description || undefined,

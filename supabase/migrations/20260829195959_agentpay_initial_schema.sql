@@ -31,7 +31,7 @@ create table public.products (
   name text not null,
   category text not null,
   price_cents integer not null check (price_cents > 0),
-  currency text not null default 'BRL' check (char_length(currency) = 3)
+  currency text not null default 'USD' check (char_length(currency) = 3)
 );
 
 create table public.vault_cards (
@@ -506,7 +506,7 @@ values
 
 insert into public.products (id, merchant_id, name, category, price_cents, currency)
 values
-  ('prd_standard_tires', 'mrc_autoparts', 'Standard tire set', 'tires', 154800, 'BRL'),
-  ('prd_premium_tires', 'mrc_autoparts', 'Premium tire set', 'tires', 172000, 'BRL'),
-  ('prd_floor_mats', 'mrc_autoparts', 'All-weather floor mats', 'accessories', 28900, 'BRL'),
-  ('prd_pneufast_tires', 'mrc_pneufast', 'PneuFast tire set', 'tires', 149900, 'BRL');
+  ('prd_standard_tires', 'mrc_autoparts', 'Standard tire set', 'tires', 154800, 'USD'),
+  ('prd_premium_tires', 'mrc_autoparts', 'Premium tire set', 'tires', 172000, 'USD'),
+  ('prd_floor_mats', 'mrc_autoparts', 'All-weather floor mats', 'accessories', 28900, 'USD'),
+  ('prd_pneufast_tires', 'mrc_pneufast', 'PneuFast tire set', 'tires', 149900, 'USD');

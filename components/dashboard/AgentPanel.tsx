@@ -8,10 +8,10 @@ import { Button, Card, Select, Mono } from "../ui";
 import { cn } from "@/lib/cn";
 
 export const SCENARIOS: { value: Scenario; label: string; hint: string }[] = [
-  { value: "standard", label: "Standard tire set — R$ 1.548", hint: "within limit" },
-  { value: "premium", label: "Premium tire set — R$ 1.720", hint: "over per-purchase limit → escalate" },
-  { value: "accessory", label: "Hydraulic jack — R$ 389", hint: "accessories ∉ scope" },
-  { value: "pneufast", label: "Tire set at PneuFast — R$ 1.490", hint: "merchant ∉ scope" },
+  { value: "standard", label: "Standard tire set — $1,548", hint: "within limit" },
+  { value: "premium", label: "Premium tire set — $1,720", hint: "over per-purchase limit → escalate" },
+  { value: "accessory", label: "Hydraulic jack — $389", hint: "accessories ∉ scope" },
+  { value: "pneufast", label: "Tire set at PneuFast — $1,490", hint: "merchant ∉ scope" },
   { value: "unsigned", label: "Unsigned request", hint: "impersonated agent" },
   { value: "replay", label: "Replay last signature", hint: "reused nonce" },
 ];

@@ -20,7 +20,7 @@ const harvestBasePath = '/merchants/harvest-market/v1/agents-pay';
 const cityBasketBasePath = '/merchants/city-basket/v1/agents-pay';
 
 describe('merchant mocks', () => {
-  it('serves the discovery document with BRL currency and capabilities', async () => {
+  it('serves the discovery document with USD currency and capabilities', async () => {
     const app = createTestApp();
 
     const response = await app.request('/merchants/autoparts/.well-known/agentpay.json');
@@ -32,7 +32,7 @@ describe('merchant mocks', () => {
       merchant: { id: 'mrc_autoparts', name: 'AutoParts' },
       checkout_endpoint: '/merchants/autoparts/v1/agents-pay/orders/verification',
       capabilities: ['intent-mandates', 'live-revocation', 'mock-payment'],
-      currency: 'BRL',
+      currency: 'USD',
     });
   });
 
@@ -58,7 +58,7 @@ describe('merchant mocks', () => {
     expect(cityBasket.offers[0]).not.toHaveProperty('trustTier');
   });
 
-  it('calculates, signs, and returns an immutable merchant quote in BRL', async () => {
+  it('calculates, signs, and returns an immutable merchant quote in USD', async () => {
     const app = createTestApp();
     const createResponse = await requestJson(
       app,
@@ -74,7 +74,7 @@ describe('merchant mocks', () => {
     expect(created.quote.shippingMinor).toBe(1_490);
     expect(created.quote.taxMinor).toBe(411);
     expect(created.quote.totalMinor).toBe(5_391);
-    expect(created.quote.currency).toBe('BRL');
+    expect(created.quote.currency).toBe('USD');
     expect(created.quote.keyId).toBe('harvest-market-2026-08');
     expect(
       await verifyMerchantQuoteSignature(

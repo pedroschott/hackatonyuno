@@ -97,7 +97,7 @@ export async function POST(req: Request) {
       p_product_id: product.id,
       p_category: product.category,
       p_amount_cents: product.priceCents,
-      p_currency: "BRL",
+      p_currency: "USD",
       p_exception_id: body.exception_id ?? null,
     });
     if (evaluation.error) throw new Error(evaluation.error.message);

@@ -10,7 +10,7 @@ alter table public.merchants
   add column if not exists vertical text,
   add column if not exists storefront_url text,
   add column if not exists discovery_url text,
-  add column if not exists currency text default 'BRL',
+  add column if not exists currency text default 'USD',
   add column if not exists display_status text default 'active' check (display_status in ('active', 'inactive')),
   add column if not exists logo_key text;
 
@@ -175,7 +175,7 @@ insert into public.merchants (
     'automotive',
     '/store',
     '/merchants/autoparts/.well-known/agentpay.json',
-    'BRL',
+    'USD',
     'active',
     true
   ),
@@ -187,7 +187,7 @@ insert into public.merchants (
     'grocery',
     '/merchants/harvest-market',
     '/merchants/harvest-market/.well-known/agentpay.json',
-    'BRL',
+    'USD',
     'active',
     true
   ),
@@ -199,7 +199,7 @@ insert into public.merchants (
     'grocery',
     '/merchants/city-basket',
     '/merchants/city-basket/.well-known/agentpay.json',
-    'BRL',
+    'USD',
     'active',
     true
   ),
@@ -211,7 +211,7 @@ insert into public.merchants (
     'beauty',
     '/merchants/mare-botanicals',
     '/merchants/mare-botanicals/.well-known/agentpay.json',
-    'BRL',
+    'USD',
     'active',
     true
   ),
@@ -223,7 +223,7 @@ insert into public.merchants (
     'automotive',
     '/store/pneufast',
     '/merchants/pneufast/.well-known/agentpay.json',
-    'BRL',
+    'USD',
     'inactive',
     false
   )
