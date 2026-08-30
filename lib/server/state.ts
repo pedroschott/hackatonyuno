@@ -1,6 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 
 import { ensureAgent } from "@/lib/data";
+import { DISPUTE_FIELDS, type Dispute } from "@/lib/disputes";
 import { latestHeldMandate, type Data } from "@/lib/engine";
 import { authenticatedRequest } from "@/lib/http";
 import { seedMerchants, seedProducts } from "@/lib/seed";
@@ -24,6 +25,7 @@ export function publicState(): Data {
     attempts: [],
     approvals: [],
     audit: [],
+    disputes: [],
     usedNonces: [],
   };
 }
@@ -171,7 +173,7 @@ function mapApproval(row: Record<string, unknown>, attempts: Attempt[]): Approva
 export async function loadAuthenticatedState(): Promise<{ state: Data; user: User }> {
   const { supabase, user } = await authenticatedRequest();
   const agent = await ensureAgent(supabase, user.id);
-  const [cards, mandates, attempts, approvals, audit, products, merchants] = await Promise.all([
+  const [cards, mandates, attempts, approvals, audit, products, merchants, disputes] = await Promise.all([
     supabase
       .from("vault_cards")
       .select("id, brand, last4, label, is_default, created_at")
@@ -183,9 +185,10 @@ export async function loadAuthenticatedState(): Promise<{ state: Data; user: Use
     supabase.from("audit_log").select("*").order("seq"),
     supabase.from("products").select("*"),
     supabase.from("merchants").select("id, name, category, agent_ready"),
+    supabase.from("disputes").select(DISPUTE_FIELDS).order("created_at", { ascending: false }),
   ]);
   const error =
-    cards.error ?? mandates.error ?? attempts.error ?? approvals.error ?? audit.error ?? products.error ?? merchants.error;
+    cards.error ?? mandates.error ?? attempts.error ?? approvals.error ?? audit.error ?? products.error ?? merchants.error ?? disputes.error;
   if (error) throw new Error(error.message);
 
   const productRows = (products.data ?? []) as Array<Record<string, unknown>>;
@@ -267,6 +270,11 @@ export async function loadAuthenticatedState(): Promise<{ state: Data; user: Use
             prev_hash: String(row.prev_hash),
             hash: String(row.hash),
           }) satisfies AuditEntry,
+      ),
+      // A merchant owner also reads disputes raised against their own store
+      // through RLS. Only the ones this account raised belong on their screens.
+      disputes: ((disputes.data ?? []) as Dispute[]).filter(
+        (dispute) => mappedAttempts.some((attempt) => attempt.id === dispute.attempt_id),
       ),
       usedNonces: [],
     },

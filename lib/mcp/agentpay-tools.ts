@@ -32,6 +32,9 @@ import {
   type GuidanceContext,
 } from "@/lib/mcp/guidance";
 import { createPaymentSetupToken } from "@/lib/payment-setup";
+import { auditSentence } from "@/lib/plain";
+import { verifyChain } from "@/lib/seed";
+import type { AuditEntry } from "@/lib/types";
 import {
   formatShippingAddress,
   isDeliverable,
@@ -921,6 +924,104 @@ export function registerAgentPayTools(server: McpServer) {
         currency: product.currency,
       });
       return respond(decision.decision, decision.reason_code, product, registry);
+    },
+  );
+
+  server.registerTool(
+    "search_security_log",
+    {
+      title: "Search the account's security log",
+      description:
+        "The account's hash-chained record of everything that happened: mandate requests and signatures, revocations, every purchase decision, one-time approvals, payment-method changes and disputes. Use it to answer questions about the past — \"what did I buy at that store\", \"when was that mandate revoked\", \"why was that charge refused\" — instead of guessing from what you remember of this conversation. Pass attempt_id or mandate_id to pull the full trail of one purchase or one mandate. Every result carries the hash-chain verification, so you can say whether the record has been edited.",
+      inputSchema: z.object({
+        query: z
+          .string()
+          .max(200)
+          .optional()
+          .describe("Free text. Every word must appear somewhere in the entry: its action, actor, entity id or payload."),
+        action: z
+          .string()
+          .max(60)
+          .optional()
+          .describe('Exact action or prefix, e.g. "attempt.refused" or "mandate." for every mandate event.'),
+        attempt_id: z.uuid().optional().describe("Every entry about one purchase, including any approval raised against it."),
+        mandate_id: z.uuid().optional().describe("Every entry about one mandate, including purchases made under it."),
+        merchant_id: z.string().max(80).optional().describe("Exact mrc_… id from find_products."),
+        since: z.iso.datetime().optional().describe("Only entries at or after this ISO 8601 instant."),
+        until: z.iso.datetime().optional().describe("Only entries at or before this ISO 8601 instant."),
+        limit: z.number().int().positive().max(200).optional().describe("Newest first. Defaults to 25."),
+      }),
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+    },
+    async (input, ctx) => {
+      const auth = authContext(ctx);
+      // The whole chain is read, not just the matches: verification is only
+      // meaningful over an unbroken sequence, and a filtered slice would let a
+      // removed entry pass unnoticed.
+      const rows = await auth.supabase
+        .from("audit_log")
+        .select("seq, ts, actor, action, entity, payload, prev_hash, hash")
+        .order("seq");
+      if (rows.error) throw new Error(rows.error.message);
+      const chain = (rows.data ?? []) as AuditEntry[];
+      const integrity = verifyChain(chain);
+
+      const tokens = (input.query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+      const since = input.since ? new Date(input.since).valueOf() : null;
+      const until = input.until ? new Date(input.until).valueOf() : null;
+      const limit = input.limit ?? 25;
+
+      const matches = chain.filter((entry) => {
+        const payload = entry.payload as Record<string, unknown>;
+        const at = new Date(entry.ts).valueOf();
+        if (since !== null && at < since) return false;
+        if (until !== null && at > until) return false;
+        if (input.action && !entry.action.startsWith(input.action)) return false;
+        if (input.attempt_id && entry.entity !== input.attempt_id && payload.attempt_id !== input.attempt_id) return false;
+        if (input.mandate_id && entry.entity !== input.mandate_id && payload.mandate_id !== input.mandate_id) return false;
+        if (input.merchant_id && payload.merchant_id !== input.merchant_id) return false;
+        if (tokens.length === 0) return true;
+        const haystack = `${entry.action} ${entry.actor} ${entry.entity} ${JSON.stringify(payload)}`.toLowerCase();
+        return tokens.every((token) => haystack.includes(token));
+      });
+
+      const page = matches.slice(-limit).reverse();
+      const entries = page.map((entry) => ({
+        seq: entry.seq,
+        at: entry.ts,
+        actor: entry.actor,
+        action: entry.action,
+        // The same sentence the account holder reads in the security log, so the
+        // agent and the screen never describe the same event differently.
+        summary: auditSentence(entry.action),
+        entity: entry.entity,
+        payload: entry.payload,
+        hash: entry.hash,
+      }));
+
+      const result = {
+        entries,
+        matched: matches.length,
+        returned: entries.length,
+        total_events: chain.length,
+        integrity: {
+          verified: integrity.ok,
+          // A break means an entry was altered or removed after the fact.
+          broken_at_seq: integrity.ok ? null : (integrity.brokenAt ?? null),
+          note: integrity.ok
+            ? "Every event hashes onto the one before it, so nothing has been altered or removed."
+            : "The hash chain does not verify. Tell the user immediately and do not treat this history as reliable.",
+        },
+        security_log_url: `${auth.origin}/audit`,
+        next_step:
+          entries.length === 0
+            ? "Nothing matched. Widen the query, drop a filter, or check the date range before telling the user something did not happen."
+            : "Quote the summaries and timestamps back to the user. Payloads carry the mandate, merchant, product, amount and reason code behind each event.",
+      };
+      return mcpResult(
+        result,
+        `${matches.length} of ${chain.length} security-log event(s) matched; returning the newest ${entries.length}. Hash chain ${integrity.ok ? "verifies" : `BREAKS at event ${integrity.brokenAt}`}.`,
+      );
     },
   );
 

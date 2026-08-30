@@ -17,6 +17,7 @@
     "tunnel": "bash scripts/tunnel.sh"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@modelcontextprotocol/server": "2.0.0",
     "@simplewebauthn/browser": "13.3.0",
     "@simplewebauthn/server": "13.3.3",

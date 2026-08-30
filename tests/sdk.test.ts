@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { canonicalJson } from "@/lib/canonical-json";
 import { generateEd25519KeyPair, signText } from "@/lib/crypto";
 import type { AgentPayCatalogProduct, RegistryMandate } from "@/lib/domain";
+import type { FulfillmentRequest } from "@/sdk";
 import {
   createAgentPayCatalogHandler,
   createAgentPayCheckoutHandler,
@@ -317,7 +318,7 @@ describe("delivery quoting", () => {
     return new Request(CHECKOUT_URL, { method: "POST", headers, body: payload });
   }
 
-  const quote = ({ address, address_source, now }: { address: typeof ADDRESS; address_source: "registered" | "custom"; now: Date }) =>
+  const quote = ({ address, address_source, now }: FulfillmentRequest) =>
     address.country_code === "US"
       ? {
           address_source,

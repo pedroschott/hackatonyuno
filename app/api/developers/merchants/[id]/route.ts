@@ -23,7 +23,9 @@ export async function GET(_request: Request, context: RouteContext<"/api/develop
       supabase.from("merchant_api_keys").select(API_KEY_FIELDS).eq("merchant_id", id).order("created_at", { ascending: false }),
       supabase
         .from("attempts")
-        .select("id, merchant_id, product_id, amount_cents, currency, decision, reason_code, created_at")
+        .select(
+          "id, merchant_id, product_id, amount_cents, shipping_cents, currency, decision, reason_code, created_at, purchase_reason, shipping_address_source, fulfillment",
+        )
         .eq("merchant_id", id)
         .order("created_at", { ascending: false })
         .limit(100),
