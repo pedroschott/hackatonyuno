@@ -12,8 +12,10 @@ const POLL_MS = 1500;
 /** Server is the source of truth; every panel (desktop, phone, store) polls /api/state. */
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useStore((s) => s.hydrated);
-  // The documentation site is public and reads no account state, so it never polls.
-  const polls = !usePathname().startsWith("/docs");
+  // The landing page and the documentation site are public and read no account
+  // state, so they never poll.
+  const path = usePathname();
+  const polls = path !== "/" && !path.startsWith("/docs");
 
   useEffect(() => {
     if (!polls) return;

@@ -83,3 +83,11 @@ There is no MDX pipeline and no syntax-highlighting dependency: pages are TSX us
 A merchant cannot rehearse an approved purchase without a signed mandate, and could not produce one without canonical JSON and Ed25519 signing. Rather than leave integrators to reverse-engineer both, `@agentpay/merchant-sdk` re-exports `canonicalJson`, `signText`, `signCanonical`, `verifyText`, `generateEd25519KeyPair` and `agentSigningMessage`, plus the registry types. They are generic primitives holding no secret, and they turn "test your integration" from a paragraph of theory into a file a merchant can run offline against a stubbed registry.
 
 `npm run sdk:install -- ../my-store` exists for the same reason: it builds, packs, vendors and installs the package in one step, so the first documented instruction a merchant follows is one command rather than five.
+
+## The root URL is a landing page, not a redirect to the dashboard
+
+`/` used to redirect to `/dashboard`, so the first thing anyone reached was a sign-in wall for a product they had not been told about yet. A judge, an integrator and a crawler all arrive at the root, and none of them start signed in.
+
+`/` is now a static public page that explains the product in the user's terms — connect an assistant, sign a mandate with a passkey, watch every attempt, revoke in one tap — with a single developer section pointing at `/docs`. It is a server component that reads no account state, so `StoreProvider` excludes it from the 1.5s `/api/state` poll alongside `/docs`.
+
+The mandate shown in the hero is deliberately static markup rather than live data: a marketing surface must not depend on a session, and a fabricated "live" panel would be exactly the seeded-demo-data problem this log already rejects. It mirrors what `MandateCard` renders, and the page states that the payment rail is mocked rather than implying settled money.

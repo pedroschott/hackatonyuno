@@ -24,7 +24,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3210/dashboard. A new account starts empty: nothing can be charged until an agent requests a mandate and you sign it. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
+Open http://localhost:3210 for the landing page, or http://localhost:3210/dashboard for the app. A new account starts empty: nothing can be charged until an agent requests a mandate and you sign it. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
 
 ## Verify
 
@@ -50,6 +50,7 @@ The delay is only a test affordance. The security boundary is the final Supabase
 
 | Route | Purpose |
 |---|---|
+| `/` | Landing page: what AgentPay does for a buyer, and where a merchant starts |
 | `/dashboard` | Summary: what was charged this month, which mandates are active, what is waiting for your signature |
 | `/activity` | Every purchase attempt and the mandate decision made on it |
 | `/connect` | See connected assistants and connect another with one link |
