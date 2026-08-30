@@ -153,3 +153,11 @@ The demo uses an unexpected fleet maintenance event: a vehicle is immobilized, e
 This scenario demonstrates why agentic purchasing is valuable beyond convenience. The agent can search broadly and act quickly, while AgentPay limits the authority granted to it and keeps the purchase verifiable and auditable.
 
 The rejected primary demo was a simple recurring purchase. It was easier to automate, but did not demonstrate the economic value of discovery, urgency and controlled autonomy as clearly.
+
+## Mandate limits carry shipping headroom, not the sticker price
+
+An agent that read `price_cents` from the catalog and passed it straight to `create_mandate` produced a mandate that was correct on paper and useless in practice: the merchant charged shipping, handling and tax on top, the total exceeded `per_purchase_cents`, and the purchase escalated for a few dollars of freight — a second passkey prompt for the user on a purchase they had already authorized.
+
+We rejected teaching the policy engine to allow a percentage overshoot at purchase time. The limit the user signs must be the limit that is enforced; a hidden tolerance would mean the signing screen understates what can be charged. Instead the headroom is added before signing, where the user can see it: `find_products` returns a `mandate_hint.per_purchase_cents` of roughly the product price plus 15%, at least 500 cents, rounded up to a whole unit, alongside `max_product_price_cents` and a note explaining the gap. The MCP server instructions and the `create_mandate`, `per_purchase_cents` and `cumulative_cents` descriptions all state that the limit must sit above the price, never equal to it.
+
+The rate is a heuristic, not a shipping quote: AgentPay does not know the merchant's freight table. Heavy or express shipping still needs a larger limit, and an escalation remains the correct outcome when the total genuinely exceeds what the user approved.

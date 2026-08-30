@@ -58,14 +58,19 @@ export default function Page() {
       "url": "https://store.example.com/products/prd_tire_std" }
   ],
   "mandate_hint": { "merchant_urls": ["https://store.example.com"], "merchant_ids": ["mrc_example"],
-                    "categories": ["tires"], "currency": "USD", "per_purchase_cents": 154800 }
+                    "categories": ["tires"], "currency": "USD",
+                    "max_product_price_cents": 154800, "per_purchase_cents": 178100,
+                    "per_purchase_note": "Includes headroom above the $1,548.00 product price for shipping, handling and tax. Do not lower it to the exact price." }
 }`}
                 />
               </Step>
               <Step n={3} title="create_mandate">
                 <P>
                   Pass <C>merchant_urls</C> (preferred) or <C>merchant_ids</C>, the exact <C>categories</C>, and{" "}
-                  <C>per_purchase_cents</C> at or above the price. Everything else has a sensible default: one use,
+                  <C>per_purchase_cents</C> above the price — never equal to it, because the merchant charges shipping,
+                  handling and tax on top, and a limit set at the sticker price escalates the purchase over a few
+                  dollars of freight. The <C>per_purchase_cents</C> in <C>mandate_hint</C> already adds that headroom
+                  (about 15%, at least $5, rounded up); raise it further for heavy or express shipping. Everything else has a sensible default: one use,
                   seven days, the account&apos;s default card, <C>cumulative_cents = per_purchase_cents × max_uses</C>.
                   A category the store does not sell fails here, with the valid list, before the user is asked to sign.
                 </P>
@@ -74,10 +79,10 @@ export default function Page() {
                   code={`{
   "merchant_urls": ["https://store.example.com"],
   "categories": ["tires"],
-  "per_purchase_cents": 160000,
+  "per_purchase_cents": 178100,
   "max_uses": 1,
   "expires_in_days": 7,
-  "natural_language_description": "Buy one standard tire set from Example Store, up to $1,600"
+  "natural_language_description": "Buy one standard tire set from Example Store, up to $1,781 including shipping"
 }`}
                 />
                 <P>
