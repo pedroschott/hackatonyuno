@@ -9,12 +9,26 @@
 - [MCP endpoint](https://agentpay-yuno.vercel.app/mcp): OAuth-protected Streamable HTTP MCP server.
 - [MCP protected-resource metadata](https://agentpay-yuno.vercel.app/.well-known/oauth-protected-resource): OAuth discovery for the MCP endpoint.
 - [Merchant discovery example](https://agentpay-yuno.vercel.app/.well-known/agentpay.json): an example of a merchant-owned AgentPay manifest.
+- [Merchant documentation](https://agentpay-yuno.vercel.app/docs): how a store installs and sets up the AgentPay merchant SDK.
+
+## Merchant integration
+
+- [Quickstart](https://agentpay-yuno.vercel.app/docs/quickstart): a new store accepting agent purchases with two routes.
+- [Install the SDK](https://agentpay-yuno.vercel.app/docs/installation): requirements and the one-command installer.
+- [Publish discovery](https://agentpay-yuno.vercel.app/docs/discovery): serving `/.well-known/agentpay.json`.
+- [Protect checkout](https://agentpay-yuno.vercel.app/docs/checkout): verification, decisions and charging safely.
+- [Framework recipes](https://agentpay-yuno.vercel.app/docs/frameworks): Next.js, Hono, Express, Fastify and edge runtimes.
+- [Test the integration](https://agentpay-yuno.vercel.app/docs/testing): offline signed requests and a live revocation rehearsal.
+- [SDK reference](https://agentpay-yuno.vercel.app/docs/reference): exported functions and types.
+- [Protocol and registry](https://agentpay-yuno.vercel.app/docs/reference/protocol): signed request format and registry endpoints.
+- [Decisions and reason codes](https://agentpay-yuno.vercel.app/docs/reference/decisions): every outcome a merchant can receive.
+- [Troubleshooting](https://agentpay-yuno.vercel.app/docs/troubleshooting): the failures merchants actually hit.
 
 ## Protocol documentation
 
 - [Repository README](https://github.com/pedroschott/hackatonyuno#readme)
 - [Route and endpoint inventory](https://github.com/pedroschott/hackatonyuno/blob/main/docs/routes.md)
-- [Merchant SDK guide](https://github.com/pedroschott/hackatonyuno/blob/main/docs/merchant-sdk.md)
+- [Merchant SDK summary](https://github.com/pedroschott/hackatonyuno/blob/main/docs/merchant-sdk.md)
 - [Architecture](https://github.com/pedroschott/hackatonyuno/blob/main/docs/architecture.md)
 - [Security decisions](https://github.com/pedroschott/hackatonyuno/blob/main/docs/decisions.md)
 

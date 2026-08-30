@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { DOC_PAGES } from "@/components/docs/nav";
 import { agentPayBaseUrl } from "@/lib/env";
 
 /**
@@ -11,6 +12,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = agentPayBaseUrl();
 
   return [
+    ...DOC_PAGES.map((page) => ({
+      url: new URL(page.href, baseUrl).toString(),
+      changeFrequency: "weekly" as const,
+      priority: page.href === "/docs" ? 0.9 : 0.7,
+    })),
     {
       url: new URL("/connect", baseUrl).toString(),
       changeFrequency: "monthly",

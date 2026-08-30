@@ -1,0 +1,211 @@
+import { BookOpen, Boxes, PlugZap, Rocket, ShieldCheck, TerminalSquare } from "lucide-react";
+
+import { DocPage, docMetadata } from "@/components/docs/DocPage";
+import { A, C, Callout, Cards, CodeBlock, LI, Lead, LinkCard, List, P, Steps, Step } from "@/components/docs/prose";
+
+const HREF = "/docs";
+
+export const metadata = docMetadata(HREF);
+
+export default function Page() {
+  return (
+    <DocPage
+      href={HREF}
+      intro={
+        <>
+          <Lead>
+            AgentPay is the authorization layer between an AI agent and your checkout. The buyer signs a narrow mandate
+            with a passkey — this merchant, this category, this amount, this many times — and your store gets a
+            cryptographic answer to one question on every request: <em>is this agent allowed to spend this money right
+            now?</em>
+          </Lead>
+          <P>
+            Your side of that is small on purpose. Install one package, publish one JSON file, and wrap one route. The
+            SDK does the signature checks, the live revocation check and the policy evaluation for you.
+          </P>
+          <Cards>
+            <LinkCard
+              href="/docs/quickstart"
+              icon={<Rocket className="size-4" />}
+              title="Quickstart"
+              description="A new store accepting agent purchases in five minutes, with two copy-paste routes."
+            />
+            <LinkCard
+              href="/docs/installation"
+              icon={<Boxes className="size-4" />}
+              title="Install the SDK"
+              description="One command to build and install @agentpay/merchant-sdk into your project."
+            />
+          </Cards>
+        </>
+      }
+      sections={[
+        {
+          id: "what-the-sdk-does",
+          title: "What the SDK does for you",
+          body: (
+            <>
+              <P>
+                <C>@agentpay/merchant-sdk</C> ships two things: a manifest builder so agents can discover you, and a
+                checkout handler that refuses everything it cannot prove. Before your code ever sees a purchase, the
+                handler has verified:
+              </P>
+              <List>
+                <LI>
+                  the <strong>agent request signature</strong> — Ed25519 over the method, path, body hash, timestamp and
+                  nonce, checked against the agent key published by the registry;
+                </LI>
+                <LI>
+                  the <strong>timestamp</strong> is within 60 seconds, and the <strong>nonce</strong> has never been used
+                  before, so a captured request cannot be replayed;
+                </LI>
+                <LI>
+                  the <strong>mandate signature</strong> — the registry signed exactly this mandate, and the mandate names
+                  exactly this agent;
+                </LI>
+                <LI>
+                  the <strong>live mandate status</strong>, read uncached on every purchase, so a revocation one second
+                  ago is effective now;
+                </LI>
+                <LI>
+                  the <strong>policy</strong> — merchant, category, currency, per-purchase limit, cumulative limit,
+                  remaining uses, validity window, and any approved one-time exception.
+                </LI>
+              </List>
+              <Callout tone="tip" title="The price is yours, not the agent's">
+                <p>
+                  The agent sends a product id, never an amount. The handler asks <em>your</em> catalog what that product
+                  costs through <C>resolveProduct</C> and evaluates the mandate against that number. An agent cannot talk
+                  its way under a limit.
+                </p>
+              </Callout>
+            </>
+          ),
+        },
+        {
+          id: "how-a-purchase-works",
+          title: "How a purchase reaches your store",
+          body: (
+            <>
+              <Steps>
+                <Step n={1} title="The buyer authorizes a mandate">
+                  <P>
+                    The agent asks AgentPay for a mandate that matches what the user said. The user signs that exact
+                    mandate with a passkey. No signature, no mandate — your store is never part of this step.
+                  </P>
+                </Step>
+                <Step n={2} title="The agent finds your store">
+                  <P>
+                    Through ordinary search or a product link. It reads <C>/.well-known/agentpay.json</C> on your domain
+                    to learn your merchant id and checkout endpoint. AgentPay is not a store directory; discovery lives
+                    on your domain.
+                  </P>
+                </Step>
+                <Step n={3} title="The agent posts a signed checkout request">
+                  <P>
+                    A tiny body — mandate id, merchant id, product id — with four signature headers.
+                  </P>
+                </Step>
+                <Step n={4} title="The SDK verifies and decides">
+                  <P>
+                    Signature, replay, registry, live status, policy. You receive <C>approved</C>, <C>escalated</C> or{" "}
+                    <C>refused</C> with a reason code.
+                  </P>
+                </Step>
+                <Step n={5} title="You charge, only on approved" last>
+                  <P>
+                    Your payment provider runs after the decision, never before it. This challenge build returns a mock
+                    single-use payment token instead of moving money.
+                  </P>
+                </Step>
+              </Steps>
+            </>
+          ),
+        },
+        {
+          id: "what-you-build",
+          title: "What you actually build",
+          body: (
+            <>
+              <P>Two routes. That is the whole integration surface.</P>
+              <CodeBlock
+                lang="text"
+                filename="Your store"
+                code={`your-store.example/
+├─ .well-known/agentpay.json   ← who you are, where checkout lives
+└─ api/agentpay/checkout       ← the verified checkout route`}
+              />
+              <P>
+                Everything else — mandate issuance, passkey ceremonies, revocation, the audit trail — happens inside
+                AgentPay and the buyer&apos;s account. You never store a card, a passkey, or a mandate.
+              </P>
+            </>
+          ),
+        },
+        {
+          id: "requirements",
+          title: "Requirements",
+          body: (
+            <>
+              <List>
+                <LI>
+                  <strong>Node.js 22 or newer</strong>, or any runtime with Web <C>Request</C>/<C>Response</C> and
+                  <C> crypto.randomUUID</C> — Next.js, Hono, Cloudflare Workers, Deno and Bun all qualify.
+                </LI>
+                <LI>
+                  <strong>zod 4</strong> as a dependency (the SDK validates every registry response it reads).
+                </LI>
+                <LI>
+                  <strong>A public HTTPS origin</strong> for your manifest and checkout route. For local development a
+                  tunnel works; see <A href="/docs/testing">Test the integration</A>.
+                </LI>
+                <LI>
+                  <strong>A stable merchant id</strong> — a slug like <C>mrc_demo_store</C>. Mandates are scoped to it,
+                  so once buyers hold mandates naming your id, it cannot change.
+                </LI>
+              </List>
+              <Callout tone="warn" title="Node-only signature verification today">
+                <p>
+                  Verification uses <C>node:crypto</C>. It runs on Node and Bun and on Vercel&apos;s Node runtime. On an
+                  edge runtime, keep the checkout route on Node (<C>export const runtime = &quot;nodejs&quot;</C>).
+                </p>
+              </Callout>
+            </>
+          ),
+        },
+        {
+          id: "keep-reading",
+          title: "Keep reading",
+          body: (
+            <Cards>
+              <LinkCard
+                href="/docs/discovery"
+                icon={<PlugZap className="size-4" />}
+                title="Publish discovery"
+                description="Serve the manifest agents look for on your domain."
+              />
+              <LinkCard
+                href="/docs/checkout"
+                icon={<ShieldCheck className="size-4" />}
+                title="Protect checkout"
+                description="Wrap your route and handle each decision correctly."
+              />
+              <LinkCard
+                href="/docs/testing"
+                icon={<TerminalSquare className="size-4" />}
+                title="Test the integration"
+                description="Sign a request locally and rehearse a live revocation."
+              />
+              <LinkCard
+                href="/docs/reference"
+                icon={<BookOpen className="size-4" />}
+                title="SDK reference"
+                description="Every exported function, option and type."
+              />
+            </Cards>
+          ),
+        },
+      ]}
+    />
+  );
+}
