@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { POST as diditWebhookPOST } from "@/app/api/webhooks/didit/route";
 import {
   createDiditSession,
   DIDIT_FREE_KYC_WORKFLOW_ID,
@@ -138,6 +139,39 @@ describe("Didit webhook verification", () => {
 
     expect(verifyDiditWebhook({ ...input, nowSeconds: now })).toBe("raw");
     expect(verifyDiditWebhook({ ...input, nowSeconds: now + 301 })).toBeNull();
+  });
+
+  it("acknowledges signed Didit onboarding events that are not bound to an AgentPay user", async () => {
+    process.env.DIDIT_API_KEY = "didit-test-key";
+    process.env.DIDIT_WEBHOOK_SECRET = secret;
+    const onboardingEvent = {
+      event_id: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+      webhook_type: "status.updated",
+      timestamp: Math.floor(Date.now() / 1000),
+      created_at: Math.floor(Date.now() / 1000),
+      application_id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      environment: "live",
+      status: "Not Started",
+      session_id: "cccccccc-dddd-4eee-8fff-aaaaaaaaaaaa",
+      session_kind: "user",
+      workflow_id: DIDIT_FREE_KYC_WORKFLOW_ID,
+      vendor_data: "getting-started",
+    };
+    const signature = createHmac("sha256", secret)
+      .update(diditCanonicalJson(onboardingEvent), "utf8")
+      .digest("hex");
+    const response = await diditWebhookPOST(new Request("https://agentpay.example/api/webhooks/didit", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-signature-v2": signature,
+        "x-timestamp": String(onboardingEvent.timestamp),
+      },
+      body: JSON.stringify(onboardingEvent),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ ok: true, ignored: true, reason: "unbound_vendor" });
   });
 });
 

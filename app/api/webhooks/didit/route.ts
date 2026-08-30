@@ -15,7 +15,7 @@ const webhookSchema = z.object({
   session_id: z.uuid().optional(),
   session_kind: z.enum(["user", "business"]).optional(),
   workflow_id: z.uuid().optional(),
-  vendor_data: z.uuid().optional(),
+  vendor_data: z.string().max(255).optional(),
 });
 
 const supportedEvents = new Set([
@@ -51,19 +51,22 @@ export async function POST(request: Request) {
   if (!supportedEvents.has(event.webhook_type) || event.session_kind === "business") {
     return Response.json({ ok: true, ignored: true });
   }
-  if (!event.vendor_data) return Response.json({ error: "Missing vendor_data" }, { status: 400 });
+  const agentPayUserId = z.uuid().safeParse(event.vendor_data);
+  if (!agentPayUserId.success) {
+    return Response.json({ ok: true, ignored: true, reason: "unbound_vendor" });
+  }
   if (
     (event.webhook_type === "status.updated" || event.webhook_type === "data.updated") &&
     (!event.session_id || event.workflow_id !== DIDIT_FREE_KYC_WORKFLOW_ID)
   ) {
-    return Response.json({ error: "Unexpected verification workflow" }, { status: 400 });
+    return Response.json({ ok: true, ignored: true, reason: "unbound_workflow" });
   }
 
   const admin = createAdminSupabase();
   const applied = await admin.rpc("apply_didit_identity_webhook", {
     p_event_id: event.event_id,
     p_webhook_type: event.webhook_type,
-    p_user_id: event.vendor_data,
+    p_user_id: agentPayUserId.data,
     p_session_id: event.session_id ?? null,
     p_status: event.status,
     p_environment: event.environment,
