@@ -15,6 +15,13 @@
 - [Merchant console](https://agentpay-yuno.vercel.app/developers): register a merchant ID, create a hosted test store, manage products and keys, and inspect checkout decisions.
 - [Supported live stores](https://agentpay-yuno.vercel.app/api/stores): verified public store and discovery URLs. This list is empty until a real merchant verifies and opts in.
 
+## After the purchase
+
+- A buyer can dispute any approved charge from its purchase trail. The dispute carries their statement, the reason their agent recorded at the time of purchase, the mandate that allowed the charge, and where it shipped.
+- Merchants answer disputes in the console or through their API key at `/api/v1/merchants/:id/disputes`. `/api/v1/merchants/:id/transactions` is the same history as a feed.
+- Dispute analysis reads one dispute against that buyer's history at that merchant and recommends refund, uphold or request-evidence. It is advisory and never changes a dispute's status; a person decides.
+- Buyers are identified to merchants by a stable per-merchant pseudonym, never by an account id.
+
 ## Identity and fraud boundary
 
 - Account holders complete Didit's hosted v3 Free KYC workflow before authorizing a mandate or one-time exception.
@@ -28,6 +35,7 @@
 - [Publish discovery](https://agentpay-yuno.vercel.app/docs/discovery): serving `/.well-known/agentpay.json` and a catalog endpoint.
 - [Protect checkout](https://agentpay-yuno.vercel.app/docs/checkout): verification, decisions and charging safely.
 - [Framework recipes](https://agentpay-yuno.vercel.app/docs/frameworks): Next.js, Hono, Express, Fastify and edge runtimes.
+- [Delivery and disputes](https://agentpay-yuno.vercel.app/docs/orders): quoting delivery for the buyer's address, the merchant transaction API, and answering a disputed charge.
 - [Test the integration](https://agentpay-yuno.vercel.app/docs/testing): offline signed requests and a live revocation rehearsal.
 - [SDK reference](https://agentpay-yuno.vercel.app/docs/reference): exported functions and types.
 - [Protocol and registry](https://agentpay-yuno.vercel.app/docs/reference/protocol): signed request format and registry endpoints.
@@ -52,6 +60,10 @@
 - Create the narrowest mandate that matches the user's request with `create_mandate`, passing `merchant_urls` and the exact categories. Set `per_purchase_cents` above the product price, never equal to it: shipping, handling and tax are charged on top, so reuse the `per_purchase_cents` from `find_products`' `mandate_hint`, which already includes that headroom. Send the user `authorization_url` and poll `get_mandate` until it is `active`; a draft is a normal state, never a reason to create a second mandate.
 - Express every product price and mandate limit in USD integer cents. AgentPay does not convert currencies; a store that quotes another currency is refused with `CURRENCY_MISMATCH`.
 - Call `check_purchase` before `purchase`. Both return `explanation`, `remedy` and `next_tool` on anything but approval. `escalated` means send the user `approval_url`, then call `purchase` again with `exception_id`. `MERCHANT_NOT_IN_SCOPE`, `CATEGORY_NOT_IN_SCOPE`, `CUMULATIVE_EXCEEDED` and `USES_EXCEEDED` are fixed with `amend_mandate`, which the user signs once and which retires the old mandate automatically. Never retry a refused purchase unchanged, and never revoke a mandate to fix its scope.
+- `purchase` requires `purchase_reason`: why the user is buying this, in their own words. A personal reason such as "I just want it" is complete and acceptable; an invented business justification is not. It is recorded on the charge and shown to the buyer and, if they dispute it, to the merchant.
+- Orders ship to the buyer's registered address, which AgentPay already holds. Never ask a chat participant for a delivery address. Pass `ship_to` only when the user says this one order goes somewhere else; it applies to that order alone and is never saved. `SHIPPING_ADDRESS_REQUIRED` means the account's address is incomplete — send them to `address_url`. `SHIPPING_ADDRESS_UNSUPPORTED` means the store does not deliver there.
+- An approved purchase returns `fulfillment`: the delivery method, carrier, estimated window and shipping charge. Tell the user when the part arrives. `charge.total_cents` — product plus delivery — is the amount the mandate was checked against, so a limit covers what is actually charged.
+- Use `search_security_log` to answer questions about the past instead of relying on what you remember of the conversation. It searches the account's hash-chained record of mandates, purchases, approvals and disputes, takes `attempt_id` or `mandate_id` for one item's full trail, and reports whether the chain still verifies.
 - Revoke the mandate immediately when the user asks to stop.
 
 ## Indexing boundary

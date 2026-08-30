@@ -76,7 +76,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     });
     const original = await supabase
       .from("attempts")
-      .select("agent_id, merchant_id, product_id, amount_cents, currency")
+      .select(
+        "agent_id, merchant_id, product_id, amount_cents, currency, purchase_reason, shipping_address, shipping_address_source, shipping_cents, fulfillment",
+      )
       .eq("id", approval.data.attempt_id)
       .single();
     if (original.error) throw new Error(original.error.message);
@@ -95,6 +97,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       p_amount_cents: original.data.amount_cents,
       p_currency: original.data.currency,
       p_exception_id: id,
+      // The retry is the same order the user just approved, so its reason and
+      // delivery come from the escalated attempt rather than being re-derived.
+      p_purchase_reason: original.data.purchase_reason ?? "Approved exception for an escalated purchase",
+      p_shipping_address: original.data.shipping_address ?? null,
+      p_shipping_source: original.data.shipping_address_source ?? null,
+      p_shipping_cents: original.data.shipping_cents ?? 0,
+      p_fulfillment: original.data.fulfillment ?? null,
     });
     if (retry.error) throw new Error(retry.error.message);
     return Response.json({ approval: result.data, retry: retry.data });

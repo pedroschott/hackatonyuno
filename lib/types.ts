@@ -1,5 +1,9 @@
 // Domain types — mirror the Supabase schema in the tech spec (§4).
 
+import type { Fulfillment, ShippingAddress, ShippingAddressSource } from "@/lib/domain";
+
+export type { Fulfillment, ShippingAddress, ShippingAddressSource };
+
 export type VaultCard = {
   id: string; // 'card_9281'
   brand: "mastercard" | "visa";
@@ -118,11 +122,20 @@ export type Attempt = {
   merchant_id: string;
   product_id: string;
   product_name: string;
+  /** Product plus delivery — what the mandate limit was actually checked against. */
   amount_cents: number;
+  /** Delivery the merchant quoted, already inside `amount_cents`. */
+  shipping_cents: number;
   decision: Decision;
   reason_code?: ReasonCode;
   exception_id?: string;
   payment_token?: PaymentToken;
+  /** Why this purchase was made, in the buyer's own words. Required on every attempt. */
+  purchase_reason?: string;
+  shipping_address?: ShippingAddress;
+  shipping_address_source?: ShippingAddressSource;
+  /** The merchant's delivery commitment: method, carrier and estimated window. */
+  fulfillment?: Fulfillment;
   checks: Check[];
   request: { signed: boolean; nonce: string; timestamp: string; scenario: string };
   created_at: string;

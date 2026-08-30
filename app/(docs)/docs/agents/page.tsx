@@ -108,6 +108,19 @@ export default function Page() {
                   Signed merchant checkout plus the final atomic registry decision. Read the decision below. The payment
                   rail is mocked: an approval mints a single-use token and no real money moves.
                 </P>
+                <P>
+                  <C>purchase_reason</C> is required: why the user is buying this, in their own words. Quote or closely
+                  paraphrase what they said. A personal reason — &ldquo;I just want it&rdquo; — is a complete answer;
+                  inventing a business justification they never gave is not. It is recorded on the charge and is what the
+                  user reads months later when they no longer recognise it.
+                </P>
+                <P>
+                  The order ships to the account&rsquo;s registered address, which AgentPay already holds. Never ask for
+                  a delivery address. Pass <C>ship_to</C> only when the user says this one order goes somewhere else; it
+                  applies to that order alone and is never saved. An approval returns <C>fulfillment</C> — method,
+                  carrier, estimated window and delivery price — so tell the user when the part arrives.{" "}
+                  <C>charge.total_cents</C> is what was charged and what the mandate was checked against.
+                </P>
               </Step>
             </Steps>
           ),
@@ -178,8 +191,32 @@ export default function Page() {
                       <C>get_account</C>; send the user to <C>verification_url</C> and wait.
                     </>,
                   ],
+                  [
+                    <C key="sr">refused · SHIPPING_ADDRESS_REQUIRED</C>,
+                    "The account's registered delivery address is incomplete and no ship_to was given.",
+                    <>
+                      Send the user to <C>address_url</C> to fill in <C>missing_address_fields</C>, or retry with a
+                      complete <C>ship_to</C> if they want this order delivered elsewhere.
+                    </>,
+                  ],
+                  [
+                    <C key="su">refused · SHIPPING_ADDRESS_UNSUPPORTED</C>,
+                    "The store does not deliver there. Nothing was charged and no use was consumed.",
+                    <>
+                      Tell the user where the store does deliver — <C>merchant_ships_to</C> lists it — and retry with a{" "}
+                      <C>ship_to</C> it serves.
+                    </>,
+                  ],
                 ]}
               />
+              <Callout tone="tip" title="Answer questions about the past from the log, not from memory">
+                <p>
+                  <C>search_security_log</C> reads the account&rsquo;s hash-chained record of mandates, purchases,
+                  approvals and disputes. Give it <C>attempt_id</C> or <C>mandate_id</C> for one item&rsquo;s full trail,
+                  or free text to search. Every result carries the chain verification, so you can tell the user whether
+                  the history has been edited — and you never have to say &ldquo;I think&rdquo; about a charge.
+                </p>
+              </Callout>
               <Callout tone="warn" title="Never fix scope by revoking">
                 <p>
                   <C>revoke_mandate</C> is for the user saying stop. It is final, and it leaves the agent with nothing.{" "}

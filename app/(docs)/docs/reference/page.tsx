@@ -78,6 +78,28 @@ export default function Page() {
                     type: "string",
                     description: "Defaults to your own origin. Merchants should always pass the AgentPay deployment URL.",
                   },
+                  {
+                    name: "catalogPath",
+                    type: "string",
+                    description: "Advertised as catalog_endpoint. Adds the catalog-search capability.",
+                  },
+                  { name: "categories", type: "string[]", description: "Exact category slugs a mandate may name here. Lowercased and sorted." },
+                  { name: "currency", type: "string", description: "Uppercased. Every product must be quoted in it." },
+                  {
+                    name: "productUrlTemplate",
+                    type: "string",
+                    description: "Contains {id}, resolved against the origin.",
+                  },
+                  {
+                    name: "customShipping",
+                    type: "boolean",
+                    description: "0.3.0. You read shipping_address and quote delivery back. Adds the custom-shipping capability.",
+                  },
+                  {
+                    name: "shipsTo",
+                    type: "string[]",
+                    description: "0.3.0. ISO 3166-1 alpha-2 codes you deliver to. Uppercased and sorted.",
+                  },
                 ]}
               />
               <P>
@@ -107,10 +129,21 @@ export default function Page() {
                     required: true,
                     description: "Your catalog lookup. null means 404 and no mandate is consulted.",
                   },
+                  {
+                    name: "resolveFulfillment",
+                    type: "(req: FulfillmentRequest) => Promise<Fulfillment | null> | Fulfillment | null",
+                    description:
+                      "0.3.0, optional. Quote delivery for the address on the request. Return null for an address you do not serve: the handler refuses with SHIPPING_ADDRESS_UNSUPPORTED before a mandate use is spent. Omit it and the store keeps 0.2.0 behaviour.",
+                  },
                   { name: "fetcher", type: "typeof fetch", description: "Override the fetch used for registry calls." },
                   { name: "now", type: "() => Date", description: "Override the clock for deterministic tests." },
                 ]}
               />
+              <P>
+                With <C>resolveFulfillment</C> set, the mandate is evaluated against <C>charge.total_cents</C> — the
+                product plus the delivery you just quoted — so a buyer&rsquo;s per-purchase limit covers what is actually
+                charged. Charge that number, not <C>product.price_cents</C>.
+              </P>
               <P>
                 Behaviour, response shape and status codes are documented in <A href="/docs/checkout">Protect checkout</A>
                 .
@@ -282,12 +315,58 @@ export default function Page() {
 
 type MerchantCheckoutResult = PolicyDecision & {
   product?: MerchantProduct;
+  charge?: CheckoutCharge;      // added in 0.3.0
+  fulfillment?: Fulfillment;    // present when resolveFulfillment quoted one
   checks: {
     agent_signature: boolean;
     mandate_signature: boolean;
     registry_status: boolean;
     policy: boolean;
   };
+};
+
+// What the buyer is charged, and what the mandate is checked against.
+type CheckoutCharge = {
+  subtotal_cents: number;
+  shipping_cents: number;
+  total_cents: number;
+  currency: string;
+};
+
+type ShippingAddress = {
+  recipient: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  region?: string;
+  postal_code: string;
+  country_code: string;   // ISO 3166-1 alpha-2, uppercased by the handler
+  phone?: string;
+  instructions?: string;
+};
+
+type FulfillmentRequest = {
+  product: MerchantProduct;
+  address: ShippingAddress;
+  address_source: "registered" | "custom";
+  now: Date;
+};
+
+type Fulfillment = {
+  address_source: "registered" | "custom";
+  ships_to: ShippingAddress;
+  method: string;              // your own service name, e.g. "Same-day courier"
+  carrier?: string;
+  ship_from?: string;
+  handling_time: string;       // "Ships the next business day"
+  estimated_delivery: {
+    earliest: string;          // ISO date, YYYY-MM-DD
+    latest: string;
+    text: string;              // human sentence the agent repeats verbatim
+  };
+  shipping_cents: number;
+  currency: string;
+  notes?: string[];
 };
 
 type PolicyDecision =
@@ -300,12 +379,14 @@ type AgentPayMerchantManifest = {
   merchant: { id: string; name: string };
   checkout_endpoint: string;
   registry_url: string;
-  capabilities: string[]; // "intent-mandates" | "live-revocation" | "mock-payment" | "catalog-search"
+  capabilities: string[]; // "intent-mandates" | "live-revocation" | "mock-payment"
+                          //   | "catalog-search" | "custom-shipping"
   catalog_endpoint?: string;     // added in 0.2.0; every new field is optional
   categories?: string[];
   currency?: string;
   product_url_template?: string;
   documentation_url?: string;
+  ships_to?: string[];           // added in 0.3.0
 };
 
 type AgentPayCatalogProduct = {
@@ -334,6 +415,13 @@ type AgentPayMerchantCatalog = {
               <P>
                 <C>RegistryMandate</C>, <C>MandateStatus</C>, <C>CheckoutCart</C> and <C>PolicyReason</C> are exported
                 too — see <A href="/docs/reference/protocol">Protocol and registry</A> for the mandate shape.
+              </P>
+              <P>
+                <C>deliveryWindow({"{ from, minBusinessDays, maxBusinessDays }"})</C> builds an{" "}
+                <C>estimated_delivery</C> that skips weekends, because two days from a Friday is not Sunday and an agent
+                that repeats a Sunday date has told the buyer something false. <C>shippingAddressSchema</C> is exported
+                so you can validate an address you received from somewhere else with exactly the rules the handler
+                applies.
               </P>
             </>
           ),

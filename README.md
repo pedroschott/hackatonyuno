@@ -78,6 +78,25 @@ It holds one thing: permission you signed, with limits you chose.
 
 Once confirmed, come back and **sign in**.
 
+### 🆘 If the email never arrives — sign in with this account
+
+Nothing here should stall on a spam filter. This account already exists and is **already confirmed**, so it works the moment you type it:
+
+| Field | Value |
+|---|---|
+| **Email** | `demo7421@fwdco.space` |
+| **Password** | `oxen2026win` |
+
+Sign in at **https://agentpay-yuno.vercel.app/dashboard**.
+
+It is a real, **empty** AgentPay account — not a demo mode and not a bypass. Nothing is pre-approved, and it can still spend only inside a mandate someone signs with a passkey. Three things are yours and are still done on your own device, exactly when the agent asks for them:
+
+- 🔑 **The passkey.** WebAuthn credentials live on a device, so the first person to sign in registers one with their own Face ID or Touch ID, and the app then treats the account as set up. **Whoever registers it is the only one who can sign mandates on this account.** If a signature fails on your device with "no AgentPay passkey on this device", someone else got there first — create your own account instead.
+- 🪪 **Identity verification.** A real Didit check: about two minutes with an ID document. Every account needs it. A database trigger refuses any approved charge without a current passing decision, so there is no account, this one included, that skips it.
+- 💳 **A card.** The mocked capture form — brand and last four, no PAN anywhere.
+
+⚠️ It is a **shared** account. Two people using it at once see each other's mandates and purchases, and either can revoke the other's. For a demo you want to yourself, create your own account above — it is the same product, minus the wait for an email.
+
 > ⚠️ **Open AgentPay directly in Safari or Chrome.** Passkeys are bound to the exact hostname `agentpay-yuno.vercel.app`. Embedded browsers — the little in-app browser inside Slack, Instagram, LinkedIn or a QR-scanner app — often cannot reach Face ID or Touch ID, and you will get a confusing failure later at signing time.
 
 ---
@@ -382,8 +401,58 @@ AgentPay never returns a bare error code. Every decision carries a plain-English
 | `PRODUCT_NOT_FOUND` | Call `find_products` and use the id verbatim. It guessed. |
 | `MANDATE_REVOKED` | **Stop.** Do not retry, do not propose a replacement. |
 | `IDENTITY_VERIFICATION_REQUIRED` | Send the user to `/account` and wait. |
+| `SHIPPING_ADDRESS_REQUIRED` | Send the user to `/account` to complete their delivery address. **Never ask them to dictate one in chat.** |
+| `SHIPPING_ADDRESS_UNSUPPORTED` | The store does not deliver there. Nothing charged, no use spent. Retry with an address it serves. |
+
+### 📦 Where it goes, and what it actually costs
+
+Your agent never asks where to send a parcel. It **cannot**: the delivery address lives on your account, AgentPay hands it to the store, and an agent that had to collect one would be collecting it from whoever is in the chat — which, in a fleet, is a driver rather than the person holding the card.
+
+If this one order goes somewhere else — the depot instead of the yard — tell your agent and it passes a one-off `ship_to`. It applies to that order only and is **never saved to your account**.
+
+The store quotes delivery for that exact address *before* the policy runs, and your mandate is checked against the **total**:
+
+```
+$62.94 charged  =  $49.99 part  +  $12.95 ground delivery
+                   ▲ what your $60 per-purchase limit used to cover
+                                    ▲ what it now covers too
+```
+
+A limit that covered the sticker price and not the delivery is a limit you did not agree to. If the courier is what pushes an order over your limit, you get the same one-time approval you would get for an expensive part — and the approval is bound to that exact total, so approving a $180 delivery to the depot cannot silently authorise the same part shipped somewhere pricier.
+
+An approved purchase reports back the method, the carrier, the estimated window and the delivery charge, so your agent can tell you when the part arrives instead of promising a confirmation email nobody sends.
+
+### 💬 Every purchase says why
+
+Your agent must state **why** it is buying something, in your words, on every single purchase. "The delivery van's front rotors are scored and it runs tomorrow" and "I just want it" are both complete answers. Making one up is not — the tool description says so, because a model asked for a justification will otherwise invent a plausible one.
+
+The requirement is in the database function that settles the charge, not just in the tool description, so nothing can record a purchase without it. It sits inside the hash-chained audit entry, and it is the first thing you see three months later when you do not recognise a charge.
 
 **Widening scope: amend, never revoke-and-recreate.** If your mandate covers `filters` and the agent needs `fluids`, the correct move is `amend_mandate`. An unsigned draft is edited in place; a **signed mandate is immutable**, so an amendment becomes a *replacement draft* carrying everything forward plus the change. You sign it **once**, and that same signature retires the old mandate at that exact moment. You are never left holding two live mandates for the same job, and never left with a gap where neither is valid.
+
+### 🧾 Every purchase opens
+
+Click any purchase on `/dashboard` or `/activity` and you get its **whole trail**:
+
+- the four cryptographic checks and which one failed, if one did
+- the mandate it was checked against, with that month's usage against its limits
+- what you paid, split into the item and the delivery
+- where it shipped, and whether that was your registered address or a one-off
+- **why it was bought**, in your own words at the time
+- the hash-chained log entries that name this charge, with their hashes
+- a **Dispute this charge** button
+
+Nothing there is newly stored. It is the same rows the security log holds, assembled around one purchase — because "prove nothing was edited" and "what happened with *this* charge?" are different questions, and the log was only ever shaped for the first.
+
+### ⚖️ When a charge was allowed but still wrong
+
+Every other rule in AgentPay is preventive: a mandate refuses what it does not cover. Revoking stops the *next* purchase and does nothing about the one that already happened.
+
+A **dispute** is the corrective one. Open it from the purchase trail, pick what went wrong, say it in your own words. The store sees your statement **and** the reason your agent recorded when it bought the thing — which is usually the fact that settles it.
+
+The store answers in its console, moving the case to *under review*, *evidence requested*, *refunded* or *upheld*. You can withdraw yours at any time; the store cannot withdraw it for you, and you cannot mark your own case refunded. Both sides read the same timeline.
+
+Stores also get an **analysis** button that reads one dispute against everything else you have bought from them — including the reasons recorded at the time — and recommends refund, uphold, or ask for evidence. It is advisory and structurally cannot close a case: it writes to one field, and the status is set by a person through a different function. An LLM able to resolve disputes would be a new way to move money that nobody agreed to.
 
 ### 🛑 Stopping
 
@@ -408,15 +477,15 @@ That works because checkout settlement and revocation take the **same per-mandat
 | Screen | What you do there |
 |---|---|
 | **`/`** | Landing page — what AgentPay does, and where merchants start |
-| **`/dashboard`** | Your home base: charged this month, active mandates, what is waiting for your signature |
-| **`/activity`** | Every purchase attempt and the exact decision made on it |
+| **`/dashboard`** | Your home base: charged this month, active mandates, what is waiting for your signature. Click any purchase for its full trail |
+| **`/activity`** | Every purchase attempt and the exact decision made on it. Click one for its full trail |
 | **`/connect`** | Which assistants are connected, and how to add another |
 | **`/account`** | Identity verification, compliance details, delivery address, saved cards, default card |
 | **`/m`** | 📱 Phone-first signing inbox and kill switch. Open it by scanning the QR from desktop |
 | **`/audit`** | Hash-chained security log of every decision — tamper-evident |
 | **`/privacy`** · **`/terms`** | Privacy Policy and Terms of Service |
 | **`/docs`** | Merchant documentation: put AgentPay in your own store |
-| **`/developers`** | Merchant console: create merchants, hosted test stores, products, API keys |
+| **`/developers`** | Merchant console: create merchants, hosted test stores, products, API keys, transaction history and disputes |
 | **`/stores/:id`** | A hosted test storefront, for merchants integrating the SDK. Shareable by exact URL, never publicly listed |
 
 Every screen is responsive and works from a phone. `/m` is a deliberately narrower surface for the one thing you do under time pressure — signing and stopping.
@@ -427,8 +496,8 @@ Every screen is responsive and works from a phone. `/m` is a deliberately narrow
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| **No confirmation email** | It is in spam. It is always in spam. | Open the spam folder, search `fwdco.space`, mark **Not spam**. Nothing works until you confirm. |
-| **Email never arrives, even in spam** | 30-emails-per-hour project cap, or a strict corporate filter | Wait an hour, or use a personal Gmail. |
+| **No confirmation email** | It is in spam. It is always in spam. | Open the spam folder, search `fwdco.space`, mark **Not spam**. Nothing works until you confirm — or skip it with the ready-made account in **Step 1**. |
+| **Email never arrives, even in spam** | 30-emails-per-hour project cap, or a strict corporate filter | Wait an hour, use a personal Gmail, or sign in with the ready-made account in **Step 1** (`demo7421@fwdco.space` / `oxen2026win`). |
 | **Create passkey button is greyed out** | Embedded browser, or no screen lock | Open `https://agentpay-yuno.vercel.app` directly in Safari or Chrome. |
 | **Passkey prompt never appears** | Wrong hostname | Passkeys are bound to the exact host. Use the canonical production URL — not an IP, not a preview deployment. |
 | **Agent cannot sign in** | Popup blocked | Allow popups for your assistant, or copy the OAuth URL into a normal tab. |
@@ -482,6 +551,8 @@ get_account → find_products → create_mandate → get_mandate → check_purch
                                     ↓                              ↓
                               amend_mandate                  revoke_mandate
                           (fix scope/limits)              (only when told to stop)
+
+                        search_security_log — any time, for anything that already happened
 ```
 
 Every tool returns its data both as `structuredContent` **and** as JSON text, so a model that only reads `content` still sees the ids it was handed.
@@ -494,9 +565,12 @@ Every tool returns its data both as `structuredContent` **and** as JSON text, so
 | **`create_mandate`** | `merchant_urls` *(preferred)* or `merchant_ids`, `categories`, `per_purchase_cents`, `cumulative_cents?`, `max_uses?`, `expires_in_days?`, `vault_card_id?`, `natural_language_description?` | Draft mandate + `authorization_url`. Set `per_purchase_cents` above the product price, never equal to it, so shipping does not escalate the purchase. Defaults: `max_uses` 1, expiry 7 days, account default card, `cumulative_cents` = `per_purchase_cents × max_uses` |
 | **`amend_mandate`** | `mandate_id`, `add_merchant_urls?`, `add_categories?`, new limits/expiry | Draft edited in place, or a replacement draft that revokes the old mandate the moment it is signed |
 | **`get_mandate`** | `mandate_id` | Live status, remaining uses, remaining budget, next step. `draft` is a state, not an error |
-| **`check_purchase`** | `mandate_id`, `merchant_url`, `product_id` | Dry run: `would_be` + explanation. No merchant contact, no attempt recorded |
-| **`purchase`** | `mandate_id`, `merchant_url`, `product_id`, `exception_id?` | Signed merchant checkout + final atomic registry decision. `escalated` carries `approval_url` and `retry_with`; `refused` carries `explanation`, `remedy`, `next_tool` |
+| **`check_purchase`** | `mandate_id`, `merchant_url`, `product_id`, `purchase_reason?`, `ship_to?` | Dry run: `would_be` + explanation, plus the address the order would go to. No merchant contact, no attempt recorded |
+| **`purchase`** | `mandate_id`, `merchant_url`, `product_id`, **`purchase_reason`** *(required)*, `ship_to?`, `exception_id?` | Signed merchant checkout + final atomic registry decision. Returns `charge` (item + delivery) and `fulfillment` (method, carrier, estimated window). `escalated` carries `approval_url` and `retry_with`; `refused` carries `explanation`, `remedy`, `next_tool` |
+| **`search_security_log`** | `query?`, `action?`, `attempt_id?`, `mandate_id?`, `merchant_id?`, `since?`, `until?`, `limit?` | The account's hash-chained history — mandates, purchases, approvals, disputes — with the plain-English summary the user reads on `/audit`, and the chain verification on every call |
 | **`revoke_mandate`** | `mandate_id` | Final. For the user saying stop — **never** for fixing scope |
+
+Two of those inputs are load-bearing rather than convenient. **`purchase_reason` is required** and enforced by the settlement function itself, so nothing can record a charge without saying why it happened. **`ship_to` is optional and rarely used**: orders go to the address on the account, and an agent that had to ask for one would be asking whoever is in the chat.
 
 The MCP server ships **operating instructions** in its handshake (`app/mcp/route.ts`), so a fresh model gets the call order, the meaning of each decision, and the amend-don't-revoke rule before it makes its first mistake.
 
@@ -523,7 +597,23 @@ A live store integrates three routes:
 2. **A catalog endpoint** built with `createAgentPayCatalogHandler`, so agents query exact ids, categories and prices instead of scraping rendered pages
 3. **A verified checkout endpoint**
 
-The catalog is optional: every manifest field added in SDK 0.2.0 is optional, so a store still on 0.1.0 is discovered fine.
+The catalog is optional, and so is delivery quoting: every manifest field added after 0.1.0 is optional, so a store still on the original three-field manifest is discovered fine.
+
+A store on **SDK 0.3.0** can also quote delivery. `resolveFulfillment` runs before the policy, prices the order for the exact address on the request, and the mandate is then evaluated against `charge.total_cents` — the part plus the delivery — so a buyer's per-purchase limit covers what is actually charged. Returning `null` for an address the store does not serve refuses the order with `SHIPPING_ADDRESS_UNSUPPORTED` before a mandate use is consumed.
+
+After the sale, two key-authenticated endpoints give the store the other half of the record:
+
+```bash
+# Every attempt, with the reason the buyer gave their agent and where it shipped
+curl -H "authorization: Bearer $AGENTPAY_KEY" \
+  "https://agentpay-yuno.vercel.app/api/v1/merchants/$MERCHANT_ID/transactions?decision=approved"
+
+# Disputes, the full context behind one, and the analysis
+curl -H "authorization: Bearer $AGENTPAY_KEY" \
+  "https://agentpay-yuno.vercel.app/api/v1/merchants/$MERCHANT_ID/disputes?status=open"
+```
+
+Buyers appear as a stable per-merchant pseudonym — enough to recognise a repeat customer, never an account id. See [`/docs/orders`](https://agentpay-yuno.vercel.app/docs/orders).
 
 **PartsRoute is the reference integration.** It lives in its own repository ([`pedroschott/autoparts`](https://github.com/pedroschott/autoparts)) on its own domain, vendors the SDK tarball under `vendor/`, and serves all three routes itself. If you want to see exactly what a real store has to publish, read its live documents:
 
@@ -568,6 +658,7 @@ Localhost is a WebAuthn secure context, so passkeys work there. On a phone, open
 | `MERCHANT_VERIFICATION_SECRET` | **server only** | Proof required to record a live-merchant verification result. Generate with `openssl rand -hex 32`; must match the hashed Supabase configuration |
 | `AGENTPAY_BASE_URL` | server | Canonical origin |
 | `AGENTPAY_RP_ID` / `AGENTPAY_RP_ORIGIN` / `AGENTPAY_RP_NAME` | server | WebAuthn relying party. **`RP_ID` must exactly match the canonical hostname** |
+| `ANTHROPIC_API_KEY` | **server only** | Optional. Powers dispute analysis. Without it the console still answers: a deterministic reading runs instead and labels itself `engine: "rules"`, so the feature never silently disappears mid-demo |
 | `AGENTPAY_ENCRYPTION_KEY` | **server only** | 32-byte base64 key for mock-vault references |
 | `AGENTPAY_REGISTRY_PRIVATE_KEY` / `_PUBLIC_KEY` | server | Ed25519 keypair the registry uses to sign canonical mandates |
 | `RESEND_API_KEY` | **server only** | Only for the local Supabase Auth stack; production keeps it in Supabase SMTP settings |
@@ -613,6 +704,7 @@ Supabase Auth uses the verified `fwdco.space` domain through Resend SMTP for con
 | [docs/architecture.md](docs/architecture.md) | System diagram, trust boundaries, enforcement path |
 | [docs/decisions.md](docs/decisions.md) | Decision log: trade-offs, rejected alternatives, deliberate limits |
 | [docs/routes.md](docs/routes.md) | Every web, MCP, API and V2-service endpoint |
+| [`/docs/orders`](https://agentpay-yuno.vercel.app/docs/orders) | Delivery quoting, the merchant transaction API, and answering a disputed charge |
 | [public/llms.txt](public/llms.txt) | Agent-readable summary of the public surfaces |
 
 The docs site is part of the application, so it deploys with the code it documents. `components/docs/nav.ts` is the single source of truth for the sidebar, search index, page metadata and sitemap entries — a new page is one entry there plus one `page.tsx`.
@@ -637,3 +729,6 @@ Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml`, docs
 | MCP server, tools, OAuth-protected transport | |
 | Merchant SDK signature, nonce and live-status verification | |
 | Row Level Security, database gate triggers, hash-chained audit log | |
+| Delivery quoting, the shipping charge, and the address it goes to | Nothing is physically shipped — PartsRoute is a real store's code with a real catalog, but no warehouse |
+| Disputes: opening, answering, resolving, the shared timeline | Refunds are recorded as an outcome; no money moves back, because none moved out |
+| Dispute analysis (Claude, with a deterministic fallback) | |

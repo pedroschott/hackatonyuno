@@ -51,6 +51,12 @@ export default function Page() {
                 The first failing rule wins, so the reason code always names the <em>first</em> reason the purchase could
                 not proceed. Fixing it may simply reveal the next one.
               </P>
+              <P>
+                Delivery is quoted before any of this, because the amount the mandate is checked against is{" "}
+                <C>charge.total_cents</C> — the product plus the delivery to that exact address. A store that does not
+                serve the address refuses with <C>SHIPPING_ADDRESS_UNSUPPORTED</C> here, before a mandate use is spent on
+                an order that could never arrive.
+              </P>
               <CodeBlock
                 lang="text"
                 code={`mandate exists
@@ -61,7 +67,7 @@ export default function Page() {
           ▸ currency matches
             ▸ uses remaining
               ▸ cumulative total still under the cap
-                ▸ price within the per-purchase limit (or an exception is attached)
+                ▸ total within the per-purchase limit (or an exception is attached)
                   ▸ approved`}
               />
             </>
@@ -137,8 +143,14 @@ export default function Page() {
                 [
                   <C key="11">AMOUNT_EXCEEDS_LIMIT</C>,
                   "escalated",
-                  "Above per_purchase_cents with no exception attached.",
+                  "Above per_purchase_cents with no exception attached. Delivery is inside the amount, so a cheap part with an expensive courier can land here.",
                   "The agent gets a one-time approval from the buyer and retries with exception_id.",
+                ],
+                [
+                  <C key="12">SHIPPING_ADDRESS_UNSUPPORTED</C>,
+                  "refused",
+                  "Your resolveFulfillment returned null for that address, or the request carried no address while your store quotes delivery. Refused before any mandate use is consumed.",
+                  "The agent sends a ship_to your store serves. Publish shipsTo in your manifest so it knows which countries those are.",
                 ],
               ]}
             />

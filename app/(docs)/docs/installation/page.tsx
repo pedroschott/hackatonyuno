@@ -60,13 +60,13 @@ npm run sdk:install -- ~/code/my-store`}
                 filename="my-store/package.json"
                 code={`{
   "dependencies": {
-    "@agentpay/merchant-sdk": "file:vendor/agentpay-merchant-sdk-0.2.0.tgz"
+    "@agentpay/merchant-sdk": "file:vendor/agentpay-merchant-sdk-0.3.0.tgz"
   }
 }`}
               />
               <Callout tone="tip" title="Commit the tarball">
                 <p>
-                  Committing <C>vendor/agentpay-merchant-sdk-0.2.0.tgz</C> makes your build reproducible on CI and on a
+                  Committing <C>vendor/agentpay-merchant-sdk-0.3.0.tgz</C> makes your build reproducible on CI and on a
                   teammate&apos;s machine without cloning AgentPay. It is about 20 KB.
                 </p>
               </Callout>
@@ -82,12 +82,12 @@ npm run sdk:install -- ~/code/my-store`}
               <CodeBlock
                 lang="bash"
                 code={`# in the AgentPay repository
-npm run sdk:pack          # writes dist/agentpay-merchant-sdk-0.2.0.tgz
+npm run sdk:pack          # writes dist/agentpay-merchant-sdk-0.3.0.tgz
 
 # in your store
 mkdir -p vendor
-cp ../hackatonyuno/dist/agentpay-merchant-sdk-0.2.0.tgz vendor/
-npm install ./vendor/agentpay-merchant-sdk-0.2.0.tgz`}
+cp ../hackatonyuno/dist/agentpay-merchant-sdk-0.3.0.tgz vendor/
+npm install ./vendor/agentpay-merchant-sdk-0.3.0.tgz`}
               />
               <P>
                 <C>sdk:pack</C> runs <C>sdk:build</C> first, which compiles ESM, CJS and type declarations with tsup and

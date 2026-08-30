@@ -9,7 +9,14 @@ import {
 import { error, handle, json, options, readJson } from "@/lib/server/http";
 import { loadAuthenticatedState } from "@/lib/server/state";
 import { seedProducts } from "@/lib/seed";
-import type { Scenario } from "@/lib/types";
+import {
+  isDeliverable,
+  mergeShippingAddress,
+  registeredShippingAddress,
+  SHIPPING_FIELDS,
+  type CustomerProfileRow,
+} from "@/lib/shipping";
+import type { Fulfillment, Scenario, ShippingAddress } from "@/lib/types";
 import { discoverAgentPayMerchant, signAgentPayRequest } from "@/sdk";
 
 export const OPTIONS = options;
@@ -33,6 +40,8 @@ export async function POST(req: Request) {
       product_id?: string;
       exception_id?: string;
       revocation_window_ms?: number;
+      purchase_reason?: string;
+      ship_to?: Partial<ShippingAddress>;
     }>(req);
     const scenario = SCENARIOS.includes(body.scenario as Scenario)
       ? (body.scenario as Scenario)
@@ -49,6 +58,11 @@ export async function POST(req: Request) {
 
     const { supabase, user } = await authenticatedRequest();
     await requireVerifiedIdentity(supabase);
+    // Every attempt states why it was made, including the ones a judge triggers
+    // from the console: the record is only trustworthy if it has no exceptions.
+    const purchaseReason =
+      body.purchase_reason?.trim() ||
+      `Console trial run of the ${scenario} scenario from the ${body.source ?? "api"} surface.`;
     const seededProduct = seedProducts.find((candidate) => candidate.id === productId);
     const productResult = seededProduct
       ? null
@@ -84,7 +98,27 @@ export async function POST(req: Request) {
       return error("Authorize a mandate before purchasing", 409);
     }
 
+    const profile = await supabase.from("customer_profiles").select(SHIPPING_FIELDS).maybeSingle();
+    if (profile.error) throw new Error(profile.error.message);
+    const registered = registeredShippingAddress((profile.data as CustomerProfileRow | null) ?? null);
+    if ("missing" in registered && !body.ship_to) {
+      return error(
+        `Add a delivery address before purchasing. Missing: ${registered.missing.join(", ")}.`,
+        409,
+        { missing_address_fields: registered.missing },
+      );
+    }
+    const shippingAddress = body.ship_to
+      ? mergeShippingAddress("missing" in registered ? null : registered.address, body.ship_to)
+      : (registered as { address: ShippingAddress }).address;
+    const shippingSource: "registered" | "custom" = body.ship_to ? "custom" : "registered";
+    if (!isDeliverable(shippingAddress)) {
+      return error("The delivery address is incomplete.", 409);
+    }
+
     let merchantChecks: Record<string, boolean> = {};
+    let charge = { subtotal_cents: product.priceCents, shipping_cents: 0, total_cents: product.priceCents, currency: "USD" };
+    let fulfillment: Fulfillment | null = null;
     const directPolicyScenario =
       scenario === "unsigned" || scenario === "replay" || scenario === "pneufast";
     if (!directPolicyScenario) {
@@ -102,6 +136,9 @@ export async function POST(req: Request) {
         mandate_id: activeMandate.data.id,
         merchant_id: product.merchantId,
         product_id: product.id,
+        shipping_address: shippingAddress,
+        shipping_address_source: shippingSource,
+        purchase_reason: purchaseReason,
         ...(body.exception_id ? { exception_id: body.exception_id } : {}),
       });
       const headers = signAgentPayRequest({
@@ -119,13 +156,24 @@ export async function POST(req: Request) {
       });
       const merchantDecision = (await merchantResponse.json()) as {
         error?: string;
+        reason_code?: string | null;
         checks?: Record<string, boolean>;
         product?: { id: string };
+        charge?: typeof charge;
+        fulfillment?: Fulfillment;
       };
+      if (merchantDecision.reason_code === "SHIPPING_ADDRESS_UNSUPPORTED") {
+        return error(`${product.merchantId} does not deliver to that address.`, 409, {
+          reason_code: "SHIPPING_ADDRESS_UNSUPPORTED",
+          ships_to: shippingAddress,
+        });
+      }
       if (!merchantResponse.ok || !merchantDecision.product) {
         return error(merchantDecision.error ?? "Merchant rejected checkout", merchantResponse.status);
       }
       merchantChecks = merchantDecision.checks ?? {};
+      if (merchantDecision.charge) charge = merchantDecision.charge;
+      fulfillment = merchantDecision.fulfillment ?? null;
     }
 
     // The trial pauses before the atomic settlement decision so a judge can
@@ -142,9 +190,14 @@ export async function POST(req: Request) {
       p_merchant_id: product.merchantId,
       p_product_id: product.id,
       p_category: product.category,
-      p_amount_cents: product.priceCents,
-      p_currency: "USD",
+      p_amount_cents: charge.total_cents,
+      p_currency: charge.currency,
       p_exception_id: body.exception_id ?? null,
+      p_purchase_reason: purchaseReason,
+      p_shipping_address: shippingAddress,
+      p_shipping_source: shippingSource,
+      p_shipping_cents: charge.shipping_cents,
+      p_fulfillment: fulfillment,
     });
     if (evaluation.error) throw new Error(evaluation.error.message);
 

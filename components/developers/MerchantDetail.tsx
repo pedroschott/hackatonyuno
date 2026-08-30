@@ -7,6 +7,7 @@ import {
   Circle,
   Code2,
   ExternalLink,
+  Gavel,
   KeyRound,
   PackagePlus,
   RefreshCw,
@@ -30,6 +31,7 @@ import {
   type MerchantAttempt,
 } from "@/lib/merchant-console";
 import { DeveloperPageHeader, LoadingPanel, MetricCard } from "./bits";
+import { DisputesTab } from "./DisputesTab";
 import { developerApi } from "./client";
 
 type Detail = {
@@ -39,13 +41,14 @@ type Detail = {
   attempts: MerchantAttempt[];
 };
 
-type Tab = "integration" | "catalog" | "keys" | "activity" | "settings";
+type Tab = "integration" | "catalog" | "keys" | "activity" | "disputes" | "settings";
 
 const TABS: Array<{ value: Tab; label: string; icon: typeof Code2 }> = [
   { value: "integration", label: "Integration", icon: Code2 },
   { value: "catalog", label: "Catalog", icon: Store },
   { value: "keys", label: "API keys", icon: KeyRound },
   { value: "activity", label: "Activity", icon: Activity },
+  { value: "disputes", label: "Disputes", icon: Gavel },
   { value: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -132,6 +135,7 @@ export function MerchantDetail({ id }: { id: string }) {
       {tab === "catalog" && <CatalogTab merchant={merchant} products={detail.products} onChange={load} />}
       {tab === "keys" && <KeysTab merchant={merchant} keys={detail.api_keys} onChange={load} />}
       {tab === "activity" && <ActivityTab attempts={detail.attempts} />}
+      {tab === "disputes" && <DisputesTab merchantId={id} />}
       {tab === "settings" && <SettingsTab merchant={merchant} onChange={load} />}
     </>
   );
@@ -364,13 +368,57 @@ function KeysTab({ merchant, keys, onChange }: { merchant: DeveloperMerchant; ke
 function ActivityTab({ attempts }: { attempts: MerchantAttempt[] }) {
   const approved = attempts.filter((attempt) => attempt.decision === "approved");
   const volume = approved.reduce((sum, attempt) => sum + attempt.amount_cents, 0);
+  const shipping = approved.reduce((sum, attempt) => sum + (attempt.shipping_cents ?? 0), 0);
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3"><MetricCard label="Attempts" value={attempts.length} /><MetricCard label="Approved" value={approved.length} /><MetricCard label="Mock volume" value={usd(volume)} /></div>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <MetricCard label="Attempts" value={attempts.length} />
+        <MetricCard label="Approved" value={approved.length} />
+        <MetricCard label="Mock volume" value={usd(volume)} detail={shipping ? `${usd(shipping)} of it delivery` : undefined} />
+        <MetricCard label="Delivery quoted" value={usd(shipping)} />
+      </div>
       <Card>
-        <CardHeader title="Checkout decisions" description="Merchant-side view; buyer identity, cards, and mandate details stay private." />
+        <CardHeader
+          title="Checkout decisions"
+          description="Merchant-side view. Buyer identity, cards and mandate details stay private; the reason the buyer gave their agent does not, because it is what makes a charge reviewable later."
+        />
         {attempts.length ? (
-          <div className="overflow-x-auto"><table className="w-full min-w-[660px] text-left text-[12px]"><thead className="border-b border-line bg-[#fafbfc] text-[10.5px] uppercase tracking-[0.08em] text-faint"><tr><th className="px-5 py-2.5">Time</th><th className="px-4 py-2.5">Product</th><th className="px-4 py-2.5">Amount</th><th className="px-4 py-2.5">Decision</th><th className="px-5 py-2.5">Reason</th></tr></thead><tbody>{attempts.map((attempt) => <tr key={attempt.id} className="border-b border-line last:border-b-0"><td className="px-5 py-3 text-muted">{formatDate(attempt.created_at)}</td><td className="px-4 py-3 font-mono text-[10.5px]">{attempt.product_id}</td><td className="px-4 py-3 font-medium tabular">{usd(attempt.amount_cents)}</td><td className="px-4 py-3"><Badge tone={attempt.decision === "approved" ? "success" : attempt.decision === "refused" ? "danger" : "warn"} dot>{attempt.decision}</Badge></td><td className="px-5 py-3 text-muted">{attempt.reason_code ?? "—"}</td></tr>)}</tbody></table></div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[880px] text-left text-[12px]">
+              <thead className="border-b border-line bg-[#fafbfc] text-[10.5px] uppercase tracking-[0.08em] text-faint">
+                <tr>
+                  <th className="px-5 py-2.5">Time</th>
+                  <th className="px-4 py-2.5">Product</th>
+                  <th className="px-4 py-2.5">Amount</th>
+                  <th className="px-4 py-2.5">Decision</th>
+                  <th className="px-4 py-2.5">Why it was bought</th>
+                  <th className="px-5 py-2.5">Delivery</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attempts.map((attempt) => (
+                  <tr key={attempt.id} className="border-b border-line last:border-b-0 align-top">
+                    <td className="px-5 py-3 text-muted whitespace-nowrap">{formatDate(attempt.created_at)}</td>
+                    <td className="px-4 py-3 font-mono text-[10.5px]">{attempt.product_id}</td>
+                    <td className="px-4 py-3 font-medium tabular whitespace-nowrap">
+                      {usd(attempt.amount_cents)}
+                      {attempt.shipping_cents ? <div className="text-[10.5px] font-normal text-faint">incl. {usd(attempt.shipping_cents)} delivery</div> : null}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tone={attempt.decision === "approved" ? "success" : attempt.decision === "refused" ? "danger" : "warn"} dot>{attempt.decision}</Badge>
+                      {attempt.reason_code && <div className="mt-1 text-[10.5px] text-muted">{attempt.reason_code}</div>}
+                    </td>
+                    <td className="max-w-[280px] px-4 py-3 text-muted">{attempt.purchase_reason ?? "—"}</td>
+                    <td className="px-5 py-3 text-muted whitespace-nowrap">
+                      {attempt.fulfillment?.method ?? "—"}
+                      {attempt.fulfillment?.estimated_delivery?.text && <div className="text-[10.5px] text-faint">{attempt.fulfillment.estimated_delivery.text}</div>}
+                      {attempt.shipping_address_source === "custom" && <div className="text-[10.5px] text-faint">one-off address</div>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : <EmptyState title="No checkout attempts yet" description="Create and approve a mandate for this merchant, then ask the agent to purchase an active product." />}
       </Card>
     </div>

@@ -51,10 +51,20 @@ export type MerchantAttempt = {
   merchant_id: string;
   product_id: string;
   amount_cents: number;
+  shipping_cents: number | null;
   currency: string;
   decision: "approved" | "refused" | "escalated";
   reason_code: string | null;
   created_at: string;
+  /** The buyer's own words for why the agent bought this. Required on every attempt. */
+  purchase_reason: string | null;
+  shipping_address_source: "registered" | "custom" | null;
+  fulfillment: {
+    method?: string;
+    carrier?: string;
+    estimated_delivery?: { text?: string };
+    shipping_cents?: number;
+  } | null;
 };
 
 export type SupportedStore = {

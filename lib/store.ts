@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import type { Dispute, DisputeReasonCode } from "./disputes";
 import type { Approval, Attempt, Mandate, Scenario } from "./types";
 import type { CheckoutOpts, Data } from "./engine";
 import { usageFor } from "./engine";
@@ -20,12 +21,14 @@ type Client = {
   revokeMandate: (id: string, actor: string) => Promise<void>;
   checkout: (scenario: Scenario, opts?: CheckoutOpts) => Promise<Attempt>;
   decideApproval: (id: string, decision: "approved" | "denied", actor: string, pk?: PasskeyResult) => Promise<{ approval: Approval; retry?: Attempt }>;
+  openDispute: (input: { attempt_id: string; reason_code: DisputeReasonCode; statement: string }) => Promise<Dispute>;
+  withdrawDispute: (id: string) => Promise<void>;
 };
 
 export type Store = Data & Client;
 
 const empty: Data = {
-  cards: [], agents: [], merchants: [], products: [], mandates: [], attempts: [], approvals: [], audit: [], usedNonces: [],
+  cards: [], agents: [], merchants: [], products: [], mandates: [], attempts: [], approvals: [], audit: [], disputes: [], usedNonces: [],
 };
 
 type Envelope = { state?: Data; public_base_url?: string; server_time?: string; error?: string } & Record<string, unknown>;
@@ -82,6 +85,17 @@ export const useStore = create<Store>()((set, get) => ({
     await api(`/api/mandates/${id}/revoke`, { actor });
   },
   checkout: async (scenario, opts = {}) => (await api<Envelope & { attempt: Attempt }>("/api/checkout", { scenario, ...opts })).attempt,
+  openDispute: async (input) => {
+    const created = await api<Envelope & { dispute: Dispute }>("/api/disputes", input);
+    // The dispute routes answer with the dispute alone, not the whole state, so
+    // the panel refreshes to pick it up alongside everything else.
+    await get().refresh();
+    return created.dispute;
+  },
+  withdrawDispute: async (id) => {
+    await api(`/api/disputes/${id}/withdraw`, {});
+    await get().refresh();
+  },
   decideApproval: async (id, decision, actor, pk) => {
     if (decision === "approved" && pk) {
       await get().refresh();

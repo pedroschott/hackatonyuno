@@ -123,6 +123,10 @@ const AUDIT_SENTENCE: Record<string, string> = {
   "vault.card_removed": "A payment method was removed from the vault",
   "account.profile_updated": "Account and delivery details were updated",
   "passkey.registered": "A passkey was registered on a device",
+  "mandate.draft_amended": "An agent amended an unsigned mandate request",
+  "mandate.replacement_requested": "An agent proposed a replacement mandate",
+  "dispute.opened": "You disputed a charge",
+  "dispute.withdrawn": "You withdrew a dispute",
 };
 
 /** Reads an audit action as a sentence; unknown actions fall back to their own name. */

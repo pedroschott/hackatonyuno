@@ -12,8 +12,12 @@ import type {
   AgentPayMerchantCatalog,
   AgentPayMerchantManifest,
   CheckoutCart,
+  CheckoutCharge,
+  Fulfillment,
   PolicyDecision,
   RegistryMandate,
+  ShippingAddress,
+  ShippingAddressSource,
 } from "@/lib/domain";
 import { evaluatePolicy } from "@/lib/agentpay-policy";
 
@@ -38,10 +42,14 @@ export type {
   AgentPayMerchantCatalog,
   AgentPayMerchantManifest,
   CheckoutCart,
+  CheckoutCharge,
+  Fulfillment,
   MandateStatus,
   PolicyDecision,
   PolicyReason,
   RegistryMandate,
+  ShippingAddress,
+  ShippingAddressSource,
 } from "@/lib/domain";
 
 /**
@@ -61,6 +69,7 @@ const manifestSchema = z.object({
   currency: z.string().length(3).optional(),
   product_url_template: z.string().min(1).optional(),
   documentation_url: z.url().optional(),
+  ships_to: z.array(z.string().length(2)).optional(),
 });
 
 const catalogProductSchema = z.object({
@@ -92,11 +101,40 @@ const catalogSchema = z.object({
   products: z.array(catalogProductSchema),
 });
 
+/**
+ * A delivery address for one order. Exported so a store can validate an address
+ * it received from somewhere else with exactly the rules the handler applies.
+ */
+export const shippingAddressSchema = z.object({
+  recipient: z.string().trim().min(1).max(120),
+  line1: z.string().trim().min(1).max(160),
+  line2: z.string().trim().max(160).optional(),
+  city: z.string().trim().min(1).max(100),
+  region: z.string().trim().max(100).optional(),
+  postal_code: z.string().trim().min(3).max(20),
+  country_code: z
+    .string()
+    .trim()
+    .length(2)
+    .transform((value) => value.toUpperCase()),
+  phone: z.string().trim().max(32).optional(),
+  instructions: z.string().trim().max(280).optional(),
+});
+
 const checkoutBodySchema = z.object({
   mandate_id: z.uuid(),
   merchant_id: z.string().min(1),
   product_id: z.string().min(1),
   exception_id: z.uuid().optional(),
+  /**
+   * Where this order ships. Omitted means the buyer's registered address, which
+   * AgentPay already holds; a store that needs the address to quote delivery
+   * receives it here and never has to ask the agent for it in conversation.
+   */
+  shipping_address: shippingAddressSchema.optional(),
+  shipping_address_source: z.enum(["registered", "custom"]).optional(),
+  /** Why the agent is buying this, in the buyer's own terms. Recorded, never scored. */
+  purchase_reason: z.string().trim().min(1).max(500).optional(),
 });
 
 export type MerchantProduct = {
@@ -110,12 +148,28 @@ export type MerchantProduct = {
 
 export type MerchantCheckoutResult = PolicyDecision & {
   product?: MerchantProduct;
+  /**
+   * What the store will actually charge: the product plus the delivery it just
+   * quoted. The registry evaluates `total_cents` against the mandate, so a limit
+   * covers the whole charge rather than the sticker price.
+   */
+  charge?: CheckoutCharge;
+  /** Present whenever the store resolved a delivery for this order. */
+  fulfillment?: Fulfillment;
   checks: {
     agent_signature: boolean;
     mandate_signature: boolean;
     registry_status: boolean;
     policy: boolean;
   };
+};
+
+/** What `resolveFulfillment` is given: the priced product and where it must go. */
+export type FulfillmentRequest = {
+  product: MerchantProduct;
+  address: ShippingAddress;
+  address_source: ShippingAddressSource;
+  now: Date;
 };
 
 type FetchLike = typeof fetch;
@@ -138,10 +192,19 @@ export function merchantManifest(input: {
   /** Path template containing `{id}` for a product page, e.g. "/product/{id}". */
   productUrlTemplate?: string;
   documentationUrl?: string;
+  /**
+   * The store reads `shipping_address` on a checkout and quotes delivery back.
+   * Advertise it so an agent knows it may send a one-off address instead of
+   * defaulting to the buyer's registered one.
+   */
+  customShipping?: boolean;
+  /** ISO 3166-1 alpha-2 codes the store delivers to. Omitted means unstated. */
+  shipsTo?: string[];
 }): AgentPayMerchantManifest {
   const origin = new URL(input.origin).origin;
   const capabilities = ["intent-mandates", "live-revocation", "mock-payment"];
   if (input.catalogPath) capabilities.push("catalog-search");
+  if (input.customShipping) capabilities.push("custom-shipping");
   return {
     protocol: "agentpay/1.0",
     merchant: { id: input.merchantId, name: input.merchantName },
@@ -151,6 +214,9 @@ export function merchantManifest(input: {
     ...(input.catalogPath ? { catalog_endpoint: new URL(input.catalogPath, origin).toString() } : {}),
     ...(input.categories ? { categories: uniqueSlugs(input.categories) } : {}),
     ...(input.currency ? { currency: input.currency.toUpperCase() } : {}),
+    ...(input.shipsTo?.length
+      ? { ships_to: Array.from(new Set(input.shipsTo.map((code) => code.trim().toUpperCase()))).sort() }
+      : {}),
     // Joined as text, not through URL, so the `{id}` placeholder survives.
     ...(input.productUrlTemplate
       ? { product_url_template: `${origin}${input.productUrlTemplate.startsWith("/") ? "" : "/"}${input.productUrlTemplate}` }
@@ -313,6 +379,40 @@ export function createAgentPayCatalogHandler(config: {
   };
 }
 
+/**
+ * Business-day delivery window in the shape `Fulfillment.estimated_delivery`
+ * expects. Weekends are skipped because "2 days" from a Friday is not Sunday,
+ * and an agent that repeats a Sunday date to a buyer has told them something
+ * false. Dates are plain ISO `YYYY-MM-DD` in UTC: a delivery estimate is a day,
+ * not an instant, and a timestamp would imply a precision no store has.
+ */
+export function deliveryWindow(input: {
+  from: Date;
+  minBusinessDays: number;
+  maxBusinessDays: number;
+}): Fulfillment["estimated_delivery"] {
+  const earliest = addBusinessDays(input.from, input.minBusinessDays);
+  const latest = addBusinessDays(input.from, Math.max(input.minBusinessDays, input.maxBusinessDays));
+  const day = (date: Date) =>
+    date.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
+  return {
+    earliest: earliest.toISOString().slice(0, 10),
+    latest: latest.toISOString().slice(0, 10),
+    text: earliest.getTime() === latest.getTime() ? day(earliest) : `${day(earliest)} – ${day(latest)}`,
+  };
+}
+
+function addBusinessDays(from: Date, days: number): Date {
+  const date = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  let remaining = Math.max(0, Math.round(days));
+  while (remaining > 0) {
+    date.setUTCDate(date.getUTCDate() + 1);
+    const weekday = date.getUTCDay();
+    if (weekday !== 0 && weekday !== 6) remaining -= 1;
+  }
+  return date;
+}
+
 function uniqueSlugs(values: string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim().toLowerCase()).filter(Boolean))).sort();
 }
@@ -353,6 +453,14 @@ export function createAgentPayCheckoutHandler(config: {
   merchantId: string;
   registryUrl: string;
   resolveProduct: (productId: string) => Promise<MerchantProduct | null>;
+  /**
+   * Quotes delivery to the address on the request. Return `null` for an address
+   * the store does not serve: the handler refuses with
+   * `SHIPPING_ADDRESS_UNSUPPORTED` before any limit is spent. Omit this option
+   * entirely and the store keeps SDK 0.2.0 behaviour — no delivery quote, and
+   * the charge is the product price.
+   */
+  resolveFulfillment?: (request: FulfillmentRequest) => Promise<Fulfillment | null> | Fulfillment | null;
   fetcher?: FetchLike;
   now?: () => Date;
 }) {
@@ -466,12 +574,56 @@ export function createAgentPayCheckoutHandler(config: {
         mandate.agent.public_key === agent.public_key &&
         verifyText(registryKey.public_key, canonicalJson(mandateArtifact), mandate.server_sig),
     );
+    // Delivery is quoted before the policy runs, because what the buyer is
+    // charged — and therefore what the mandate limit has to cover — is the
+    // product plus the shipping this exact address costs.
+    let fulfillment: Fulfillment | undefined;
+    if (config.resolveFulfillment) {
+      const address = parsedBody.data.shipping_address;
+      if (!address) {
+        return Response.json(
+          {
+            decision: "refused",
+            reason_code: "SHIPPING_ADDRESS_UNSUPPORTED",
+            product,
+            checks: { agent_signature: true, mandate_signature: false, registry_status: false, policy: false },
+          } satisfies MerchantCheckoutResult,
+          { status: 200 },
+        );
+      }
+      const quoted = await config.resolveFulfillment({
+        product,
+        address,
+        address_source: parsedBody.data.shipping_address_source ?? "registered",
+        now,
+      });
+      if (!quoted) {
+        return Response.json(
+          {
+            decision: "refused",
+            reason_code: "SHIPPING_ADDRESS_UNSUPPORTED",
+            product,
+            checks: { agent_signature: true, mandate_signature: false, registry_status: false, policy: false },
+          } satisfies MerchantCheckoutResult,
+          { status: 200 },
+        );
+      }
+      fulfillment = quoted;
+    }
+
+    const shippingCents = fulfillment?.shipping_cents ?? 0;
+    const charge: CheckoutCharge = {
+      subtotal_cents: product.price_cents,
+      shipping_cents: shippingCents,
+      total_cents: product.price_cents + shippingCents,
+      currency: product.currency,
+    };
     const cart: CheckoutCart = {
       mandate_id: parsedBody.data.mandate_id,
       merchant_id: config.merchantId,
       product_id: product.id,
       category: product.category,
-      amount_cents: product.price_cents,
+      amount_cents: charge.total_cents,
       currency: product.currency,
       exception_id: parsedBody.data.exception_id,
     };
@@ -482,6 +634,8 @@ export function createAgentPayCheckoutHandler(config: {
     return Response.json({
       ...policy,
       product,
+      charge,
+      ...(fulfillment ? { fulfillment } : {}),
       checks: {
         agent_signature: true,
         mandate_signature: mandateSignatureValid,

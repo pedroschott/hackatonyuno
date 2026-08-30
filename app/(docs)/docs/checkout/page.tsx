@@ -99,6 +99,17 @@ export async function POST(request: Request) {
                   ),
                 },
                 {
+                  name: "resolveFulfillment",
+                  type: "(req: FulfillmentRequest) => Promise<Fulfillment | null> | Fulfillment | null",
+                  description: (
+                    <>
+                      Optional, added in 0.3.0. Quote delivery for the address on the request. Return <C>null</C> for an
+                      address you do not serve and the handler refuses with <C>SHIPPING_ADDRESS_UNSUPPORTED</C> before a
+                      mandate use is consumed. Omit it entirely and the store keeps 0.2.0 behaviour.
+                    </>
+                  ),
+                },
+                {
                   name: "fetcher",
                   type: "typeof fetch",
                   description: "Replace the fetch used for registry calls. Useful in tests, or to add tracing and retries.",
@@ -240,6 +251,24 @@ export async function POST(request: Request) {
     "price_cents": 154800,
     "currency": "USD"
   },
+  "charge": {
+    "subtotal_cents": 154800,
+    "shipping_cents": 1295,
+    "total_cents": 156095,
+    "currency": "USD"
+  },
+  "fulfillment": {
+    "address_source": "registered",
+    "ships_to": { "recipient": "Dana Ruiz", "line1": "88 Wythe Ave", "city": "Brooklyn",
+                  "region": "NY", "postal_code": "11249", "country_code": "US" },
+    "method": "Ground",
+    "carrier": "NorthStar Ground",
+    "handling_time": "Ships the next business day",
+    "estimated_delivery": { "earliest": "2026-09-02", "latest": "2026-09-04",
+                            "text": "Wed, Sep 2 – Fri, Sep 4" },
+    "shipping_cents": 1295,
+    "currency": "USD"
+  },
   "checks": {
     "agent_signature": true,
     "mandate_signature": true,
@@ -248,6 +277,14 @@ export async function POST(request: Request) {
   }
 }`}
               />
+              <Callout tone="warn" title="Charge charge.total_cents, not product.price_cents">
+                <p>
+                  The mandate was evaluated against the total, and an approved one-time exception is bound to it. A store
+                  that charges the subtotal under-collects; one that adds shipping afterwards charges an amount the buyer
+                  never authorised. <C>charge</C> and <C>fulfillment</C> are absent when you do not pass{" "}
+                  <C>resolveFulfillment</C>, and then the product price is the whole charge.
+                </p>
+              </Callout>
               <DataTable
                 head={["Status", "Meaning"]}
                 rows={[
@@ -332,6 +369,16 @@ export async function POST(request: Request) {
   "mandate_id": "3eb0f49d-2c10-4d3a-8f34-08a47e2fca6e",
   "merchant_id": "mrc_demo_store",
   "product_id": "prd_standard_tires",
+  "shipping_address": {
+    "recipient": "Dana Ruiz",
+    "line1": "88 Wythe Ave",
+    "city": "Brooklyn",
+    "region": "NY",
+    "postal_code": "11249",
+    "country_code": "US"
+  },
+  "shipping_address_source": "registered",
+  "purchase_reason": "The delivery van's front rotors are scored and it runs tomorrow.",
   "exception_id": "0d3f2b0f-2a7c-4c1e-9d0a-3f2b0f2a7c4c"
 }`}
               />
@@ -340,6 +387,31 @@ export async function POST(request: Request) {
                   { name: "mandate_id", type: "uuid", required: true, description: "The mandate the buyer signed." },
                   { name: "merchant_id", type: "string", required: true, description: "Must equal your configured merchant id." },
                   { name: "product_id", type: "string", required: true, description: "Passed straight to your resolveProduct." },
+                  {
+                    name: "shipping_address",
+                    type: "ShippingAddress",
+                    description: (
+                      <>
+                        Where this order goes. AgentPay holds the buyer&rsquo;s registered address and sends it here, so
+                        you never have to ask an agent for one. Required if you pass <C>resolveFulfillment</C>.
+                      </>
+                    ),
+                  },
+                  {
+                    name: "shipping_address_source",
+                    type: '"registered" | "custom"',
+                    description: "custom means the buyer named a one-off address for this order only.",
+                  },
+                  {
+                    name: "purchase_reason",
+                    type: "string",
+                    description: (
+                      <>
+                        Why the buyer wanted this, in their own words. Store it: it is what both of you look at if the
+                        charge is later disputed.
+                      </>
+                    ),
+                  },
                   {
                     name: "exception_id",
                     type: "uuid",
