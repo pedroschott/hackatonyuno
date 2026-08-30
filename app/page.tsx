@@ -304,6 +304,12 @@ function SiteFooter() {
         <Link href="/connect" className="hover:text-ink">
           Connect an agent
         </Link>
+        <Link href="/privacy" className="hover:text-ink">
+          Privacy
+        </Link>
+        <Link href="/terms" className="hover:text-ink">
+          Terms
+        </Link>
         <a
           href="https://github.com/pedroschott/hackatonyuno"
           target="_blank"
