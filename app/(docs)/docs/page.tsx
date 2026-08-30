@@ -84,21 +84,38 @@ export default function Page() {
           title: "Set up AgentPay with your coding agent",
           body: (
             <div className="my-5 rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
-              <h3 className="text-[16px] font-semibold text-ink">Copy the AgentPay setup prompt</h3>
-              <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-2">
-                Paste it into your coding agent from your store&apos;s project. It covers installation, checkout safety,
-                tests, and documentation.
-              </p>
-              <div className="mt-4">
+              <h3 className="text-[16px] font-semibold text-ink">Set up your coding agent</h3>
+              <ol className="mt-4 space-y-4">
+                <li className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[12.5px] font-semibold text-brand-ink">1</span>
+                  <div className="pt-0.5">
+                    <p className="text-[13.5px] font-medium text-ink">Create your account and merchant</p>
+                    <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-2">
+                      Open <A href="/developers">AgentPay Developers</A>, create a merchant, and copy its assigned
+                      merchant ID.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[12.5px] font-semibold text-brand-ink">2</span>
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-[13.5px] font-medium text-ink">Copy the agent prompt</p>
+                    <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-2">
+                      Paste it into your coding agent from your store&apos;s project, then give it the merchant ID when it
+                      asks. It covers installation, checkout safety, tests, and documentation.
+                    </p>
+                  </div>
+                </li>
+              </ol>
+              <div className="mt-4 pl-9">
                 <CopyButton
                   value={AGENT_SETUP_PROMPT}
                   label="Copy agent prompt"
-                  className="bg-brand text-white hover:bg-brand-ink hover:text-white focus-visible:ring-brand/40"
+                  variant="primary"
                 />
               </div>
-              <p className="mt-3 text-[12.5px] leading-5 text-muted">
-                You will still need an assigned merchant ID from <A href="/developers">AgentPay Developers</A>. The
-                prompt deliberately asks the agent to leave a placeholder rather than fabricate one.
+              <p className="mt-3 pl-9 text-[12.5px] leading-5 text-muted">
+                The prompt deliberately leaves the merchant ID as a placeholder rather than fabricating one.
               </p>
             </div>
           ),
