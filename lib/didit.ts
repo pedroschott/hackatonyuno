@@ -36,7 +36,7 @@ export type IdentityVerification = {
 
 type DiditSessionResponse = {
   session_id: string;
-  session_kind: "user" | "business";
+  session_kind?: "user" | "business";
   url: string;
   status: DiditSessionStatus;
   workflow_id: string;
@@ -116,7 +116,7 @@ export async function createDiditSession(input: {
   });
   if (
     !session.session_id ||
-    session.session_kind !== "user" ||
+    session.session_kind === "business" ||
     !session.url ||
     session.vendor_data !== input.userId ||
     session.workflow_id !== DIDIT_FREE_KYC_WORKFLOW_ID ||

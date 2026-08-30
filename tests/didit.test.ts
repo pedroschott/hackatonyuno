@@ -26,7 +26,6 @@ describe("Didit hosted verification", () => {
       Response.json(
         {
           session_id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
-          session_kind: "user",
           url: "https://verify.didit.me/session/token",
           status: "Not Started",
           workflow_id: DIDIT_FREE_KYC_WORKFLOW_ID,
@@ -42,6 +41,7 @@ describe("Didit hosted verification", () => {
     });
 
     expect(session.url).toBe("https://verify.didit.me/session/token");
+    expect(session.session_kind).toBeUndefined();
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("https://verification.didit.me/v3/session/");
     expect(init?.headers).toMatchObject({ "x-api-key": "didit-test-key" });
