@@ -87,7 +87,7 @@ export default function AgentsPage() {
     <>
       <PageHeader
         title="Connect an agent"
-        description="Pick where your assistant lives. Connecting takes one link and about a minute."
+        description="Pick where your assistant lives. Connecting takes one link and about a minute — it still cannot charge anything until you sign a mandate."
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -113,17 +113,17 @@ export default function AgentsPage() {
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader title="What your agent can never do" />
+          <CardHeader title="What a connected agent can never do" />
           <ul className="space-y-2 px-5 py-4 text-[13.5px] text-ink-2">
-            <li>See or use your card number.</li>
-            <li>Approve its own purchases.</li>
-            <li>Spend a cent more than you allowed.</li>
-            <li>Keep spending after you turn it off.</li>
+            <li>See your card number — a store only ever receives a single-use token.</li>
+            <li>Sign its own mandate, or raise the limits on one.</li>
+            <li>Transact outside the scope, limits or expiry you signed.</li>
+            <li>Transact after you revoke, including a checkout already in flight.</li>
           </ul>
         </Card>
 
         <Card>
-          <CardHeader title="Approve from your phone" description="Scan once to keep approvals and the off switch in your pocket." />
+          <CardHeader title="Sign from your phone" description="Scan once to keep mandate signatures and revocation in your pocket." />
           <div className="flex flex-col items-center gap-2 px-5 py-4">
             <Qr value={`${base}/m`} size={140} />
             <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted">
@@ -156,7 +156,8 @@ export default function AgentsPage() {
             </div>
 
             <p className="mt-4 text-[13.5px] text-muted">
-              Then just ask it to buy something. It has to ask you here before it can pay for anything.
+              Then ask it to buy something. It requests a mandate here, and it cannot charge anything until you sign
+              that mandate with your passkey.
             </p>
 
             <div className="mt-5 flex justify-end">

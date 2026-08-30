@@ -1,26 +1,30 @@
-// Plain-language layer for the consumer app.
+// The vocabulary layer for the account holder's screens.
 //
-// The registry speaks in reason codes, mandate ids and payment tokens. People do not.
-// Everything the account holder sees goes through this file, so the screens stay short
-// sentences instead of protocol vocabulary. The technical vocabulary is still available
-// on the merchant checkout view and the security log.
+// The registry speaks in reason codes, payment tokens and canonical JSON. People do not.
+// But the previous pass overcorrected: "who can spend" implied the agent holds money of
+// its own. It does not. A mandate is a signed authorization on top of the account
+// holder's own card — scope, limits and an expiry an agent must stay inside — so the
+// screens say "mandate" and explain it, instead of hiding the only noun that is true.
+//
+// Everything the account holder reads goes through this file, so vocabulary stays
+// consistent and no screen can quietly reintroduce a raw token or a reason code.
 
 import type { Attempt, Merchant, ReasonCode } from "./types";
 
-/** Why a purchase was stopped, said the way the person who set the limit would say it. */
+/** Why a purchase was refused, in one sentence that still names the rule that refused it. */
 export const BLOCK_REASON: Record<ReasonCode, string> = {
-  AGENT_SIGNATURE_INVALID: "We could not confirm this was your agent",
-  MANDATE_SIGNATURE_INVALID: "This permission could not be verified",
-  MANDATE_NOT_FOUND: "This agent has no permission to spend",
-  MANDATE_REVOKED: "You turned this agent off",
-  MANDATE_EXPIRED: "The permission had already ended",
-  MERCHANT_NOT_IN_SCOPE: "That store is not on your list",
-  CATEGORY_NOT_IN_SCOPE: "That kind of item is not on your list",
-  CURRENCY_MISMATCH: "Wrong currency for this permission",
-  USES_EXCEEDED: "No purchases left this month",
-  CUMULATIVE_EXCEEDED: "The monthly budget was already used up",
-  AMOUNT_EXCEEDS_LIMIT: "Over your per-purchase limit",
-  EXCEPTION_INVALID: "Your approval did not match this purchase",
+  AGENT_SIGNATURE_INVALID: "The agent's request signature did not verify",
+  MANDATE_SIGNATURE_INVALID: "The mandate signature did not verify",
+  MANDATE_NOT_FOUND: "No mandate covers this purchase",
+  MANDATE_REVOKED: "You revoked this mandate",
+  MANDATE_EXPIRED: "The mandate had already expired",
+  MERCHANT_NOT_IN_SCOPE: "That store is outside the mandate's scope",
+  CATEGORY_NOT_IN_SCOPE: "That category is outside the mandate's scope",
+  CURRENCY_MISMATCH: "Wrong currency for this mandate",
+  USES_EXCEEDED: "No purchases left on this mandate this month",
+  CUMULATIVE_EXCEEDED: "The mandate's monthly limit was already used up",
+  AMOUNT_EXCEEDS_LIMIT: "Over the mandate's per-purchase limit",
+  EXCEPTION_INVALID: "Your one-time approval did not match this purchase",
 };
 
 export type Outcome = { tone: "success" | "danger" | "warn"; label: string; detail: string };
@@ -30,15 +34,27 @@ export function outcomeOf(attempt: Attempt): Outcome {
     return {
       tone: "success",
       label: "Paid",
-      detail: attempt.exception_id ? "You approved this one" : "Inside the limits you set",
+      detail: attempt.exception_id ? "You approved this one purchase" : "Within the mandate's limits",
     };
   if (attempt.decision === "escalated")
-    return { tone: "warn", label: "Waiting for you", detail: "Over your per-purchase limit" };
+    return { tone: "warn", label: "Needs you", detail: "Over the mandate's per-purchase limit" };
   return {
     tone: "danger",
-    label: "Blocked",
-    detail: attempt.reason_code ? BLOCK_REASON[attempt.reason_code] : "Outside your limits",
+    label: "Refused",
+    detail: attempt.reason_code ? BLOCK_REASON[attempt.reason_code] : "Outside the mandate",
   };
+}
+
+/**
+ * A mandate id is long enough to be unreadable and short enough to be useful.
+ * The prefix plus six characters is what a person needs to match a card on screen
+ * against a line in the security log or a `get_mandate` response.
+ */
+export function mandateRef(id: string) {
+  const [prefix, ...rest] = id.split("_");
+  const body = rest.join("_");
+  if (!body) return id.length > 10 ? `${id.slice(0, 10)}…` : id;
+  return body.length > 6 ? `${prefix}_${body.slice(0, 6)}…` : id;
 }
 
 export function storeName(merchants: Merchant[], id: string) {
@@ -60,16 +76,16 @@ export function list(values: string[]) {
   return `${values.slice(0, -1).join(", ")} and ${values[values.length - 1]}`;
 }
 
-/** "Ends today" reads better than a timestamp for anything inside a week. */
+/** "Expires today" reads better than a timestamp for anything inside a week. */
 export function endsIn(iso: string, now = Date.now()) {
   const ms = new Date(iso).getTime() - now;
-  if (ms <= 0) return "Ended";
+  if (ms <= 0) return "Expired";
   const days = Math.floor(ms / 86_400_000);
-  if (days >= 2) return `Ends in ${days} days`;
+  if (days >= 2) return `Expires in ${days} days`;
   const hours = Math.floor(ms / 3_600_000);
-  if (hours >= 2) return `Ends in ${hours} hours`;
+  if (hours >= 2) return `Expires in ${hours} hours`;
   const minutes = Math.max(1, Math.floor(ms / 60_000));
-  return `Ends in ${minutes} min`;
+  return `Expires in ${minutes} min`;
 }
 
 /** Friendly day label for grouping activity: Today / Yesterday / 12 March. */
@@ -87,21 +103,21 @@ export function timeOfDay(iso: string) {
 }
 
 const AUDIT_SENTENCE: Record<string, string> = {
-  "mandate.created": "An agent asked for permission to spend",
-  "mandate.authorized": "You allowed an agent to spend",
-  "mandate.activated": "The permission became active",
-  "mandate.declined": "You turned down a request",
-  "mandate.revoked": "You turned off an agent's spending",
-  "mandate.limits_updated": "A spending limit was changed",
-  "attempt.approved": "A purchase went through",
-  "attempt.refused": "A purchase was blocked",
-  "attempt.escalated": "A purchase was held for your approval",
-  "payment.token_minted": "A single-use payment code was issued",
-  "approval.requested": "Your approval was requested",
+  "mandate.created": "An agent requested a mandate",
+  "mandate.authorized": "You signed a mandate with your passkey",
+  "mandate.activated": "The mandate became active",
+  "mandate.declined": "You declined a mandate request",
+  "mandate.revoked": "You revoked a mandate",
+  "mandate.limits_updated": "A mandate limit was changed",
+  "attempt.approved": "A purchase was authorized",
+  "attempt.refused": "A purchase was refused",
+  "attempt.escalated": "A purchase was escalated for your approval",
+  "payment.token_minted": "A single-use payment token was issued",
+  "approval.requested": "A one-time approval was requested",
   "approval.approved": "You approved one purchase",
-  "approval.denied": "You declined one purchase",
-  "vault.card_added": "A payment method was added",
-  "passkey.registered": "A passkey was set up on a device",
+  "approval.denied": "You denied one purchase",
+  "vault.card_added": "A payment method was added to the vault",
+  "passkey.registered": "A passkey was registered on a device",
 };
 
 /** Reads an audit action as a sentence; unknown actions fall back to their own name. */

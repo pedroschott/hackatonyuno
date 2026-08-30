@@ -6,17 +6,19 @@ import type { Mandate } from "@/lib/types";
 import { useStore, usageFor } from "@/lib/store";
 import { effectiveStatus } from "@/lib/engine";
 import { brl } from "@/lib/format";
-import { endsIn, itemKinds, storeNames } from "@/lib/plain";
+import { endsIn, itemKinds, mandateRef, storeNames } from "@/lib/plain";
 import { Badge, Button, Card, Meter } from "../ui";
+import { CardBrand } from "../CardBrand";
 import { agentLabel } from "./agent-label";
 
 /**
- * One agent's spending permission, said the way the account holder set it up:
- * how much per purchase, how much is left this month, and when it stops.
+ * One active mandate: which agent holds it, what it authorizes on which card,
+ * how much of it is left, and the one control that matters — revoke.
  */
-export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onTurnedOff?: () => void }) {
+export function MandateCard({ mandate, onRevoked }: { mandate: Mandate; onRevoked?: () => void }) {
   const attempts = useStore((s) => s.attempts);
   const agents = useStore((s) => s.agents);
+  const cards = useStore((s) => s.cards);
   const merchants = useStore((s) => s.merchants);
   const revoke = useStore((s) => s.revokeMandate);
   const [confirming, setConfirming] = useState(false);
@@ -34,16 +36,17 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
   const left = Math.max(0, mandate.limits.cumulative_cents - usage.spent);
   const usesLeft = Math.max(0, mandate.limits.max_uses - usage.uses);
   const name = agentLabel(mandate, agents);
+  const card = cards.find((c) => c.id === mandate.payment.vault_card_id);
 
-  async function turnOff() {
+  async function revokeNow() {
     setBusy(true);
     setRevokeError(null);
     try {
       await revoke(mandate.id, "user");
-      onTurnedOff?.();
+      onRevoked?.();
       setConfirming(false);
     } catch (cause) {
-      setRevokeError(cause instanceof Error ? cause.message : "Turning off spending failed");
+      setRevokeError(cause instanceof Error ? cause.message : "Revocation failed");
     } finally {
       setBusy(false);
     }
@@ -55,17 +58,28 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
         <span className="text-[16px] font-semibold">{name}</span>
         {status === "active" ? (
           <Badge tone="success" dot>
-            Can spend
+            Active
           </Badge>
         ) : status === "expired" ? (
-          <Badge tone="warn">Ended</Badge>
+          <Badge tone="warn">Expired</Badge>
         ) : (
-          <Badge tone="danger">Turned off</Badge>
+          <Badge tone="danger">Revoked</Badge>
         )}
+        <span className="font-mono text-[11.5px] text-faint sm:ml-auto">{mandateRef(mandate.id)}</span>
       </div>
 
       <p className="px-5 pt-1 text-[14px] text-ink-2">
-        Spends up to <b className="text-ink">{brl(mandate.limits.per_purchase_cents)}</b> per purchase.
+        Authorized to charge up to <b className="text-ink">{brl(mandate.limits.per_purchase_cents)}</b> per purchase
+        {card && (
+          <>
+            {" "}
+            to{" "}
+            <span className="inline-flex items-center gap-1.5 align-middle">
+              <CardBrand brand={card.brand} /> ···· {card.last4}
+            </span>
+          </>
+        )}
+        .
       </p>
 
       <div className="px-5 py-4">
@@ -80,7 +94,7 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
           <span>
-            {usesLeft} {usesLeft === 1 ? "purchase" : "purchases"} left
+            {usesLeft} of {mandate.limits.max_uses} {mandate.limits.max_uses === 1 ? "purchase" : "purchases"} left
           </span>
           <span>{endsIn(mandate.validity.expires_at, now)}</span>
         </div>
@@ -88,7 +102,8 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
 
       {mandate.scope.merchants.length > 0 && (
         <div className="border-t border-line px-5 py-3 text-[13px] text-muted">
-          Only for {itemKinds(mandate.scope.categories)} at {storeNames(merchants, mandate.scope.merchants)}.
+          Scope: {itemKinds(mandate.scope.categories)} at {storeNames(merchants, mandate.scope.merchants)}. Anything
+          outside it is refused.
         </div>
       )}
 
@@ -97,14 +112,15 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
           {confirming ? (
             <div className="ap-in space-y-3">
               <p className="text-[13.5px] text-ink-2">
-                This stops immediately. {name} will not be able to pay for anything until you allow it again.
+                Revocation takes effect immediately. Every checkout that presents this mandate is refused from now on —
+                including one already in flight.
               </p>
               <div className="flex gap-2">
                 <Button size="lg" onClick={() => setConfirming(false)}>
-                  Keep it on
+                  Keep it active
                 </Button>
-                <Button size="lg" variant="dangerSolid" loading={busy} onClick={turnOff}>
-                  Turn off spending
+                <Button size="lg" variant="dangerSolid" loading={busy} onClick={revokeNow}>
+                  Revoke now
                 </Button>
               </div>
               {revokeError && <p className="text-[12px] text-danger-ink">{revokeError}</p>}
@@ -117,7 +133,7 @@ export function PermissionCard({ mandate, onTurnedOff }: { mandate: Mandate; onT
               icon={<ShieldOff className="size-4" />}
               onClick={() => setConfirming(true)}
             >
-              Turn off spending
+              Revoke mandate
             </Button>
           )}
         </div>

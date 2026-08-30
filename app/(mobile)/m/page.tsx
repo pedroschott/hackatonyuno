@@ -6,7 +6,7 @@ import { useStore } from "@/lib/store";
 import { effectiveStatus } from "@/lib/engine";
 import { brl } from "@/lib/format";
 import { Badge } from "@/components/ui";
-import { PermissionCard } from "@/components/app/PermissionCard";
+import { MandateCard } from "@/components/app/MandateCard";
 import { PurchaseRow } from "@/components/app/PurchaseRow";
 import { agentLabel } from "@/components/app/agent-label";
 import { storeName } from "@/lib/plain";
@@ -27,12 +27,12 @@ export default function MobileInbox() {
     <div className="space-y-5">
       <section>
         <div className="mb-2 flex items-center gap-2">
-          <h1 className="text-[18px] font-semibold">Waiting for you</h1>
+          <h1 className="text-[18px] font-semibold">Waiting for your signature</h1>
           {needs > 0 && <Badge tone="warn">{needs}</Badge>}
         </div>
         {needs === 0 && (
           <div className="rounded-lg bg-white px-4 py-5 text-center text-[13.5px] text-muted shadow-[var(--shadow-card)]">
-            Nothing to decide right now.
+            Nothing to sign right now.
           </div>
         )}
         <div className="space-y-2">
@@ -43,7 +43,7 @@ export default function MobileInbox() {
               className="ap-in flex items-center gap-3 rounded-lg border-l-[3px] border-l-brand bg-white px-4 py-3 shadow-[var(--shadow-card)] active:bg-canvas"
             >
               <div className="min-w-0 flex-1">
-                <div className="text-[14.5px] font-semibold">{agentLabel(m, agents)} is asking to pay for you</div>
+                <div className="text-[14.5px] font-semibold">{agentLabel(m, agents)} requested a mandate</div>
                 <div className="truncate text-[13px] text-muted">Up to {brl(m.limits.per_purchase_cents)} per purchase</div>
               </div>
               <ChevronRight className="size-4 shrink-0 text-faint" />
@@ -56,7 +56,7 @@ export default function MobileInbox() {
               className="ap-in flex items-center gap-3 rounded-lg border-l-[3px] border-l-warn bg-white px-4 py-3 shadow-[var(--shadow-card)] active:bg-canvas"
             >
               <div className="min-w-0 flex-1">
-                <div className="text-[14.5px] font-semibold">Approve this purchase?</div>
+                <div className="text-[14.5px] font-semibold">One-time approval requested</div>
                 <div className="truncate text-[13px] text-muted">
                   {a.product_name} · {brl(a.amount_cents)} at {storeName(merchants, a.merchant_id)}
                 </div>
@@ -68,12 +68,12 @@ export default function MobileInbox() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-[15px] font-semibold">Who can spend</h2>
+        <h2 className="text-[15px] font-semibold">Active mandates</h2>
         {active.length > 0 ? (
-          active.map((m) => <PermissionCard key={m.id} mandate={m} />)
+          active.map((m) => <MandateCard key={m.id} mandate={m} />)
         ) : (
           <div className="rounded-lg bg-white px-4 py-5 text-center text-[13.5px] text-muted shadow-[var(--shadow-card)]">
-            Nobody can spend your money right now.
+            No active mandates. Nothing can be charged to your cards.
           </div>
         )}
       </section>

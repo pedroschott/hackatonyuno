@@ -44,11 +44,13 @@ The console at `/dashboard`, `/activity`, `/audit` and `/connect` is fully respo
 
 `/m` is kept anyway because it answers a different question. The console is the owner's full control surface; `/m` is the approval inbox someone opens from a QR code on another device to approve a mandate or exception with a passkey and turn spending off in one tap. Collapsing the two would either bloat the phone approval flow or strip the console.
 
-## The account holder never sees protocol vocabulary
+## The account holder sees no raw protocol, but does see the mandate
 
-Mandate ids, payment tokens, nonces, reason codes, cart hashes and canonical JSON were on every screen. They proved the system worked, to a reader who already knew the system. The app now says "Paid", "Blocked — that store is not on your list", "Turn off spending"; `lib/plain.ts` is the single place where registry vocabulary becomes a sentence, so no screen can quietly reintroduce a token.
+Mandate ids, payment tokens, nonces, reason codes, cart hashes and canonical JSON were on every screen. They proved the system worked, to a reader who already knew the system. `lib/plain.ts` is the single place where registry vocabulary becomes a sentence, so no screen can quietly reintroduce a token, and the technical record was moved to where its audience is: the merchant checkout view still shows the four verification checks, and `/audit` still exposes every payload and the hash chain behind each entry.
 
-The technical record was not deleted, only moved to where its audience is: the merchant checkout view still shows the four verification checks, and `/audit` still exposes every payload and the hash chain behind each entry. The gain is that a judge who changes an input live sees a plain sentence explaining the refusal instead of `CATEGORY_NOT_IN_SCOPE`.
+The first pass at this overcorrected. Removing the word "mandate" left the app saying "who can spend" and "nobody can spend your money", which describes a product AgentPay is not: an agent holding a balance. An agent holds no money and no card. A mandate is a signed authorization layered on the account holder's own payment method — a scope, a set of limits and an expiry that a purchase must fall inside, checked live at the registry on every attempt. A person who reads "turn off spending" and then watches a checkout get refused mid-flight has no word for what actually happened.
+
+The screens therefore name the object again and explain it once: "Active mandates", "requested a mandate", "Revoke mandate", "Within the mandate's limits", "That store is outside the mandate's scope". A mandate card shows the short mandate reference and the card it draws on, so a judge can match what is on screen against `get_mandate` over MCP and against the security log. This is the smallest vocabulary that is still true; reason codes, tokens and canonical JSON stay out of the account holder's screens.
 
 ## The app cannot create a mandate; only an agent can ask for one
 

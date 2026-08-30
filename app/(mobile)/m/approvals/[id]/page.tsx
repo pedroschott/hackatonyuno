@@ -46,17 +46,21 @@ export default function ApprovalSheet() {
       <div className="rounded-lg bg-white px-4 py-4 shadow-[var(--shadow-card)]">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[16px] font-semibold">Approve this purchase?</div>
+            <div className="text-[16px] font-semibold">One-time approval requested</div>
           </div>
           {approval.status === "pending" && <Badge tone="warn">Waiting</Badge>}
           {approval.status === "approved" && <Badge tone="success">Approved</Badge>}
           {approval.status === "denied" && <Badge tone="danger">Declined</Badge>}
         </div>
         <p className="mt-3 text-[14px] leading-snug text-ink-2">
-          {name} wants to buy <b className="text-ink">{approval.product_name}</b> at {store} for{" "}
+          {name} tried to buy <b className="text-ink">{approval.product_name}</b> at {store} for{" "}
           <b className="text-ink tabular">{brl(approval.amount_cents)}</b>.
           {over > 0 && mandate && (
-            <> That is {brl(over)} more than the {brl(mandate.limits.per_purchase_cents)} you allowed per purchase.</>
+            <>
+              {" "}
+              That is {brl(over)} over the {brl(mandate.limits.per_purchase_cents)} per-purchase limit on its mandate, so
+              it was held instead of charged.
+            </>
           )}
         </p>
       </div>
@@ -66,12 +70,12 @@ export default function ApprovalSheet() {
           { k: "Item", v: approval.product_name },
           { k: "Store", v: store },
           { k: "Amount", v: brl(approval.amount_cents) },
-          { k: "Your limit", v: mandate ? brl(mandate.limits.per_purchase_cents) : "—" },
+          { k: "Mandate limit", v: mandate ? brl(mandate.limits.per_purchase_cents) : "—" },
         ]}
       />
 
       {approval.status === "approved" && (
-        <Status tone="success" title="Approved" body="This covered one purchase only. Your limits are unchanged." />
+        <Status tone="success" title="Exception signed" body="This covered one purchase only. The mandate's limits are unchanged." />
       )}
       {approval.status === "denied" && <Status tone="danger" title="Declined" body="Nothing was paid." />}
 
@@ -106,15 +110,16 @@ export default function ApprovalSheet() {
         endpoint={`/api/approvals/${approval.id}/authorize`}
         onClose={() => setCeremony(false)}
         challenge={approval.cart_hash}
-        title="Approve this purchase?"
-        subtitle="This approval covers this purchase only. Your limits stay exactly as they are."
+        title="Approve this one purchase?"
+        subtitle="A one-time exception, signed separately. The mandate's limits are not raised."
         cta="Approve"
-        successTitle="Approved"
-        successBody="Your agent can complete this one purchase."
+        successTitle="Exception signed"
+        successBody="The agent can complete this single purchase. Nothing else changed."
         facts={[
           { label: "Item", value: approval.product_name },
           { label: "Store", value: store },
           { label: "Amount", value: brl(approval.amount_cents) },
+          { label: "Mandate limit", value: mandate ? brl(mandate.limits.per_purchase_cents) : "—" },
           { label: "Covers", value: "This purchase only" },
         ]}
         onComplete={async (pk) => {

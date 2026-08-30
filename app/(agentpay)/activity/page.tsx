@@ -24,11 +24,14 @@ export default function ActivityPage() {
 
   return (
     <>
-      <PageHeader title="Activity" description="Everything your agents paid for — and everything they were stopped from paying for." />
+      <PageHeader
+        title="Activity"
+        description="Every purchase an agent attempted under a mandate, and the decision that was made on it."
+      />
 
       {days.length === 0 ? (
         <Card>
-          <EmptyState title="Nothing yet" description="Purchases show up here the moment an agent tries to pay." />
+          <EmptyState title="Nothing yet" description="Attempts show up here the moment an agent presents a mandate at a store." />
         </Card>
       ) : (
         <div className="space-y-5">

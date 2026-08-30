@@ -11,12 +11,12 @@ This inventory is the canonical map of the AgentPay web application and the isol
 | `/` | Redirects to the authenticated dashboard. It is not a canonical content page. | No | No |
 | `/connect` | Connect an agent: one-click instructions per assistant. | Yes | Allowed |
 | `/store` | Public AutoParts merchant demonstration. | Yes | Allowed |
-| `/dashboard` | Account summary: spending, permissions and recent activity. | No | Disallowed |
-| `/activity` | Full purchase history in plain language. | No | Disallowed |
+| `/dashboard` | Account summary: month-to-date charges, active mandates and recent activity. | No | Disallowed |
+| `/activity` | Full purchase-attempt history with the mandate decision on each. | No | Disallowed |
 | `/audit` | Security log: every account decision, hash-chained. | No | Disallowed |
 | `/payment-methods/setup?token=...` | User-bound hosted payment setup callback. | No | Disallowed |
-| `/m` | Mobile approval inbox. | No | Disallowed |
-| `/m/mandates/:id` | Mobile mandate approval and revocation screen. | No | Disallowed |
+| `/m` | Mobile signing and revocation inbox. | No | Disallowed |
+| `/m/mandates/:id` | Mobile mandate signing and revocation screen. | No | Disallowed |
 | `/m/approvals/:id` | Mobile one-time exception decision screen. | No | Disallowed |
 | `/oauth/consent` | OAuth consent flow. | No | Disallowed |
 

@@ -8,7 +8,8 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "AgentPay — let your agent pay, on your terms",
-  description: "Decide what your AI agents may buy, see every purchase, and turn spending off in one tap.",
+  description:
+    "Sign a scoped mandate before an AI agent can charge your card, see every attempt it makes, and revoke in one tap.",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#ffffff" };
