@@ -6,7 +6,7 @@
 
 An agent connects to AgentPay through an OAuth-protected MCP server. It can *ask* for spending authority, but it can never grant itself any. You sign a narrow, time-boxed **mandate** with your passkey, and every purchase is checked against that mandate at the moment of settlement. Revoke it and the very next checkout fails.
 
-🔗 **Live:** https://agentpay-yuno.vercel.app · 🏪 **Store you can actually buy from:** https://partsroute.vercel.app · 📘 **Merchant docs:** https://agentpay-yuno.vercel.app/docs
+🔗 **Live:** https://agentpay-yuno.vercel.app · 🏪 **Store you can actually buy from:** https://partsroute.vercel.app · 📘 **Merchant docs:** https://agentpay-yuno.vercel.app/docs 🏬 **Merchant Developer Setup:** https://agentpay-yuno.vercel.app/developer
 
 ---
 
