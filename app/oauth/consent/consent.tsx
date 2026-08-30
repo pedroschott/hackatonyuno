@@ -200,7 +200,7 @@ export function OAuthConsent() {
               </div>
             )}
             <p className="text-[12.5px] text-muted">
-              The agent never receives card credentials and cannot authorize its own spending contract.
+              The agent never receives card credentials and cannot sign its own mandate.
             </p>
             {error && <p className="rounded bg-danger-soft px-3 py-2 text-[12.5px] text-danger-ink">{error}</p>}
             <div className="flex gap-2">

@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { effectiveStatus } from "@/lib/engine";
 import { mandateHash } from "@/lib/seed";
 import { brl } from "@/lib/format";
-import { endsIn, itemKinds, storeNames } from "@/lib/plain";
+import { endsIn, itemKinds, mandateRef, storeNames } from "@/lib/plain";
 import { Badge, Button } from "@/components/ui";
 import { PasskeyCeremony } from "@/components/PasskeyCeremony";
 import { CardBrand } from "@/components/CardBrand";
@@ -47,14 +47,14 @@ export default function MandateSheet() {
   const card = cards.find((c) => c.id === mandate.payment.vault_card_id);
   const name = agentLabel(mandate, agents);
   const rows = [
-    { k: "Up to", v: `${brl(mandate.limits.per_purchase_cents)} per purchase` },
+    { k: "Per purchase", v: `Up to ${brl(mandate.limits.per_purchase_cents)}` },
     { k: "This month", v: `${brl(mandate.limits.cumulative_cents)}, ${mandate.limits.max_uses} purchases` },
     ...(mandate.scope.merchants.length > 0
-      ? [{ k: "Only for", v: `${itemKinds(mandate.scope.categories)} at ${storeNames(merchants, mandate.scope.merchants)}` }]
+      ? [{ k: "Scope", v: `${itemKinds(mandate.scope.categories)} at ${storeNames(merchants, mandate.scope.merchants)}` }]
       : []),
-    { k: "Stops", v: endsIn(mandate.validity.expires_at) },
+    { k: "Expires", v: endsIn(mandate.validity.expires_at) },
     {
-      k: "Pays with",
+      k: "Charges",
       v: (
         <span className="inline-flex items-center gap-1.5">
           <CardBrand brand={card?.brand ?? "mastercard"} /> •••• {card?.last4 ?? "????"}
@@ -68,17 +68,20 @@ export default function MandateSheet() {
       <div className="rounded-lg bg-white px-4 py-4 shadow-[var(--shadow-card)]">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[16px] font-semibold">{name} is asking to pay for you</div>
+            <div className="text-[16px] font-semibold">
+              {status === "draft" ? `${name} requested a mandate` : `${name}'s mandate`}
+            </div>
+            <div className="mt-0.5 font-mono text-[11.5px] text-faint">{mandateRef(mandate.id)}</div>
           </div>
-          {status === "draft" && <Badge tone="brand">New</Badge>}
+          {status === "draft" && <Badge tone="brand">Unsigned</Badge>}
           {status === "active" && (
             <Badge tone="success" dot>
-              Can spend
+              Active
             </Badge>
           )}
-          {status === "revoked" && <Badge tone="danger">Turned off</Badge>}
+          {status === "revoked" && <Badge tone="danger">Revoked</Badge>}
           {status === "declined" && <Badge tone="danger">Declined</Badge>}
-          {status === "expired" && <Badge tone="warn">Ended</Badge>}
+          {status === "expired" && <Badge tone="warn">Expired</Badge>}
         </div>
         {mandate.natural_language_description && (
           <blockquote className="mt-3 border-l-2 border-brand pl-3 text-[14px] leading-snug text-ink-2">
@@ -90,14 +93,20 @@ export default function MandateSheet() {
       <KV rows={rows} />
 
       {status === "active" && (
-        <Status tone="success" title="Allowed" body={<>{name} can pay within these limits. You can turn it off at any time.</>} />
+        <Status
+          tone="success"
+          title="Active"
+          body={<>{name} can transact within these limits, and only these. Revoke at any time.</>}
+        />
       )}
-      {status === "revoked" && <Status tone="danger" title="Turned off" body="Anything it tries from now on is declined." />}
-      {status === "declined" && <Status tone="danger" title="Declined" body="Nothing was allowed." />}
-      {status === "expired" && <Status tone="warn" title="Ended" body="This permission ran out. Nothing more can be paid with it." />}
+      {status === "revoked" && (
+        <Status tone="danger" title="Revoked" body="Every checkout presenting this mandate is refused from now on." />
+      )}
+      {status === "declined" && <Status tone="danger" title="Declined" body="No authorization was ever created." />}
+      {status === "expired" && <Status tone="warn" title="Expired" body="This mandate can no longer authorize a purchase." />}
 
       <p className="px-1 text-[12.5px] text-faint">
-        You approve with Face ID or Touch ID on this device. Your card details are never shared with the agent or the store.
+        You sign with Face ID or Touch ID on this device. Your card details are never shared with the agent or the store.
       </p>
 
       {status === "draft" && (
@@ -110,10 +119,10 @@ export default function MandateSheet() {
               router.push("/m");
             }}
           >
-            Not now
+            Decline
           </Button>
           <Button size="lg" variant="primary" className="flex-[2]" onClick={() => setCeremony(true)}>
-            Allow
+            Authorize
           </Button>
         </StickyActions>
       )}
@@ -127,13 +136,13 @@ export default function MandateSheet() {
                 </Button>
               </Link>
               <Button size="lg" variant="danger" className="flex-1" icon={<ShieldOff className="size-4" />} onClick={() => setConfirmRevoke(true)}>
-                Turn off
+                Revoke
               </Button>
             </>
           ) : (
             <>
               <Button size="lg" className="flex-1" onClick={() => setConfirmRevoke(false)}>
-                Keep it on
+                Keep active
               </Button>
               <Button
                 size="lg"
@@ -153,7 +162,7 @@ export default function MandateSheet() {
                   }
                 }}
               >
-                Turn off spending
+                Revoke now
               </Button>
             </>
           )}
@@ -175,15 +184,16 @@ export default function MandateSheet() {
         endpoint={`/api/mandates/${mandate.id}/authorize`}
         onClose={() => setCeremony(false)}
         challenge={mandateHash(mandate)}
-        title={`Let ${name} pay for you?`}
-        cta="Allow"
-        successTitle="Allowed"
-        successBody="Your agent can now pay within these limits."
+        title={`Authorize this mandate for ${name}?`}
+        subtitle="Your passkey signs these exact limits. Nothing is charged now, and you can revoke at any time."
+        cta="Authorize"
+        successTitle="Mandate active"
+        successBody={`${name} can now transact within these limits, and only these.`}
         facts={[
-          { label: "Up to", value: brl(mandate.limits.per_purchase_cents) },
+          { label: "Per purchase", value: brl(mandate.limits.per_purchase_cents) },
           { label: "This month", value: brl(mandate.limits.cumulative_cents) },
           { label: "Purchases", value: mandate.limits.max_uses },
-          { label: "Stops", value: endsIn(mandate.validity.expires_at) },
+          { label: "Expires", value: endsIn(mandate.validity.expires_at) },
         ]}
         onComplete={async (pk) => {
           await authorize(mandate.id, pk);

@@ -9,7 +9,7 @@ import { Logo } from "./Logo";
 import { useHydrated } from "./StoreProvider";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
-// Three places, that is the whole app: what is allowed, what happened, who is connected.
+// Three places, that is the whole app: which mandates are active, what happened under them, who is connected.
 const TABS = [
   { href: "/dashboard", label: "Summary" },
   { href: "/activity", label: "Activity" },

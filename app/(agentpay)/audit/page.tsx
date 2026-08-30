@@ -27,7 +27,7 @@ export default function SecurityLogPage() {
     <>
       <PageHeader
         title="Security log"
-        description="Every decision on your account, in order, in a record that cannot be edited after the fact."
+        description="Every mandate, approval and purchase decision on your account, in order, in a hash-chained record that cannot be edited after the fact."
         actions={
           <>
             <Button
@@ -36,7 +36,7 @@ export default function SecurityLogPage() {
                 setTimeout(() => setRechecked(null), 2500);
               }}
             >
-              Check for tampering
+              Verify hash chain
             </Button>
             <Button
               icon={<Download className="size-3.5" />}
@@ -62,13 +62,13 @@ export default function SecurityLogPage() {
         )}
       >
         {chain.ok ? <ShieldCheck className="size-4" /> : <ShieldAlert className="size-4" />}
-        {chain.ok ? `Nothing has been changed. ${audit.length} events.` : `Something was changed at event ${chain.brokenAt}.`}
+        {chain.ok ? `Hash chain intact — ${audit.length} events.` : `Hash chain breaks at event ${chain.brokenAt}.`}
         {rechecked && <span className="font-medium sm:ml-auto">{rechecked.ok ? "Checked just now ✓" : "Check failed"}</span>}
       </div>
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <EmptyState title="Nothing yet" description="Requests, approvals and purchases all show up here." />
+          <EmptyState title="Nothing yet" description="Mandate requests, signatures, revocations and purchases all show up here." />
         ) : (
           <ul className="divide-y divide-line-2">
             {rows.map((entry) => (

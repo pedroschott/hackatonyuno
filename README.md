@@ -22,7 +22,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3210/dashboard. A new account starts empty: nothing can spend until an agent asks and you approve. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
+Open http://localhost:3210/dashboard. A new account starts empty: nothing can be charged until an agent requests a mandate and you sign it. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
 
 ## Verify
 
@@ -48,10 +48,10 @@ The delay is only a test affordance. The security boundary is the final Supabase
 
 | Route | Purpose |
 |---|---|
-| `/dashboard` | Summary: what was spent this month, who is allowed to spend, what is waiting for you |
-| `/activity` | Every purchase and every block, in plain language |
+| `/dashboard` | Summary: what was charged this month, which mandates are active, what is waiting for your signature |
+| `/activity` | Every purchase attempt and the mandate decision made on it |
 | `/connect` | Connect an agent: one button per assistant, one link to paste |
-| `/m` | Phone-first approval inbox and off switch, opened by QR from the desktop app |
+| `/m` | Phone-first signing inbox and revocation switch, opened by QR from the desktop app |
 | `/store` | Merchant demo with AgentPay checkout verification |
 | `/audit` | Security log: hash-chained record of every decision |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
