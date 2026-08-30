@@ -94,9 +94,6 @@ function SiteHeader() {
           <Link href="/docs" className="rounded-md px-2.5 py-1.5 text-[13.5px] text-muted hover:bg-line-2 hover:text-ink">
             Docs
           </Link>
-          <Link href="/store" className="hidden rounded-md px-2.5 py-1.5 text-[13.5px] text-muted hover:bg-line-2 hover:text-ink sm:inline-block">
-            Demo store
-          </Link>
           <Link
             href="/dashboard"
             className="ml-1 inline-flex h-8 items-center rounded-md bg-brand px-3 text-[13px] font-medium text-white shadow-[0_1px_1px_rgba(0,0,0,.08),inset_0_1px_0_rgba(255,255,255,.15)] transition-colors hover:bg-brand-hover"
@@ -297,9 +294,6 @@ function SiteFooter() {
         </span>
         <Link href="/docs" className="hover:text-ink">
           Merchant docs
-        </Link>
-        <Link href="/store" className="hover:text-ink">
-          Demo store
         </Link>
         <Link href="/connect" className="hover:text-ink">
           Connect an agent

@@ -88,16 +88,13 @@ export async function POST(req: Request) {
     const directPolicyScenario =
       scenario === "unsigned" || scenario === "replay" || scenario === "pneufast";
     if (!directPolicyScenario) {
-      const base = publicBaseUrl(req);
       const merchantResult = await supabase
         .from("merchants")
         .select("discovery_url")
         .eq("id", product.merchantId)
         .maybeSingle();
       if (merchantResult.error) throw new Error(merchantResult.error.message);
-      const discoveryUrl = product.merchantId === "mrc_autoparts"
-        ? base
-        : merchantResult.data?.discovery_url;
+      const discoveryUrl = merchantResult.data?.discovery_url;
       if (!discoveryUrl) return error("Merchant discovery URL is not configured", 409);
       const manifest = await discoverAgentPayMerchant(discoveryUrl);
       const privateKey = await getAgentPrivateKey(supabase, user.id, agent.id);

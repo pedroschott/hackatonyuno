@@ -97,23 +97,6 @@ npm install ./vendor/agentpay-merchant-sdk-0.2.0.tgz`}
           ),
         },
         {
-          id: "monorepo",
-          title: "Option C — inside this repository",
-          body: (
-            <>
-              <P>
-                If your store lives in this repository, skip packaging entirely and import the source through the path
-                alias, the way the AutoParts demo store does:
-              </P>
-              <CodeBlock lang="ts" code={`import { createAgentPayCheckoutHandler, merchantManifest } from "@/sdk";`} />
-              <P>
-                See <C>app/api/store/checkout/route.ts</C> and <C>app/.well-known/agentpay.json/route.ts</C> for the two
-                routes exactly as a merchant would write them.
-              </P>
-            </>
-          ),
-        },
-        {
           id: "verify",
           title: "Verify the install",
           body: (

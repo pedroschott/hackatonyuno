@@ -69,7 +69,6 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | `/docs` | Merchant documentation: install and set up the SDK in a new store |
 | `/developers` | Merchant console: create identities, hosted test stores, products, keys, and inspect checkout activity |
 | `/developers/stores` | Verified live-store registry; currently empty until a real public merchant opts in |
-| `/store` | Merchant demo with AgentPay checkout verification. Server-rendered, with one canonical `/store/products/:id` page per product carrying `agentpay:*` meta tags and JSON-LD |
 | `/audit` | Security log: hash-chained record of every decision |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
 
@@ -93,7 +92,7 @@ The full flow with example payloads is at [`/docs/agents`](https://agentpay-yuno
 
 ## Merchant SDK
 
-A store first signs in at [`/developers`](https://agentpay-yuno.vercel.app/developers) and creates a merchant. AgentPay assigns the immutable merchant ID used in mandates; developers no longer invent an ID in configuration. A hosted test merchant immediately receives a working storefront, sample catalog, discovery manifest, checkout endpoint, and server-side catalog API key.
+A store first signs in at [`/developers`](https://agentpay-yuno.vercel.app/developers) and creates a merchant. AgentPay assigns the immutable merchant ID used in mandates; developers no longer invent an ID in configuration. A hosted test merchant immediately receives a working storefront, sample catalog, discovery manifest, checkout endpoint, and server-side catalog API key. Production storefronts live on their own domains and repositories rather than on the AgentPay service domain.
 
 A live store then integrates AgentPay with three routes: a discovery manifest, a catalog endpoint built with `createAgentPayCatalogHandler` (so agents query exact product ids, categories and prices instead of scraping rendered pages), and a verified checkout endpoint. The catalog is optional: the manifest fields added in SDK 0.2.0 are all optional, so a store on 0.1.0 is still discovered. Install the SDK into a merchant project with one command:
 

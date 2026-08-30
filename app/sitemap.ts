@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 
 import { DOC_PAGES } from "@/components/docs/nav";
-import { autoPartsProducts } from "@/lib/autoparts";
 import { agentPayBaseUrl } from "@/lib/env";
 
 /**
@@ -39,15 +38,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-    {
-      url: new URL("/store", baseUrl).toString(),
-      changeFrequency: "weekly",
-      priority: 0.6,
-    },
-    ...autoPartsProducts.map((product) => ({
-      url: new URL(`/store/products/${product.id}`, baseUrl).toString(),
-      changeFrequency: "weekly" as const,
-      priority: 0.5,
-    })),
   ];
 }

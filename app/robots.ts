@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/docs", "/connect", "/store", "/.well-known/agentpay.json"],
+      allow: ["/", "/docs", "/connect"],
       disallow: [
         "/api/", // Includes identity-verification callbacks and provider webhooks.
         "/mcp",

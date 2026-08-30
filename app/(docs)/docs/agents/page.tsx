@@ -48,16 +48,16 @@ export default function Page() {
                 <CodeBlock
                   lang="json"
                   code={`{
-  "merchant": { "id": "mrc_autoparts", "name": "AutoParts", "store_url": "https://agentpay-yuno.vercel.app/store" },
+  "merchant": { "id": "mrc_example", "name": "Example Store", "store_url": "https://store.example.com" },
   "catalog_available": true,
   "currency": "USD",
   "categories": ["accessories", "tires"],
   "total": 2,
   "products": [
     { "product_id": "prd_tire_std", "name": "Standard tire set", "category": "tires", "price_cents": 154800, "currency": "USD",
-      "url": "https://agentpay-yuno.vercel.app/store/products/prd_tire_std" }
+      "url": "https://store.example.com/products/prd_tire_std" }
   ],
-  "mandate_hint": { "merchant_urls": ["https://agentpay-yuno.vercel.app/store"], "merchant_ids": ["mrc_autoparts"],
+  "mandate_hint": { "merchant_urls": ["https://store.example.com"], "merchant_ids": ["mrc_example"],
                     "categories": ["tires"], "currency": "USD", "per_purchase_cents": 154800 }
 }`}
                 />
@@ -72,12 +72,12 @@ export default function Page() {
                 <CodeBlock
                   lang="json"
                   code={`{
-  "merchant_urls": ["https://agentpay-yuno.vercel.app/store"],
+  "merchant_urls": ["https://store.example.com"],
   "categories": ["tires"],
   "per_purchase_cents": 160000,
   "max_uses": 1,
   "expires_in_days": 7,
-  "natural_language_description": "Buy one standard tire set from AutoParts, up to $1,600"
+  "natural_language_description": "Buy one standard tire set from Example Store, up to $1,600"
 }`}
                 />
                 <P>

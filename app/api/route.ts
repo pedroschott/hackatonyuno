@@ -17,8 +17,6 @@ export async function GET(req: Request) {
     merchant_discovery: {
       model:
         "Stores publish /.well-known/agentpay.json on their own domain, optionally advertising a catalog endpoint. Product research remains store-owned; AgentPay relays the store's catalog answer and never copies or ranks it.",
-      example_manifest: `${base}/.well-known/agentpay.json`,
-      example_catalog: `${base}/api/store/catalog`,
       supported_store_urls: `${base}/api/stores`,
       developer_console: `${base}/developers`,
     },

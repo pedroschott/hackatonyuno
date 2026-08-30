@@ -14,8 +14,6 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | `/privacy` | Privacy Policy for the AgentPay web application and services. | Yes | Allowed |
 | `/terms` | Terms of Service for the AgentPay web application and services. | Yes | Allowed |
 | `/connect` | Connect an agent: one-click instructions per assistant. | Yes | Allowed |
-| `/store` | Public AutoParts merchant demonstration, server-rendered so every product id and price is in the HTML. | Yes | Allowed |
-| `/store/products/:id` | Canonical AutoParts product page with `agentpay:*` meta tags and JSON-LD carrying the exact product id, merchant id, category and price. | Yes | Allowed |
 | `/docs` | Merchant documentation: introduction and integration overview. | Yes | Allowed |
 | `/docs/agents` | Agent integration: the MCP tool order, what each result means, and how to act on every decision. | Yes | Allowed |
 | `/docs/quickstart` | Six-step integration from merchant registration through checkout verification. | Yes | Allowed |
@@ -49,8 +47,6 @@ The documentation site at `/docs` is public canonical content and is listed in `
 
 | Method | Endpoint | Consumer | Purpose |
 |---|---|---|---|
-| `GET` | `/.well-known/agentpay.json` | Agent on a merchant domain | Merchant-owned AgentPay manifest for the AutoParts demo, advertising its checkout, catalog endpoint, categories and currency. A real merchant publishes its own manifest. |
-| `GET` | `/api/store/catalog` | Agent via `find_products` | AutoParts demo catalog built with `createAgentPayCatalogHandler`. Accepts `q`, `category`, `product_id`, `max_price_cents` and `limit`. |
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource` | MCP client | OAuth protected-resource metadata for AgentPay MCP. |
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource/mcp` | MCP client | Alias of the protected-resource metadata for the MCP endpoint. |
 | `GET`, `POST` | `/mcp` | OAuth-authenticated MCP client | Streamable HTTP MCP server. Exposes `get_account`, `get_payment_setup_link`, `find_products`, `create_mandate`, `amend_mandate`, `get_mandate`, `check_purchase`, `purchase` and `revoke_mandate`. |
@@ -86,7 +82,6 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | `POST` | `/api/approvals/:id/decide` | Approve or deny a one-time exception. |
 | `POST` | `/api/passkeys/register` | Register a WebAuthn credential. |
 | `GET` | `/api/state` | Read the authenticated demo state. |
-| `POST` | `/api/store/checkout` | AutoParts demo store checkout. |
 
 ## Merchant console API
 
