@@ -269,6 +269,23 @@ export function explainDecision(
         next_tool: "get_account",
         retry_same_purchase: true,
       };
+    case "SHIPPING_ADDRESS_REQUIRED":
+      return {
+        explanation:
+          "The order has nowhere to go: the account's registered delivery address is incomplete and no ship_to was given. AgentPay holds the address so it never has to be collected in chat.",
+        remedy:
+          "Send the user to address_url to complete the missing fields listed in missing_address_fields, or call purchase again with a complete ship_to if they want this one order delivered elsewhere. Never ask them to dictate an address you then save.",
+        next_tool: "get_account",
+        retry_same_purchase: true,
+      };
+    case "SHIPPING_ADDRESS_UNSUPPORTED":
+      return {
+        explanation: "The store does not deliver to that address, so it declined to quote the order before any limit was spent.",
+        remedy:
+          "Tell the user where this store does deliver — merchant_ships_to lists the countries it accepts — and call purchase again with a ship_to it serves. Nothing was charged and no use was consumed.",
+        next_tool: "purchase",
+        retry_same_purchase: false,
+      };
     default:
       return {
         explanation: `The purchase was ${decision}${reasonCode ? ` with reason ${reasonCode}` : ""}.`,

@@ -117,11 +117,19 @@ function mapAttempt(row: Record<string, unknown>, products: Array<{ id: string; 
     product_id: String(row.product_id),
     product_name: product?.name ?? String(row.product_id),
     amount_cents: Number(row.amount_cents),
+    shipping_cents: Number(row.shipping_cents ?? 0),
     decision: row.decision as Attempt["decision"],
     reason_code:
       typeof row.reason_code === "string" ? (row.reason_code as ReasonCode) : undefined,
     exception_id: typeof row.exception_id === "string" ? row.exception_id : undefined,
     payment_token: row.payment_token ? (row.payment_token as Attempt["payment_token"]) : undefined,
+    purchase_reason: typeof row.purchase_reason === "string" ? row.purchase_reason : undefined,
+    shipping_address: row.shipping_address ? (row.shipping_address as Attempt["shipping_address"]) : undefined,
+    shipping_address_source:
+      row.shipping_address_source === "custom" || row.shipping_address_source === "registered"
+        ? row.shipping_address_source
+        : undefined,
+    fulfillment: row.fulfillment ? (row.fulfillment as Attempt["fulfillment"]) : undefined,
     checks: verificationChecks(row),
     request: {
       signed: verification.agent_signature === true,

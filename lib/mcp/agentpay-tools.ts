@@ -12,6 +12,7 @@ import { isIdentityVerified } from "@/lib/didit";
 import type {
   AgentPayCatalogProduct,
   AgentPayMerchantManifest,
+  Fulfillment,
   MandateLimits,
   MandateScope,
   MandateValidity,
@@ -31,6 +32,15 @@ import {
   type GuidanceContext,
 } from "@/lib/mcp/guidance";
 import { createPaymentSetupToken } from "@/lib/payment-setup";
+import {
+  formatShippingAddress,
+  isDeliverable,
+  mergeShippingAddress,
+  registeredShippingAddress,
+  SHIPPING_FIELDS,
+  type CustomerProfileRow,
+  type ResolvedShipping,
+} from "@/lib/shipping";
 import { createBearerSupabase } from "@/lib/supabase/bearer";
 import { discoverAgentPayCatalog, discoverAgentPayMerchant, signAgentPayRequest } from "@/sdk";
 
@@ -282,6 +292,61 @@ const descriptionField = z
   .optional()
   .describe("The user's request in their own words. Shown to them on the signing screen so they can check it matches.");
 
+/**
+ * Required on every purchase. Months later, a buyer reading a charge they do not
+ * recognise has the mandate (what was allowed) and the attempt (what was bought)
+ * but nothing about the request that caused it. "I just want it" is a complete
+ * and acceptable answer; an invented business justification is not.
+ */
+const purchaseReasonField = z
+  .string()
+  .trim()
+  .min(3)
+  .max(500)
+  .describe(
+    "Required. Why the user is buying this, in their own words — quote or closely paraphrase their request. A personal reason such as \"I just want it\" is fine; never invent a justification they did not give. Shown to them in the purchase trail and to the merchant when a charge is disputed.",
+  );
+
+const shipToField = z
+  .object({
+    recipient: z.string().trim().min(1).max(120).optional().describe("Defaults to the registered recipient."),
+    line1: z.string().trim().min(1).max(160).describe("Street address."),
+    line2: z.string().trim().max(160).optional(),
+    city: z.string().trim().min(1).max(100),
+    region: z.string().trim().max(100).optional().describe("State, province or region."),
+    postal_code: z.string().trim().min(3).max(20),
+    country_code: z.string().trim().length(2).optional().describe("ISO 3166-1 alpha-2. Defaults to the registered country."),
+    phone: z.string().trim().max(32).optional(),
+    instructions: z.string().trim().max(280).optional().describe("Delivery note, e.g. \"loading dock, ask for the shift lead\"."),
+  })
+  .optional()
+  .describe(
+    "Optional one-off delivery address. Omit it and the order goes to the buyer's registered address, which AgentPay already holds — do not ask for an address you were not given. Send this only when the user said the order goes somewhere else. It applies to this order alone and is never saved to the account.",
+  );
+
+/**
+ * Resolves the address one order ships to: the registered one, or the
+ * registered one with the user's one-off override merged over it.
+ */
+async function resolveShipping(
+  auth: Auth,
+  shipTo: z.infer<typeof shipToField>,
+): Promise<{ shipping: ResolvedShipping } | { missing: string[] }> {
+  const profile = await auth.supabase.from("customer_profiles").select(SHIPPING_FIELDS).maybeSingle();
+  if (profile.error) throw new Error(profile.error.message);
+  const registered = registeredShippingAddress((profile.data as CustomerProfileRow | null) ?? null);
+  if (!shipTo) {
+    return "missing" in registered ? { missing: registered.missing } : { shipping: { address: registered.address, source: "registered" } };
+  }
+  const address = mergeShippingAddress("missing" in registered ? null : registered.address, shipTo);
+  if (!isDeliverable(address)) {
+    // The override was partial and the registered address could not fill the
+    // gaps, so neither address alone is deliverable.
+    return { missing: "missing" in registered ? registered.missing : ["recipient"] };
+  }
+  return { shipping: { address, source: "custom" } };
+}
+
 export function registerAgentPayTools(server: McpServer) {
   server.registerTool(
     "get_account",
@@ -333,19 +398,18 @@ export function registerAgentPayTools(server: McpServer) {
       }));
       const identityReady = isIdentityVerified(identityVerification);
       const verificationUrl = `${auth.origin}/account`;
+      const registered = registeredShippingAddress((profile.data as CustomerProfileRow | null) ?? null);
       const orderProfile = profile.data
         ? {
             ...profile.data,
             compliance_ready: Boolean(profile.data.legal_name && profile.data.tax_id),
-            fulfillment_ready: Boolean(
-              profile.data.address_line1 &&
-                profile.data.city &&
-                profile.data.region &&
-                profile.data.postal_code &&
-                profile.data.country_code,
-            ),
+            fulfillment_ready: !("missing" in registered),
+            // The address every order defaults to. An agent that has this never
+            // needs to ask a chat participant where to send someone's parcel.
+            registered_shipping_address: "missing" in registered ? null : registered.address,
+            missing_address_fields: "missing" in registered ? registered.missing : [],
             sharing_note:
-              "Use this personal data only for a checkout the user explicitly requested, and share only the fields the merchant needs.",
+              "Use this personal data only for a checkout the user explicitly requested, and share only the fields the merchant needs. Pass ship_to on purchase only when the user says this order goes somewhere else; it applies to that order alone.",
           }
         : null;
       const mandateViews = mandateRows.map((row) => mandateView(row, null, auth.origin));
@@ -763,11 +827,15 @@ export function registerAgentPayTools(server: McpServer) {
     {
       title: "Check a purchase before making it",
       description:
-        "Dry run. Evaluates the exact product against the mandate's live status, scope, limits and remaining budget without contacting the merchant's checkout and without recording an attempt. Call it before purchase; if it says refused, follow remedy and next_tool instead of trying purchase repeatedly.",
+        "Dry run. Evaluates the exact product against the mandate's live status, scope, limits and remaining budget without contacting the merchant's checkout and without recording an attempt. It also confirms the order has a deliverable address. Call it before purchase; if it says refused, follow remedy and next_tool instead of trying purchase repeatedly.",
       inputSchema: z.object({
         mandate_id: z.uuid(),
         merchant_url: z.url().describe("The same store URL you gave find_products."),
         product_id: z.string().min(1).describe("Exact products[].product_id from find_products."),
+        purchase_reason: purchaseReasonField.optional().describe(
+          "Optional here, required on purchase. Pass it so the returned purchase_args are ready to use verbatim.",
+        ),
+        ship_to: shipToField,
       }),
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true, idempotentHint: true },
     },
@@ -777,7 +845,14 @@ export function registerAgentPayTools(server: McpServer) {
       const manifest = await discoverAgentPayMerchant(manifestUrlFor(input.merchant_url, auth.origin));
       const merchant = { id: manifest.merchant.id, name: manifest.merchant.name };
       const identity = await loadLatestIdentityVerification(auth.supabase);
-      const purchaseArgs = { mandate_id: input.mandate_id, merchant_url: input.merchant_url, product_id: input.product_id };
+      const shipping = await resolveShipping(auth, input.ship_to);
+      const purchaseArgs = {
+        mandate_id: input.mandate_id,
+        merchant_url: input.merchant_url,
+        product_id: input.product_id,
+        purchase_reason: input.purchase_reason ?? "<why the user wants this, in their own words>",
+        ...(input.ship_to ? { ship_to: input.ship_to } : {}),
+      };
 
       const respond = (
         wouldBe: "approved" | "escalated" | "refused",
@@ -800,6 +875,11 @@ export function registerAgentPayTools(server: McpServer) {
             product,
             merchant,
             mandate: { mandate_id: row.id, status: view.status, remaining: view.remaining, scope: row.scope, limits: row.limits },
+            ships_to: "missing" in shipping ? null : shipping.shipping.address,
+            shipping_address_source: "missing" in shipping ? null : shipping.shipping.source,
+            ...("missing" in shipping
+              ? { missing_address_fields: shipping.missing, address_url: `${auth.origin}/account` }
+              : {}),
             purchase_args: purchaseArgs,
             attempt_recorded: false,
           },
@@ -810,6 +890,7 @@ export function registerAgentPayTools(server: McpServer) {
       };
 
       if (!isIdentityVerified(identity)) return respond("refused", "IDENTITY_VERIFICATION_REQUIRED", null, null);
+      if ("missing" in shipping) return respond("refused", "SHIPPING_ADDRESS_REQUIRED", null, null);
       if (!manifest.catalog_endpoint) {
         return mcpResult(
           {
@@ -868,11 +949,13 @@ export function registerAgentPayTools(server: McpServer) {
     {
       title: "Purchase with AgentPay",
       description:
-        "Buys one product under an active mandate. Sends a signed checkout to the merchant, then makes the final atomic policy decision at the registry. Read the response: approved is done; escalated means send the user approval_url and call purchase again with exception_id; refused includes explanation, remedy and next_tool — follow them rather than retrying. Use products[].product_id from find_products verbatim.",
+        "Buys one product under an active mandate. Sends a signed checkout to the merchant, then makes the final atomic policy decision at the registry. Read the response: approved is done; escalated means send the user approval_url and call purchase again with exception_id; refused includes explanation, remedy and next_tool — follow them rather than retrying. Use products[].product_id from find_products verbatim. purchase_reason is required. The order ships to the buyer's registered address unless you pass ship_to. On approval the response carries fulfillment: the delivery method, the estimated window and the shipping charge — tell the user when it arrives.",
       inputSchema: z.object({
         mandate_id: z.uuid().describe("An active mandate id. Confirm with get_mandate or check_purchase first."),
         merchant_url: z.url().describe("The same store URL you gave find_products."),
         product_id: z.string().min(1).describe("Exact products[].product_id from find_products."),
+        purchase_reason: purchaseReasonField,
+        ship_to: shipToField,
         exception_id: z
           .uuid()
           .optional()
@@ -910,11 +993,26 @@ export function registerAgentPayTools(server: McpServer) {
       }
       if (row.status === "draft") return refuseEarly("MANDATE_DRAFT");
 
+      // The address is settled before the store is contacted: a merchant that
+      // quotes delivery needs it, and an incomplete profile is the buyer's to
+      // fix in the browser, not something to improvise in chat.
+      const resolved = await resolveShipping(auth, input.ship_to);
+      if ("missing" in resolved) {
+        return refuseEarly("SHIPPING_ADDRESS_REQUIRED", {
+          missing_address_fields: resolved.missing,
+          address_url: `${auth.origin}/account`,
+        });
+      }
+      const { address: shippingAddress, source: shippingSource } = resolved.shipping;
+
       const privateKey = await getAgentPrivateKey(auth.supabase, auth.userId, agent.id);
       const checkoutBody = JSON.stringify({
         mandate_id: input.mandate_id,
         merchant_id: manifest.merchant.id,
         product_id: input.product_id,
+        shipping_address: shippingAddress,
+        shipping_address_source: shippingSource,
+        purchase_reason: input.purchase_reason,
         ...(input.exception_id ? { exception_id: input.exception_id } : {}),
       });
       const headers = signAgentPayRequest({
@@ -934,10 +1032,20 @@ export function registerAgentPayTools(server: McpServer) {
         decision?: string;
         reason_code?: string | null;
         product?: { id: string; name?: string; category: string; price_cents: number; currency: string };
+        charge?: { subtotal_cents: number; shipping_cents: number; total_cents: number; currency: string };
+        fulfillment?: Fulfillment;
         checks?: Record<string, boolean>;
         error?: string;
         order_id?: string;
       };
+      // A store that cannot deliver to this address says so before any limit is
+      // spent, so the buyer gets an address to fix rather than a failed order.
+      if (merchantDecision.reason_code === "SHIPPING_ADDRESS_UNSUPPORTED") {
+        return refuseEarly("SHIPPING_ADDRESS_UNSUPPORTED", {
+          ships_to: shippingAddress,
+          merchant_ships_to: manifest.ships_to ?? null,
+        });
+      }
       if (!merchantResponse.ok || !merchantDecision.product) {
         const reasonCode =
           merchantResponse.status === 401
@@ -951,15 +1059,28 @@ export function registerAgentPayTools(server: McpServer) {
           merchant_checks: merchantDecision.checks ?? null,
         });
       }
+      // The mandate is checked against what the buyer is actually charged. A
+      // store on SDK 0.2.0 sends no `charge`, so the product price stands in.
+      const charge = merchantDecision.charge ?? {
+        subtotal_cents: merchantDecision.product.price_cents,
+        shipping_cents: 0,
+        total_cents: merchantDecision.product.price_cents,
+        currency: merchantDecision.product.currency,
+      };
       const final = await auth.supabase.rpc("evaluate_agentpay_checkout", {
         p_mandate_id: input.mandate_id,
         p_agent_id: agent.id,
         p_merchant_id: manifest.merchant.id,
         p_product_id: merchantDecision.product.id,
         p_category: merchantDecision.product.category,
-        p_amount_cents: merchantDecision.product.price_cents,
-        p_currency: merchantDecision.product.currency,
+        p_amount_cents: charge.total_cents,
+        p_currency: charge.currency,
         p_exception_id: input.exception_id ?? null,
+        p_purchase_reason: input.purchase_reason,
+        p_shipping_address: shippingAddress,
+        p_shipping_source: shippingSource,
+        p_shipping_cents: charge.shipping_cents,
+        p_fulfillment: merchantDecision.fulfillment ?? null,
       });
       if (final.error) throw new Error(final.error.message);
       const decision = final.data.decision as "approved" | "escalated" | "refused";
@@ -971,7 +1092,7 @@ export function registerAgentPayTools(server: McpServer) {
           row,
           registry,
           merchant,
-          product: merchantDecision.product,
+          product: { ...merchantDecision.product, price_cents: charge.total_cents, currency: charge.currency },
           approvalId: final.data.approval_id ?? null,
           origin: auth.origin,
         }),
@@ -981,6 +1102,11 @@ export function registerAgentPayTools(server: McpServer) {
         ...guidance,
         merchant,
         product: merchantDecision.product,
+        charge,
+        fulfillment: merchantDecision.fulfillment ?? null,
+        ships_to: shippingAddress,
+        shipping_address_source: shippingSource,
+        purchase_reason: input.purchase_reason,
         merchant_checks: merchantDecision.checks,
         merchant_order_id: merchantDecision.order_id ?? null,
         payment_mode: "mock",
@@ -993,10 +1119,13 @@ export function registerAgentPayTools(server: McpServer) {
           : {}),
         mandate: mandateView(row, registry, auth.origin),
       };
-      const price = formatMoney(merchantDecision.product.price_cents, merchantDecision.product.currency);
+      const total = formatMoney(charge.total_cents, charge.currency);
+      const shippingNote = merchantDecision.fulfillment
+        ? ` ${charge.shipping_cents > 0 ? `${formatMoney(charge.shipping_cents, charge.currency)} of that is delivery.` : "Delivery is free."} ${merchantDecision.fulfillment.method} to ${shippingSource === "custom" ? "the address the user gave" : "the registered address"} (${formatShippingAddress(shippingAddress)}), arriving ${merchantDecision.fulfillment.estimated_delivery.text}.`
+        : "";
       const narration =
         decision === "approved"
-          ? `Purchase approved: ${merchantDecision.product.name ?? merchantDecision.product.id} for ${price} at ${merchant.name}. A mock single-use payment token was minted; no real money moved.`
+          ? `Purchase approved: ${merchantDecision.product.name ?? merchantDecision.product.id} for ${total} at ${merchant.name}.${shippingNote} A mock single-use payment token was minted; no real money moved.`
           : decision === "escalated"
             ? `Purchase held for a one-time approval: ${guidance.explanation} Send the user ${result.approval_url}; once they approve, call purchase again with exception_id "${final.data.approval_id}".`
             : `Purchase refused (${final.data.reason_code}): ${guidance.explanation} ${guidance.remedy}`;
