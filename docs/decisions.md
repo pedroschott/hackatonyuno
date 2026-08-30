@@ -143,3 +143,13 @@ The mandate shown in the hero is deliberately static markup rather than live dat
 AgentPay stores every price, mandate limit, attempt and mock payment allowance as exact integer USD cents. It does not fetch exchange rates or compare values across denominations: a merchant product outside USD is refused with `CURRENCY_MISMATCH`.
 
 The forward migration preserves each integer cent amount instead of inventing a one-time exchange rate. Currency is part of the signed mandate artifact, so any active legacy non-USD mandate is revoked and its obsolete authorization material is cleared; the buyer must sign a new USD mandate. Historical audit payloads remain untouched because rewriting them would invalidate the append-only hash chain.
+
+## B2B emergency procurement is the primary demo case
+
+We considered consumer purchases, recurring procurement and emergency operational purchases.
+
+The demo uses an unexpected fleet maintenance event: a vehicle is immobilized, every additional day creates operational cost, and an agent must find the required part from an unfamiliar supplier and complete the purchase quickly.
+
+This scenario demonstrates why agentic purchasing is valuable beyond convenience. The agent can search broadly and act quickly, while AgentPay limits the authority granted to it and keeps the purchase verifiable and auditable.
+
+The rejected primary demo was a simple recurring purchase. It was easier to automate, but did not demonstrate the economic value of discovery, urgency and controlled autonomy as clearly.
