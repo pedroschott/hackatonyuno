@@ -1,7 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 
 import { ensureAgent } from "@/lib/data";
-import type { Data, AgentState } from "@/lib/engine";
+import { latestHeldMandate, type Data, type AgentState } from "@/lib/engine";
 import { authenticatedRequest } from "@/lib/http";
 import { seedMerchants, seedProducts } from "@/lib/seed";
 import type {
@@ -201,10 +201,7 @@ export async function loadAuthenticatedState(): Promise<{ state: Data; user: Use
   const mappedApprovals = ((approvals.data ?? []) as Array<Record<string, unknown>>).map((row) =>
     mapApproval(row, mappedAttempts),
   );
-  const current =
-    mappedMandates.find((mandate) => mandate.status === "active") ??
-    mappedMandates.find((mandate) => mandate.status === "draft") ??
-    null;
+  const current = latestHeldMandate(mappedMandates) ?? null;
 
   return {
     user,

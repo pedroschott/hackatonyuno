@@ -48,6 +48,7 @@ export type TestPaymentScenario =
   | 'captured'
   | 'declined'
   | 'authorization_pending'
+  | 'authorization_blocked'
   | 'capture_failed';
 
 export type TestQuoteInput = {
@@ -289,11 +290,26 @@ export class InMemoryTaxonomyNormalizer implements TaxonomyNormalizer {
 
 export class TestPaymentVault implements PaymentVaultClient {
   readonly calls: Array<'authorize' | 'status' | 'capture' | 'void'> = [];
+  readonly authorizationStarted: Promise<void>;
+  private resolveAuthorizationStarted!: () => void;
+  private readonly authorizationRelease: Promise<void>;
+  private resolveAuthorizationRelease!: () => void;
 
-  constructor(private scenario: TestPaymentScenario) {}
+  constructor(private scenario: TestPaymentScenario) {
+    this.authorizationStarted = new Promise((resolve) => {
+      this.resolveAuthorizationStarted = resolve;
+    });
+    this.authorizationRelease = new Promise((resolve) => {
+      this.resolveAuthorizationRelease = resolve;
+    });
+  }
 
   setScenario(scenario: TestPaymentScenario): void {
     this.scenario = scenario;
+  }
+
+  releaseAuthorization(): void {
+    this.resolveAuthorizationRelease();
   }
 
   async authorize(input: {
@@ -305,6 +321,10 @@ export class TestPaymentVault implements PaymentVaultClient {
     idempotencyKey: string;
   }): Promise<PaymentAuthorizationResult> {
     this.calls.push('authorize');
+    this.resolveAuthorizationStarted();
+    if (this.scenario === 'authorization_blocked') {
+      await this.authorizationRelease;
+    }
     if (this.scenario === 'declined') {
       return { kind: 'declined', reasonCode: 'TEST_CARD_DECLINED' };
     }

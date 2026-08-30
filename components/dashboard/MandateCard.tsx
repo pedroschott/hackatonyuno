@@ -16,6 +16,8 @@ export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?:
   const revoke = useStore((s) => s.revokeMandate);
   const updateLimits = useStore((s) => s.updateLimits);
   const [confirming, setConfirming] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -60,13 +62,23 @@ export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?:
               <Button
                 size="sm"
                 variant="dangerSolid"
-                onClick={() => {
-                  revoke(mandate.id, actor);
-                  setConfirming(false);
+                loading={revoking}
+                onClick={async () => {
+                  setRevoking(true);
+                  setRevokeError(null);
+                  try {
+                    await revoke(mandate.id, actor);
+                    setConfirming(false);
+                  } catch (cause) {
+                    setRevokeError(cause instanceof Error ? cause.message : "Revocation failed");
+                  } finally {
+                    setRevoking(false);
+                  }
                 }}
               >
                 Revoke now
               </Button>
+              {revokeError && <span className="w-full text-[12px] text-danger-ink">{revokeError}</span>}
             </div>
           )}
         </div>

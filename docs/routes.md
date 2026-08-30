@@ -39,7 +39,7 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | `GET` | `/api/account` | Safe account and payment-method display metadata. |
 | `POST` | `/api/agent` | Register or update the connected agent. |
 | `POST` | `/api/cards` | Save non-sensitive payment-method display metadata and an opaque mock-vault reference. |
-| `POST` | `/api/checkout` | Execute the legacy demo checkout path. |
+| `POST` | `/api/checkout` | Execute the deployed demo checkout path. The dashboard trial may request a bounded pre-settlement revocation window; the final database decision always rechecks live mandate state. |
 | `GET`, `POST` | `/api/mandates` | List mandates or create a draft mandate. |
 | `GET` | `/api/mandates/:id` | Read a mandate. |
 | `GET`, `POST` | `/api/mandates/:id/authorize` | Fetch a passkey challenge or authorize the mandate. |
