@@ -97,7 +97,7 @@ npm run sdk:build
 npm run sdk:pack
 ```
 
-The complete integration guide is the documentation site at [`/docs`](https://agentpay-yuno.vercel.app/docs) — quickstart, installation, discovery, checkout, framework recipes, testing, the SDK and protocol reference, and troubleshooting. [docs/merchant-sdk.md](docs/merchant-sdk.md) is the short version for readers browsing this repository.
+The complete integration guide is the documentation site at [`/docs`](https://agentpay-yuno.vercel.app/docs) — including a comprehensive prompt that merchants can paste into a coding agent to adapt, implement, test, and document the integration in their own store. It also covers quickstart, installation, discovery, checkout, framework recipes, testing, the SDK and protocol reference, and troubleshooting. [docs/merchant-sdk.md](docs/merchant-sdk.md) is the short version for readers browsing this repository.
 
 The supported live-store endpoint is [`/api/stores`](https://agentpay-yuno.vercel.app/api/stores). It intentionally returns no stores until a real HTTPS merchant completes discovery verification and explicitly opts into public listing. Hosted mocks remain unlisted test fixtures.
 
