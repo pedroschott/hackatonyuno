@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { canonicalJson } from "@/lib/canonical-json";
+import { selectPaymentCard } from "@/lib/cards";
 import {
   decodePemEnvironment,
   decryptSecret,
@@ -19,8 +20,29 @@ export type AgentRecord = {
   public_key: string;
 };
 
+export type OwnedCardRecord = {
+  id: string;
+  brand: "mastercard" | "visa";
+  last4: string;
+  label: string | null;
+  is_default: boolean;
+  created_at: string;
+};
+
 function throwOnError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
+}
+
+export async function getOwnedPaymentCard(
+  supabase: SupabaseClient,
+  explicitCardId?: string,
+): Promise<OwnedCardRecord | null> {
+  const result = await supabase
+    .from("vault_cards")
+    .select("id, brand, last4, label, is_default, created_at")
+    .order("created_at", { ascending: true });
+  throwOnError(result.error);
+  return selectPaymentCard((result.data ?? []) as OwnedCardRecord[], explicitCardId);
 }
 
 export async function ensureAgent(supabase: SupabaseClient, userId: string): Promise<AgentRecord> {

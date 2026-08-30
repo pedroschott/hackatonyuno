@@ -20,9 +20,12 @@ sequenceDiagram
     Auth->>User: AgentPay sign-in and consent screen
     User->>AgentPay: Create account/passkey if needed
     Auth-->>Agent: Access token
+    Agent->>AgentPay: get_account
+    AgentPay-->>Agent: Order profile + saved-card metadata + default
     Agent->>AgentPay: create_mandate
     AgentPay->>Registry: Save draft mandate
     AgentPay-->>Agent: approval_url
+    User->>AgentPay: Review or switch the draft's saved card
     User->>AgentPay: Approve mandate with passkey
     AgentPay->>Registry: Verify WebAuthn and co-sign active mandate
     Agent->>AgentPay: purchase
@@ -46,4 +49,5 @@ Checkout settlement and revocation use the same per-mandate transaction lock. A 
 - Supabase Auth owns user sessions and OAuth grants. AgentPay stores WebAuthn public credentials, never private passkey material.
 - The registry signs canonical mandates and exposes only the exact signed records required for merchant verification.
 - The store owns products, discovery and checkout. The SDK checks live revocation on every purchase.
-- The payment rail is the only mocked boundary. The mock token is issued only after the real authorization and enforcement path succeeds.
+- The payment rail is the only mocked boundary. The mock token is issued only after the real authorization and enforcement path succeeds and is bound to the card ID inside the signed mandate.
+- Compliance and delivery fields are user-owned RLS data. They are available only through the authenticated account/MCP connection and never enter public registry projections or payment tokens.

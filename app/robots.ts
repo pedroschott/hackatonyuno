@@ -15,6 +15,7 @@ export default function robots(): MetadataRoute.Robots {
         "/oauth/",
         "/dashboard",
         "/activity",
+        "/account",
         "/audit",
         "/payment-methods/",
         "/m/",

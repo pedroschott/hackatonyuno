@@ -1,7 +1,12 @@
 import type { McpServer, ServerContext } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
-import { appendAudit, ensureAgent, getAgentPrivateKey } from "@/lib/data";
+import {
+  appendAudit,
+  ensureAgent,
+  getAgentPrivateKey,
+  getOwnedPaymentCard,
+} from "@/lib/data";
 import { agentPayBaseUrl } from "@/lib/env";
 import { createPaymentSetupToken } from "@/lib/payment-setup";
 import { createBearerSupabase } from "@/lib/supabase/bearer";
@@ -33,15 +38,21 @@ async function createMandate(input: {
   cumulativeCents: number;
   maxUses: number;
   expiresAt: string;
-  vaultCardId: string;
+  vaultCardId?: string;
 }, ctx: ServerContext) {
   const auth = authContext(ctx);
   if (input.cumulativeCents < input.perPurchaseCents) {
     throw new Error("The cumulative limit must be at least the per-purchase limit");
   }
   if (new Date(input.expiresAt) <= new Date()) throw new Error("Expiry must be in the future");
-  const card = await auth.supabase.from("vault_cards").select("id").eq("id", input.vaultCardId).single();
-  if (card.error) throw new Error("The selected card was not found in this AgentPay account");
+  const card = await getOwnedPaymentCard(auth.supabase, input.vaultCardId);
+  if (!card) {
+    throw new Error(
+      input.vaultCardId
+        ? "The selected card was not found in this AgentPay account"
+        : "No saved card is available. Ask the user to complete payment setup first",
+    );
+  }
   const agent = await ensureAgent(auth.supabase, auth.userId);
   const created = await auth.supabase
     .from("mandates")
@@ -57,7 +68,7 @@ async function createMandate(input: {
         currency: "BRL",
       },
       validity: { not_before: new Date().toISOString(), expires_at: input.expiresAt },
-      payment: { vault_card_id: input.vaultCardId },
+      payment: { vault_card_id: card.id },
     })
     .select("*")
     .single();
@@ -66,12 +77,20 @@ async function createMandate(input: {
     source: "mcp",
     scope: created.data.scope,
     limits: created.data.limits,
+    payment_method_id: card.id,
   });
   return {
     mandate_id: created.data.id,
     status: created.data.status,
     authorization_url: `${auth.origin}/m/mandates/${created.data.id}`,
     mandate: created.data,
+    selected_card: {
+      id: card.id,
+      brand: card.brand,
+      last4: card.last4,
+      label: card.label,
+      is_default: card.is_default,
+    },
   };
 }
 
@@ -86,18 +105,66 @@ export function registerAgentPayTools(server: McpServer) {
     },
     async (_input, ctx) => {
       const auth = authContext(ctx);
-      const [cards, mandates, approvals] = await Promise.all([
-        auth.supabase.from("vault_cards").select("id, brand, last4, created_at").order("created_at"),
-        auth.supabase.from("mandates").select("id, status, scope, limits, validity, agent_id").order("created_at", { ascending: false }),
+      const [profile, cards, mandates, approvals, attempts] = await Promise.all([
+        auth.supabase
+          .from("customer_profiles")
+          .select("legal_name, tax_id, phone, address_line1, address_line2, city, region, postal_code, country_code, updated_at")
+          .maybeSingle(),
+        auth.supabase
+          .from("vault_cards")
+          .select("id, brand, last4, label, is_default, created_at")
+          .order("is_default", { ascending: false })
+          .order("created_at"),
+        auth.supabase.from("mandates").select("id, status, scope, limits, validity, agent_id, payment").order("created_at", { ascending: false }),
         auth.supabase.from("approvals").select("id, mandate_id, attempt_id, status, created_at").eq("status", "pending"),
+        auth.supabase
+          .from("attempts")
+          .select("mandate_id, decision, created_at")
+          .eq("decision", "approved")
+          .order("created_at", { ascending: false }),
       ]);
-      const error = cards.error ?? mandates.error ?? approvals.error;
+      const error = profile.error ?? cards.error ?? mandates.error ?? approvals.error ?? attempts.error;
       if (error) throw new Error(error.message);
-      const cardRows = cards.data ?? [];
       const mandateRows = mandates.data ?? [];
+      const cardRows = (cards.data ?? []).map((card) => {
+        const mandateIds = new Set(
+          mandateRows
+            .filter((mandate) => {
+              const payment = mandate.payment as { vault_card_id?: string } | null;
+              return payment?.vault_card_id === card.id;
+            })
+            .map((mandate) => mandate.id),
+        );
+        const uses = (attempts.data ?? []).filter((attempt) => mandateIds.has(attempt.mandate_id));
+        return {
+          ...card,
+          successful_purchase_count: uses.length,
+          last_used_at: uses[0]?.created_at ?? null,
+        };
+      });
       const approvalRows = approvals.data ?? [];
+      const orderProfile = profile.data
+        ? {
+            ...profile.data,
+            compliance_ready: Boolean(profile.data.legal_name && profile.data.tax_id),
+            fulfillment_ready: Boolean(
+              profile.data.address_line1 &&
+                profile.data.city &&
+                profile.data.region &&
+                profile.data.postal_code &&
+                profile.data.country_code
+            ),
+            sharing_note:
+              "Use this personal data only for a checkout the user explicitly requested, and share only the fields the merchant needs.",
+          }
+        : null;
       return mcpResult(
-        { cards: cardRows, mandates: mandateRows, pending_approvals: approvalRows },
+        {
+          order_profile: orderProfile,
+          cards: cardRows,
+          mandates: mandateRows,
+          pending_approvals: approvalRows,
+        },
         cardRows.length === 0
           ? `AgentPay is connected, but no payment method is saved. Call get_payment_setup_link and ask the user to complete the secure AgentPay browser flow. Never ask the user to send a card number, CVC, PIN, bank password, or vault credential in chat.`
           : `AgentPay is connected. Found ${cardRows.length} card(s), ${mandateRows.length} mandate(s), and ${approvalRows.length} pending approval(s).`,
@@ -127,7 +194,8 @@ export function registerAgentPayTools(server: McpServer) {
       const auth = authContext(ctx);
       const cards = await auth.supabase
         .from("vault_cards")
-        .select("id, brand, last4, created_at")
+        .select("id, brand, last4, label, is_default, created_at")
+        .order("is_default", { ascending: false })
         .order("created_at");
       if (cards.error) throw new Error(cards.error.message);
       const { token, expiresAt } = createPaymentSetupToken(auth.userId);
@@ -171,7 +239,7 @@ export function registerAgentPayTools(server: McpServer) {
         cumulative_cents: z.number().int().positive(),
         max_uses: z.number().int().positive().max(100),
         expires_at: z.iso.datetime(),
-        vault_card_id: z.uuid(),
+        vault_card_id: z.uuid().optional(),
       }),
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
     },
@@ -190,7 +258,7 @@ export function registerAgentPayTools(server: McpServer) {
       );
       return mcpResult(
         result,
-        `Draft Intent Mandate ${result.mandate_id} created. Ask the user to authorize it at ${result.authorization_url}.`,
+        `Draft Intent Mandate ${result.mandate_id} created with ${result.selected_card.brand} ending in ${result.selected_card.last4}. Ask the user to review the card picker and authorize it at ${result.authorization_url}.`,
       );
     },
   );

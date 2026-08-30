@@ -16,6 +16,7 @@ export function PaymentMethodSetup({ token }: { token: string }) {
   const [brand, setBrand] = useState<Brand>("visa");
   const [last4, setLast4] = useState("");
   const [label, setLabel] = useState("");
+  const [makeDefault, setMakeDefault] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export function PaymentMethodSetup({ token }: { token: string }) {
       const response = await fetch("/api/cards", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ brand, last4, label, setup_token: token }),
+        body: JSON.stringify({ brand, last4, label, make_default: makeDefault, setup_token: token }),
       });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Could not save the payment method");
@@ -111,6 +112,15 @@ export function PaymentMethodSetup({ token }: { token: string }) {
                     onChange={(event) => setLabel(event.target.value)}
                   />
                 </Field>
+                <label className="flex items-center gap-2 text-[13px] text-ink-2">
+                  <input
+                    type="checkbox"
+                    checked={makeDefault}
+                    onChange={(event) => setMakeDefault(event.target.checked)}
+                    className="size-4 accent-[var(--color-brand)]"
+                  />
+                  Make this my default payment method
+                </label>
                 {message && (
                   <p className="rounded-md bg-danger-soft px-3 py-2 text-[12.5px] text-danger-ink">
                     {message}
@@ -155,6 +165,7 @@ export function PaymentMethodSetup({ token }: { token: string }) {
                   <div key={card.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-[13px]">
                     <CardBrand brand={card.brand} />
                     <span className="font-medium">•••• {card.last4}</span>
+                    {card.isDefault && <Badge tone="brand">Default</Badge>}
                     <span className="text-muted sm:ml-auto">{card.label ?? card.brand}</span>
                   </div>
                 ))}

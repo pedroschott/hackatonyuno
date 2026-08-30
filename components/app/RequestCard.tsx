@@ -12,6 +12,7 @@ import { Qr } from "../Qr";
 import { CardBrand } from "../CardBrand";
 import { PasskeyCeremony } from "../PasskeyCeremony";
 import { agentLabel } from "./agent-label";
+import { MandateCardPicker } from "./MandateCardPicker";
 
 /**
  * An agent has asked for a mandate. It is not an authorization yet: the draft holds no
@@ -62,6 +63,10 @@ export function RequestCard({ mandate }: { mandate: Mandate }) {
             />
           )}
         </dl>
+
+        <div className="mt-4">
+          <MandateCardPicker mandate={mandate} />
+        </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button variant="primary" size="lg" onClick={() => setCeremony(true)}>

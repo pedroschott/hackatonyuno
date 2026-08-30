@@ -9,11 +9,12 @@ import { Logo } from "./Logo";
 import { useHydrated } from "./StoreProvider";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
-// Three places, that is the whole app: which mandates are active, what happened under them, who is connected.
+// Four places: active mandates, their activity, connected agents, and the owner's account setup.
 const TABS = [
   { href: "/dashboard", label: "Summary" },
   { href: "/activity", label: "Activity" },
   { href: "/connect", label: "Agents" },
+  { href: "/account", label: "Account" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

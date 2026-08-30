@@ -1,4 +1,10 @@
-import { appendAudit, ensureAgent, mandateChallenge, mandatePayload } from "@/lib/data";
+import {
+  appendAudit,
+  ensureAgent,
+  getOwnedPaymentCard,
+  mandateChallenge,
+  mandatePayload,
+} from "@/lib/data";
 import { authenticatedRequest } from "@/lib/http";
 import { publicBaseUrl } from "@/lib/server/db";
 import { error, handle, json, mandateLinks, options, readJson } from "@/lib/server/http";
@@ -38,8 +44,6 @@ export async function POST(req: Request) {
     const body = await readJson<Record<string, unknown>>(req);
     const { supabase, user } = await authenticatedRequest();
     const agent = await ensureAgent(supabase, user.id);
-    const cards = await supabase.from("vault_cards").select("id").order("created_at").limit(1);
-    if (cards.error) throw new Error(cards.error.message);
 
     const scopeInput = (body.scope ?? {}) as Partial<MandateScope>;
     const rawLimits = (body.limits ?? {}) as Record<string, unknown>;
@@ -74,9 +78,10 @@ export async function POST(req: Request) {
           ? rawValidity.expires_at
           : new Date(Date.now() + 7 * 86_400_000).toISOString(),
     };
-    const vaultCardId =
-      (typeof body.vault_card_id === "string" ? body.vault_card_id : payment.vault_card_id) ??
-      cards.data?.[0]?.id;
+    const requestedCardId =
+      typeof body.vault_card_id === "string" ? body.vault_card_id : payment.vault_card_id;
+    const selectedCard = await getOwnedPaymentCard(supabase, requestedCardId);
+    const vaultCardId = selectedCard?.id;
 
     if (!scope.merchants.length || !scope.categories.length) {
       return error("At least one merchant and category are required", 400);
@@ -91,14 +96,8 @@ export async function POST(req: Request) {
     if (new Date(validity.expires_at) <= new Date()) {
       return error("Expiry must be in the future", 400);
     }
+    if (requestedCardId && !selectedCard) return error("Payment method not found", 404);
     if (!vaultCardId) return error("Add a payment method before creating a mandate", 400);
-
-    const card = await supabase
-      .from("vault_cards")
-      .select("id")
-      .eq("id", vaultCardId)
-      .single();
-    if (card.error) return error("Payment method not found", 404);
     const requestedBy =
       typeof body.requested_by === "string" ? body.requested_by.slice(0, 120) : user.email ?? "User";
     const via = body.via === "panel" ? "panel" : "api";
@@ -129,6 +128,7 @@ export async function POST(req: Request) {
       scope,
       limits,
       requested_by: requestedBy,
+      payment_method_id: vaultCardId,
     });
 
     const { state } = await loadAuthenticatedState();
