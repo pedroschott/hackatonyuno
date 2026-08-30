@@ -20,7 +20,7 @@ const APPS: App[] = [
   {
     key: "claude",
     name: "Claude",
-    logo: "https://api.iconify.design/game-icons:claw-slashes.svg?color=%23d97757",
+    logo: "https://api.iconify.design/logos:claude-icon.svg",
     logoAlt: "Claude",
     tile: "bg-[#f4eee8]",
     steps: [
