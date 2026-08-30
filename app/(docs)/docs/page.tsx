@@ -21,13 +21,14 @@ Use the live AgentPay merchant documentation as the source of truth:
 Work in the existing project and follow its conventions. First inspect the framework, package manager, product/catalog model, checkout flow, environment-variable conventions, tests, and contributor instructions. Then implement the thinnest complete integration:
 
 1. Install @agentpay/merchant-sdk using the documented AgentPay repository installer. Vendor and commit the generated tarball so CI can reproduce the install. If this store is inside the AgentPay repository, use the documented source import instead.
-2. Add AGENTPAY_MERCHANT_ID and AGENTPAY_REGISTRY_URL to the project's environment example with placeholder values. Use https://agentpay-yuno.vercel.app as the registry URL. Never invent a merchant ID, add a shared merchant secret, or commit credentials. If no assigned mrc_… value is available, leave a clear placeholder and tell me to create or copy it from https://agentpay-yuno.vercel.app/developers.
-3. Publish GET /.well-known/agentpay.json with merchantManifest. Derive the public origin from the request, use the assigned merchant ID and real store name, point checkoutPath to /api/agentpay/checkout, allow cross-origin reads, and apply the documented short public cache policy.
-4. Add POST /api/agentpay/checkout with createAgentPayCheckoutHandler. Keep the exact raw request body intact. Configure the Node runtime where the framework supports runtime selection, keep the route dynamic and uncached, and do not add any bypass header or alternate approval path.
-5. Implement resolveProduct against this store's authoritative server-side catalog. The agent supplies only product_id. Return the store-owned id, merchant_id, name, stable buyer-readable category, integer price_cents, and ISO currency. Return null for missing, unpublished, unavailable, or out-of-stock products. Never trust an amount, currency, category, or merchant supplied by the agent.
-6. Preserve the SDK response for refused and escalated decisions. Move money and fulfil only when decision is exactly approved. If this project already charges a payment provider, connect that existing server-side flow after approval and make it idempotent. If it has no real payment integration, keep the charge mocked and state that limitation instead of inventing one.
-7. Add focused tests for: a valid manifest; an unsigned checkout being rejected with 401 and AGENT_SIGNATURE_INVALID; an unknown product returning 404; and approved, refused, and escalated signed requests using the documented signing helpers and a stubbed registry. Include a live-revocation case if the existing test setup can exercise it without external credentials.
-8. Update the project's integration documentation with setup, environment variables, routes, verification commands, the approved/escalated/refused handling contract, and the mocked-payment limitation if applicable.
+2. Add AGENTPAY_MERCHANT_ID, AGENTPAY_REGISTRY_URL and the server-only AGENTPAY_MERCHANT_KEY to the project's environment example with placeholder values. Use https://agentpay-yuno.vercel.app as the registry URL. Never invent a merchant ID, add a shared merchant secret, or commit credentials. If no assigned mrc_… value or API key is available, leave clear placeholders and tell me to create or copy them from https://agentpay-yuno.vercel.app/developers.
+3. If I provide an AgentPay merchant API key, use it only from server-side code to manage the hosted catalog through https://agentpay-yuno.vercel.app/api/v1/merchants/{merchantId}/products. Add the store's real products with their store-owned names, categories, prices and availability; never put this key in browser code, logs, or Git.
+4. Publish GET /.well-known/agentpay.json with merchantManifest. Derive the public origin from the request, use the assigned merchant ID and real store name, point checkoutPath to /api/agentpay/checkout, allow cross-origin reads, and apply the documented short public cache policy.
+5. Add POST /api/agentpay/checkout with createAgentPayCheckoutHandler. Keep the exact raw request body intact. Configure the Node runtime where the framework supports runtime selection, keep the route dynamic and uncached, and do not add any bypass header or alternate approval path.
+6. Implement resolveProduct against this store's authoritative server-side catalog. The agent supplies only product_id. Return the store-owned id, merchant_id, name, stable buyer-readable category, integer price_cents, and ISO currency. Return null for missing, unpublished, unavailable, or out-of-stock products. Never trust an amount, currency, category, or merchant supplied by the agent.
+7. Preserve the SDK response for refused and escalated decisions. Move money and fulfil only when decision is exactly approved. If this project already charges a payment provider, connect that existing server-side flow after approval and make it idempotent. If it has no real payment integration, keep the charge mocked and state that limitation instead of inventing one.
+8. Add focused tests for: a valid manifest; an unsigned checkout being rejected with 401 and AGENT_SIGNATURE_INVALID; an unknown product returning 404; and approved, refused, and escalated signed requests using the documented signing helpers and a stubbed registry. Include a live-revocation case if the existing test setup can exercise it without external credentials.
+9. Update the project's integration documentation with setup, environment variables, routes, verification commands, the approved/escalated/refused handling contract, and the mocked-payment limitation if applicable.
 
 Run every command and sample you document. Run the project's relevant typecheck, tests, and build in proportion to the change. Fix failures caused by this work, but do not overwrite unrelated changes. At the end, summarize the files changed, verification results, the merchant ID or deployment values I still need to provide, and the exact steps for one end-to-end purchase through AgentPay.`;
 
@@ -91,8 +92,8 @@ export default function Page() {
                   <div className="pt-0.5">
                     <p className="text-[13.5px] font-medium text-ink">Create your account and merchant</p>
                     <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-2">
-                      Open <A href="/developers">AgentPay Developers</A>, create a merchant, and copy its assigned
-                      merchant ID.
+                      Open <A href="/developers">AgentPay Developers</A>, create a merchant, then create and save its
+                      server-side API key alongside the assigned merchant ID.
                     </p>
                   </div>
                 </li>
@@ -101,8 +102,9 @@ export default function Page() {
                   <div className="min-w-0 pt-0.5">
                     <p className="text-[13.5px] font-medium text-ink">Copy the agent prompt</p>
                     <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-2">
-                      Paste it into your coding agent from your store&apos;s project, then give it the merchant ID when it
-                      asks. It covers installation, checkout safety, tests, and documentation.
+                      Paste it into your coding agent from your store&apos;s project, then provide the merchant ID and API
+                      key when it asks. It covers installation, checkout safety, catalog product management, tests, and
+                      documentation.
                     </p>
                   </div>
                 </li>
@@ -115,7 +117,7 @@ export default function Page() {
                 />
               </div>
               <p className="mt-3 pl-9 text-[12.5px] leading-5 text-muted">
-                The prompt deliberately leaves the merchant ID as a placeholder rather than fabricating one.
+                The prompt deliberately leaves the merchant ID and API key as placeholders rather than fabricating them.
               </p>
             </div>
           ),
