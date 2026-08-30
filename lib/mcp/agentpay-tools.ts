@@ -265,6 +265,19 @@ const merchantIdsField = z
   .max(10)
   .optional()
   .describe("Exact mrc_… ids returned by find_products. Never a store name, domain or URL.");
+/**
+ * Merchants charge shipping, handling and tax on top of the listed price, so a mandate set to the
+ * sticker price escalates a purchase over a few dollars of freight. Add ~15%, at least 500 cents,
+ * and round up to a whole unit so the signing screen reads as a round number.
+ */
+const SHIPPING_HEADROOM_RATE = 0.15;
+const MIN_SHIPPING_HEADROOM_CENTS = 500;
+
+export function withShippingHeadroom(priceCents: number): number {
+  const headroom = Math.max(MIN_SHIPPING_HEADROOM_CENTS, Math.ceil(priceCents * SHIPPING_HEADROOM_RATE));
+  return Math.ceil((priceCents + headroom) / 100) * 100;
+}
+
 const categoriesField = z
   .array(z.string().min(1))
   .max(10)
@@ -273,13 +286,17 @@ const perPurchaseField = z
   .number()
   .int()
   .positive()
-  .describe("Maximum price of one purchase in minor units (USD cents). Set it at or above products[].price_cents of what the user wants.");
+  .describe(
+    "Maximum price of one purchase in minor units (USD cents). Never set it to the exact product price: the merchant charges shipping, handling and tax on top of it, and a mandate at the sticker price gets the purchase escalated for a few dollars of freight. Always add headroom above products[].price_cents — roughly 15%, at least 500 cents, rounded up — or use the per_purchase_cents value from find_products' mandate_hint, which already includes it.",
+  );
 const cumulativeField = z
   .number()
   .int()
   .positive()
   .optional()
-  .describe("Monthly total across all purchases, in cents. Defaults to per_purchase_cents × max_uses.");
+  .describe(
+    "Monthly total across all purchases, in cents. Defaults to per_purchase_cents \u00d7 max_uses, which already carries the same shipping headroom as per_purchase_cents. Only raise it further if the user expects more than max_uses purchases.",
+  );
 const maxUsesField = z.number().int().positive().max(100).optional().describe("How many purchases the mandate allows. Defaults to 1.");
 const expiresInDaysField = z
   .number()
@@ -555,7 +572,11 @@ export function registerAgentPayTools(server: McpServer) {
         merchant_ids: [manifest.merchant.id],
         categories: productCategories.length > 0 ? productCategories : catalog.categories,
         currency: catalog.currency,
-        per_purchase_cents: maxPrice || null,
+        max_product_price_cents: maxPrice || null,
+        per_purchase_cents: maxPrice ? withShippingHeadroom(maxPrice) : null,
+        per_purchase_note: maxPrice
+          ? `Includes headroom above the ${formatMoney(maxPrice, catalog.currency)} product price for shipping, handling and tax. Do not lower it to the exact price.`
+          : null,
       };
       return mcpResult(
         {
@@ -570,10 +591,12 @@ export function registerAgentPayTools(server: McpServer) {
           next_step:
             catalog.products.length === 0
               ? "No product matched. Retry with a broader query, another category from `categories`, or a higher max_price_cents."
-              : "Confirm the product with the user. If no active mandate covers this merchant and category, call create_mandate with mandate_hint. Then check_purchase and purchase with products[].product_id verbatim.",
+              : "Confirm the product with the user. If no active mandate covers this merchant and category, call create_mandate with mandate_hint as given: its per_purchase_cents is deliberately above the product price so shipping, handling and tax do not escalate the purchase. Then check_purchase and purchase with products[].product_id verbatim.",
         },
         `Found ${catalog.products.length} of ${catalog.total} matching product(s) at ${manifest.merchant.name} (${manifest.merchant.id}), priced in ${catalog.currency} cents. Use products[].product_id verbatim. A mandate for this store needs merchant_urls ["${input.merchant_url}"] and categories from ${JSON.stringify(mandateHint.categories)}${
-          maxPrice ? `, with per_purchase_cents at least ${maxPrice} (${formatMoney(maxPrice, catalog.currency)})` : ""
+          maxPrice
+          ? `, with per_purchase_cents ${mandateHint.per_purchase_cents} (${formatMoney(mandateHint.per_purchase_cents as number, catalog.currency)}) rather than the bare ${formatMoney(maxPrice, catalog.currency)} product price, so shipping, handling and tax fit under the limit`
+          : ""
         }.`,
       );
     },
@@ -584,7 +607,7 @@ export function registerAgentPayTools(server: McpServer) {
     {
       title: "Create purchase mandate",
       description:
-        "Use this after find_products, when the user has described what may be bought and within which limits. Creates an unsigned draft and returns the authorization_url the user must open to sign with their passkey. Validation happens here: an unknown merchant or a category the store does not sell fails now, not at purchase time. Never create a second mandate while a draft for the same request is waiting.",
+        "Use this after find_products, when the user has described what may be bought and within which limits. Creates an unsigned draft and returns the authorization_url the user must open to sign with their passkey. Validation happens here: an unknown merchant or a category the store does not sell fails now, not at purchase time. Always set per_purchase_cents above the product price, never equal to it: shipping, handling and tax are charged on top, and a mandate at the sticker price escalates the purchase over a few dollars of freight. Prefer the per_purchase_cents from find_products' mandate_hint, which already carries that headroom, and add more when the user expects heavy or express shipping. Never create a second mandate while a draft for the same request is waiting.",
       inputSchema: z.object({
         merchant_urls: merchantUrlsField,
         merchant_ids: merchantIdsField,
@@ -686,7 +709,7 @@ export function registerAgentPayTools(server: McpServer) {
     {
       title: "Amend a mandate (widen scope, raise limits, extend expiry)",
       description:
-        "Use this instead of revoke_mandate when a purchase was refused with MERCHANT_NOT_IN_SCOPE, CATEGORY_NOT_IN_SCOPE, CUMULATIVE_EXCEEDED or USES_EXCEEDED, or when the user wants to change what the mandate allows. An unsigned draft is edited in place. A signed mandate is immutable, so this proposes a replacement that carries everything forward plus your changes; the user signs it once and the old mandate is revoked automatically at that moment, never earlier.",
+        "Use this instead of revoke_mandate when a purchase was refused with MERCHANT_NOT_IN_SCOPE, CATEGORY_NOT_IN_SCOPE, CUMULATIVE_EXCEEDED or USES_EXCEEDED, or when the user wants to change what the mandate allows. Raising per_purchase_cents is also the fix when a purchase escalated because shipping pushed the total over the limit; raise it with headroom to spare rather than to the exact total that failed. An unsigned draft is edited in place. A signed mandate is immutable, so this proposes a replacement that carries everything forward plus your changes; the user signs it once and the old mandate is revoked automatically at that moment, never earlier.",
       inputSchema: z.object({
         mandate_id: z.uuid().describe("The mandate to amend, from get_account or get_mandate."),
         add_merchant_urls: merchantUrlsField,

@@ -223,3 +223,11 @@ This is why the product is a mandate registry and not a shopping assistant. The 
 Its one real limit is the passkey: the app offers registration only while an account holds none, so the first device to register a passkey for the shared account is the only one that can sign for it, and the README says so.
 
 The rejected alternative was a demo account pre-loaded with an approved identity decision and a saved card. It would have saved two minutes and cost the property a payments console cannot afford to lose: that what is on the screen was actually enforced, and can be checked.
+
+## Mandate limits carry shipping headroom, not the sticker price
+
+An agent that read `price_cents` from the catalog and passed it straight to `create_mandate` produced a mandate that was correct on paper and useless in practice: the merchant charged shipping, handling and tax on top, the total exceeded `per_purchase_cents`, and the purchase escalated for a few dollars of freight — a second passkey prompt for the user on a purchase they had already authorized.
+
+We rejected teaching the policy engine to allow a percentage overshoot at purchase time. The limit the user signs must be the limit that is enforced; a hidden tolerance would mean the signing screen understates what can be charged. Instead the headroom is added before signing, where the user can see it: `find_products` returns a `mandate_hint.per_purchase_cents` of roughly the product price plus 15%, at least 500 cents, rounded up to a whole unit, alongside `max_product_price_cents` and a note explaining the gap. The MCP server instructions and the `create_mandate`, `per_purchase_cents` and `cumulative_cents` descriptions all state that the limit must sit above the price, never equal to it.
+
+The rate is a heuristic, not a shipping quote: AgentPay does not know the merchant's freight table. Heavy or express shipping still needs a larger limit, and an escalation remains the correct outcome when the total genuinely exceeds what the user approved.
