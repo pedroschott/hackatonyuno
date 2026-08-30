@@ -24,7 +24,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The merchant console uses the publishable Supabase key for authenticated, RLS-protected developer work. `SUPABASE_SECRET_KEY` is server-only and is used exclusively to persist a live-domain verification result after the server fetches and validates the merchant discovery document. Never prefix it with `NEXT_PUBLIC_` or expose it to browser code.
+The merchant console uses the publishable Supabase key for authenticated, RLS-protected developer work. `MERCHANT_VERIFICATION_SECRET` is a dedicated server-only proof used after AgentPay fetches and validates a live merchant discovery document. Generate it with `openssl rand -hex 32`, keep it identical in the Vercel environment and the hashed Supabase verification configuration, and never expose it to browser code. The deployed project is already configured.
 
 Open http://localhost:3210 for the landing page, or http://localhost:3210/dashboard for the app. A new account starts empty: nothing can be charged until an agent requests a mandate and you sign it. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
 

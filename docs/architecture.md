@@ -55,6 +55,6 @@ Checkout settlement and revocation use the same per-mandate transaction lock. A 
 - The registry signs canonical mandates and exposes only the exact signed records required for merchant verification.
 - The store owns products, discovery and checkout. The SDK checks live revocation on every purchase.
 - The merchant console owns onboarding, not purchase authority. Supabase RLS binds each merchant, catalog, API-key hash and merchant-side attempt view to its developer owner. Hosted test stores are immediately usable but never publicly listed.
-- Developer SQL privileges cannot write `agent_ready` or verification columns. Live verification is fetched server-side with SSRF protections, then only the server-only Supabase secret client records the result; changing a live store URL automatically clears verification and public listing.
+- Developer SQL privileges cannot write `agent_ready` or verification columns. Live verification is fetched server-side with SSRF protections, then a narrowly scoped owner-bound function requires AgentPay's server-only proof before recording the result; changing a live store URL automatically clears verification and public listing.
 - The payment rail is the only mocked boundary. The mock token is issued only after the real authorization and enforcement path succeeds and is bound to the card ID inside the signed mandate.
 - Compliance and delivery fields are user-owned RLS data. They are available only through the authenticated account/MCP connection and never enter public registry projections or payment tokens.

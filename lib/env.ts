@@ -11,8 +11,8 @@ export function publicSupabaseEnv() {
   };
 }
 
-export function supabaseSecretKey(): string {
-  return required("SUPABASE_SECRET_KEY");
+export function merchantVerificationSecret(): string {
+  return required("MERCHANT_VERIFICATION_SECRET");
 }
 
 export function agentPayBaseUrl(requestUrl?: string): string {
