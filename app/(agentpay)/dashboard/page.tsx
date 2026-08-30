@@ -11,6 +11,7 @@ import { ApprovalCard, DecidedApprovalRow } from "@/components/dashboard/Approva
 import { AttemptFeed } from "@/components/dashboard/AttemptFeed";
 import { AgentPanel } from "@/components/dashboard/AgentPanel";
 import { PendingDraftCard, PhoneQrButton } from "@/components/dashboard/PendingDraftCard";
+import { ConnectedStores } from "@/components/dashboard/ConnectedStores";
 import { timeShort } from "@/lib/format";
 
 export default function DashboardPage() {
@@ -91,6 +92,8 @@ export default function DashboardPage() {
               )}
             </section>
           )}
+
+          <ConnectedStores />
 
           {others.length > 0 && (
             <Card>

@@ -386,6 +386,28 @@ export type SigningKey = {
   privateJwk: JWK;
 };
 
+export type RecurrenceRunSummary = {
+  recurrenceRunId: string;
+  mandateId: string;
+  scheduleSlot?: string;
+  status: 'completed' | 'skipped' | 'failed' | 'approval_pending' | 'due' | 'processing';
+  reasonCode?: string;
+  paymentOperationId?: string;
+};
+
+export type RecurrenceTickResult = {
+  ok: true;
+  executedCount: number;
+  runs: ReadonlyArray<RecurrenceRunSummary>;
+};
+
+export interface RecurrenceScheduler {
+  tick(input: { now: Date }): Promise<{
+    executedCount: number;
+    runs: ReadonlyArray<RecurrenceRunSummary>;
+  }>;
+}
+
 export type MandateApiOptions = {
   agentAuthenticator: AgentRequestAuthenticator;
   merchantAuthenticator: MerchantRequestAuthenticator;
@@ -404,6 +426,8 @@ export type MandateApiOptions = {
   now: () => Date;
   idGenerator: (prefix: string) => string;
   capabilityTtlMs?: number;
+  schedulerBearerSecret?: string;
+  recurrenceScheduler?: RecurrenceScheduler;
 };
 
 export type MerchantVerificationOutcome = {

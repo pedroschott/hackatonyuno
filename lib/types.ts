@@ -19,6 +19,13 @@ export type Merchant = {
   name: string;
   category: string;
   agentReady: boolean;
+  slug?: string;
+  vertical?: string;
+  storefront_url?: string;
+  discovery_url?: string;
+  currency?: string;
+  display_status?: "active" | "inactive";
+  supported_canonical_categories?: string[];
 };
 
 export type Product = {

@@ -10,7 +10,13 @@ import { Badge, Button, Card, Mono } from "../ui";
 import { Qr } from "../Qr";
 import { PasskeyCeremony } from "../PasskeyCeremony";
 
-const MERCHANT_NAME: Record<string, string> = { mrc_autoparts: "AutoParts", mrc_pneufast: "PneuFast" };
+const MERCHANT_NAME: Record<string, string> = {
+  mrc_autoparts: "AutoParts",
+  mrc_harvest_market: "Harvest Market",
+  mrc_city_basket: "City Basket",
+  mrc_mare_botanicals: "Maré Botanicals",
+  mrc_pneufast: "PneuFast",
+};
 
 export function PendingDraftCard({ mandate }: { mandate: Mandate }) {
   const base = useStore((s) => s.publicBaseUrl);

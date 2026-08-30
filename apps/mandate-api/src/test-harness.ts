@@ -89,6 +89,8 @@ export async function createMandateApiTestHarness(options: {
   minimumMerchantTrustTier?: MerchantTrustTier;
   merchantATrustTier?: MerchantTrustTier;
   merchantBTrustTier?: MerchantTrustTier;
+  schedulerBearerSecret?: string;
+  recurrenceScheduler?: import('./types.js').RecurrenceScheduler;
   now?: string;
 } = {}): Promise<MandateApiTestHarness> {
   const clock = new MutableClock(options.now ?? TEST_NOW);
@@ -157,6 +159,8 @@ export async function createMandateApiTestHarness(options: {
     },
     now: clock.now,
     idGenerator: (prefix) => `${prefix}${++idCounter}`,
+    schedulerBearerSecret: options.schedulerBearerSecret,
+    recurrenceScheduler: options.recurrenceScheduler,
   };
 
   return {

@@ -322,6 +322,59 @@ describe('Mandate API critical authorization circuit', () => {
       error: { code: 'REQUEST_TOO_LARGE' },
     });
   });
+
+  it('protects recurrence tick with schedulerBearerSecret and returns executed runs', async () => {
+    const harness = await createMandateApiTestHarness({
+      schedulerBearerSecret: 'secret_scheduler_123',
+      recurrenceScheduler: {
+        tick: async () => ({
+          executedCount: 1,
+          runs: [
+            {
+              recurrenceRunId: 'run_123',
+              mandateId: 'mnd_abc',
+              status: 'completed' as const,
+              paymentOperationId: 'op_xyz',
+            },
+          ],
+        }),
+      },
+    });
+
+    // 1. Missing or invalid auth header -> 401
+    const unauth = await harness.app.request('/internal/v1/recurrence/tick', {
+      method: 'POST',
+    });
+    expect(unauth.status).toBe(401);
+    expect(await unauth.json()).toMatchObject({
+      error: { code: 'ACTOR_NOT_ALLOWED' },
+    });
+
+    const wrongToken = await harness.app.request('/internal/v1/recurrence/tick', {
+      method: 'POST',
+      headers: { authorization: 'Bearer wrong_token' },
+    });
+    expect(wrongToken.status).toBe(401);
+
+    // 2. Valid bearer token -> 200 with result
+    const success = await harness.app.request('/internal/v1/recurrence/tick', {
+      method: 'POST',
+      headers: { authorization: 'Bearer secret_scheduler_123' },
+    });
+    expect(success.status).toBe(200);
+    expect(await success.json()).toEqual({
+      ok: true,
+      executedCount: 1,
+      runs: [
+        {
+          recurrenceRunId: 'run_123',
+          mandateId: 'mnd_abc',
+          status: 'completed',
+          paymentOperationId: 'op_xyz',
+        },
+      ],
+    });
+  });
 });
 
 async function submitIntent(

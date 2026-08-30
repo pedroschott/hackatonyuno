@@ -9,7 +9,13 @@ import { Badge, Button, Card, Meter, Mono } from "../ui";
 import { MandateJson } from "../MandateJson";
 import { cn } from "@/lib/cn";
 
-const MERCHANT_NAME: Record<string, string> = { mrc_autoparts: "AutoParts", mrc_pneufast: "PneuFast" };
+const MERCHANT_NAME: Record<string, string> = {
+  mrc_autoparts: "AutoParts",
+  mrc_harvest_market: "Harvest Market",
+  mrc_city_basket: "City Basket",
+  mrc_mare_botanicals: "Maré Botanicals",
+  mrc_pneufast: "PneuFast",
+};
 
 export function MandateCard({ mandate, card, actor }: { mandate: Mandate; card?: VaultCard; actor: Actor }) {
   const attempts = useStore((s) => s.attempts);

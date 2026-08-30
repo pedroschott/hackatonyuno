@@ -263,6 +263,46 @@ export function createMandateApiApp(options: MandateApiOptions): Hono {
     );
   });
 
+  app.post('/internal/v1/recurrence/tick', async (context) => {
+    const requestId = requestIdFor(context.req.raw, options);
+    const authHeader = context.req.raw.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined;
+
+    if (!options.schedulerBearerSecret || !token || token !== options.schedulerBearerSecret) {
+      return apiError(
+        options,
+        requestId,
+        401,
+        'ACTOR_NOT_ALLOWED',
+        'A valid scheduler bearer token is required.',
+      );
+    }
+
+    try {
+      const outcome = options.recurrenceScheduler
+        ? await options.recurrenceScheduler.tick({ now: options.now() })
+        : { executedCount: 0, runs: [] };
+
+      return jsonResponse(
+        {
+          ok: true,
+          executedCount: outcome.executedCount,
+          runs: outcome.runs,
+        },
+        200,
+      );
+    } catch (error) {
+      console.error('Recurrence tick execution error', error);
+      return apiError(
+        options,
+        requestId,
+        500,
+        'INTERNAL_ERROR',
+        'Recurrence tick failed to execute.',
+      );
+    }
+  });
+
   app.notFound((context) =>
     apiError(
       options,

@@ -14,7 +14,13 @@ import { MandateJson } from "@/components/MandateJson";
 import { CardBrand } from "@/components/dashboard/MandateCard";
 import { KV, StickyActions, Status } from "@/components/mobile/bits";
 
-const MERCHANT_NAME: Record<string, string> = { mrc_autoparts: "AutoParts", mrc_pneufast: "PneuFast" };
+const MERCHANT_NAME: Record<string, string> = {
+  mrc_autoparts: "AutoParts",
+  mrc_harvest_market: "Harvest Market",
+  mrc_city_basket: "City Basket",
+  mrc_mare_botanicals: "Maré Botanicals",
+  mrc_pneufast: "PneuFast",
+};
 
 export default function MandateSheet() {
   const { id } = useParams<{ id: string }>();
