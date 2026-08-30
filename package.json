@@ -12,6 +12,7 @@
     "test:mcp": "node --env-file=.env.local tests/live-mcp-smoke.mjs",
     "sdk:build": "tsup sdk/index.ts --format esm,cjs --dts --out-dir dist/sdk --tsconfig tsconfig.sdk.json && node sdk/release-package.mjs",
     "sdk:pack": "npm run sdk:build && npm pack ./dist/sdk --pack-destination ./dist",
+    "sdk:install": "node scripts/install-sdk.mjs",
     "check": "npm run typecheck && npm run test && npm run sdk:build",
     "tunnel": "bash scripts/tunnel.sh"
   },

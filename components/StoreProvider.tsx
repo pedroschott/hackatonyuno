@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect } from "react";
 import { useStore } from "@/lib/store";
 
@@ -11,8 +12,11 @@ const POLL_MS = 1500;
 /** Server is the source of truth; every panel (desktop, phone, store) polls /api/state. */
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useStore((s) => s.hydrated);
+  // The documentation site is public and reads no account state, so it never polls.
+  const polls = !usePathname().startsWith("/docs");
 
   useEffect(() => {
+    if (!polls) return;
     const refresh = useStore.getState().refresh;
     refresh();
     const id = setInterval(() => {
@@ -26,7 +30,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
-  }, []);
+  }, [polls]);
 
   return <HydratedCtx.Provider value={hydrated}>{children}</HydratedCtx.Provider>;
 }

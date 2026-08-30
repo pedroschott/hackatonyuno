@@ -53,6 +53,7 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | `/connect` | Connect an agent: one button per assistant, one link to paste |
 | `/account` | Compliance, delivery address, saved cards, card usage and default-card controls |
 | `/m` | Phone-first signing inbox and revocation switch, opened by QR from the desktop app |
+| `/docs` | Merchant documentation: install and set up the SDK in a new store |
 | `/store` | Merchant demo with AgentPay checkout verification |
 | `/audit` | Security log: hash-chained record of every decision |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
@@ -72,17 +73,37 @@ The protected-resource metadata is at `/.well-known/oauth-protected-resource/mcp
 
 ## Merchant SDK
 
-Build or pack `@agentpay/merchant-sdk` locally:
+A store integrates AgentPay with two routes: a discovery manifest and a verified checkout endpoint. Install the SDK into a merchant project with one command:
+
+```bash
+npm run sdk:install -- ../my-store
+```
+
+It builds `@agentpay/merchant-sdk`, packs it, copies the tarball into `my-store/vendor/` and installs it there, so the dependency is a relative path the store can commit. To build or pack without installing:
 
 ```bash
 npm run sdk:build
 npm run sdk:pack
 ```
 
-See [docs/merchant-sdk.md](docs/merchant-sdk.md) for store integration.
+The complete integration guide is the documentation site at [`/docs`](https://agentpay-yuno.vercel.app/docs) — quickstart, installation, discovery, checkout, framework recipes, testing, the SDK and protocol reference, and troubleshooting. [docs/merchant-sdk.md](docs/merchant-sdk.md) is the short version for readers browsing this repository.
 
-Architecture and the hackathon tradeoffs are documented in [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md).
-The complete web, MCP, API and V2-service map is in [docs/routes.md](docs/routes.md). Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml`; protocol and authenticated paths are excluded through `/robots.txt`.
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [`/docs`](https://agentpay-yuno.vercel.app/docs) (`app/(docs)/docs/**`) | Merchant-facing guide to installing and setting up the SDK in a new store |
+| [docs/merchant-sdk.md](docs/merchant-sdk.md) | Repository-side summary of the same integration |
+| [docs/architecture.md](docs/architecture.md) | System diagram, trust boundaries and the enforcement path |
+| [docs/decisions.md](docs/decisions.md) | Decision log: trade-offs, rejected alternatives and deliberate limits |
+| [docs/routes.md](docs/routes.md) | Every web, MCP, API and V2-service endpoint |
+| [public/llms.txt](public/llms.txt) | Agent-readable summary of the public surfaces |
+
+The docs site is part of the application, so it deploys with the code it documents. `components/docs/nav.ts` is the single source of truth for the sidebar, search index, page metadata and sitemap entries; a new page is one entry there plus one `page.tsx`.
+
+**Documentation is updated in the same pull request as the code it describes.** `AGENTS.md` carries the table of what to update when, and a pull request that changes behaviour without updating documentation is treated as unfinished.
+
+Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml` — the documentation site included; protocol and authenticated paths are excluded through `/robots.txt`.
 
 ## Supabase
 

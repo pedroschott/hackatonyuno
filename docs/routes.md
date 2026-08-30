@@ -2,6 +2,8 @@
 
 This inventory is the canonical map of the AgentPay web application and the isolated V2 services. It is intentionally more complete than `sitemap.xml`.
 
+The documentation site at `/docs` is public canonical content and is listed in `sitemap.xml`; its pages come from `components/docs/nav.ts`, so adding a docs page updates this inventory's sitemap automatically. Add the route to the table below in the same change.
+
 `sitemap.xml` is for public canonical HTML pages only. It must not enumerate API operations, OAuth/session flows, dynamic approval links, payment setup, MCP transport or registry endpoints. `robots.txt` therefore disallows those paths from generic crawlers; this is crawl guidance, not an authorization mechanism.
 
 ## Public web routes
@@ -11,6 +13,17 @@ This inventory is the canonical map of the AgentPay web application and the isol
 | `/` | Redirects to the authenticated dashboard. It is not a canonical content page. | No | No |
 | `/connect` | Connect an agent: one-click instructions per assistant. | Yes | Allowed |
 | `/store` | Public AutoParts merchant demonstration. | Yes | Allowed |
+| `/docs` | Merchant documentation: introduction and integration overview. | Yes | Allowed |
+| `/docs/quickstart` | Five-step integration for a new store. | Yes | Allowed |
+| `/docs/installation` | SDK requirements, one-command installer and manual install. | Yes | Allowed |
+| `/docs/discovery` | Publishing `/.well-known/agentpay.json`. | Yes | Allowed |
+| `/docs/checkout` | Protecting a checkout route and handling each decision. | Yes | Allowed |
+| `/docs/frameworks` | Route code for Next.js, Hono, Express, Fastify and edge runtimes. | Yes | Allowed |
+| `/docs/testing` | Offline signed-request tests and the live revocation rehearsal. | Yes | Allowed |
+| `/docs/reference` | Exported functions and types of `@agentpay/merchant-sdk`. | Yes | Allowed |
+| `/docs/reference/protocol` | Signed request format and the four registry endpoints. | Yes | Allowed |
+| `/docs/reference/decisions` | Decisions and reason codes. | Yes | Allowed |
+| `/docs/troubleshooting` | Common integration failures and fixes. | Yes | Allowed |
 | `/dashboard` | Account summary: month-to-date charges, active mandates and recent activity. | No | Disallowed |
 | `/activity` | Full purchase-attempt history with the mandate decision on each. | No | Disallowed |
 | `/account` | Compliance and delivery profile plus complete saved-card management. | No | Disallowed |

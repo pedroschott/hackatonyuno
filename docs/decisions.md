@@ -69,3 +69,17 @@ The screens therefore name the object again and explain it once: "Active mandate
 ## No seeded account data
 
 The build shipped with a fictional agent, card, company and pre-authorized mandate so the dashboard looked populated before sign-in. A judge could not tell demo scaffolding from real state, which is the worst property a payments console can have. Agents, cards, mandates, purchases and the audit chain now come only from Supabase for the signed-in user; an empty account renders an empty account. The demo merchant catalogue in `lib/seed.ts` stays, because a store that a real agent buys from has to exist and it is explicitly a merchant fixture, not account data.
+
+## The merchant documentation ships inside the application
+
+A store integrator needs one URL, not a repository tour. `/docs` is a documentation site built from the app's own design system in `app/(docs)/docs/**`, deployed with the code it describes, so a change to `sdk/index.ts` and a change to its documentation land in the same commit and the same deployment. A separate documentation repository or hosted service would have drifted within a day of a hackathon.
+
+`components/docs/nav.ts` is the single source of truth for the sidebar, the client-side search index, page titles and descriptions, previous/next links and `sitemap.xml`. That removes the usual failure mode where a page exists but is unreachable, or is listed twice with two different titles.
+
+There is no MDX pipeline and no syntax-highlighting dependency: pages are TSX using a small prose kit, and the highlighter is a forty-line tokenizer. Content and structure are typechecked with the rest of the app, and the docs add no build step and no runtime dependency.
+
+## The SDK exports its own test helpers
+
+A merchant cannot rehearse an approved purchase without a signed mandate, and could not produce one without canonical JSON and Ed25519 signing. Rather than leave integrators to reverse-engineer both, `@agentpay/merchant-sdk` re-exports `canonicalJson`, `signText`, `signCanonical`, `verifyText`, `generateEd25519KeyPair` and `agentSigningMessage`, plus the registry types. They are generic primitives holding no secret, and they turn "test your integration" from a paragraph of theory into a file a merchant can run offline against a stubbed registry.
+
+`npm run sdk:install -- ../my-store` exists for the same reason: it builds, packs, vendors and installs the package in one step, so the first documented instruction a merchant follows is one command rather than five.

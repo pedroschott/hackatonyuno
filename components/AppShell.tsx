@@ -81,6 +81,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/audit" className="hover:text-ink">
             Security log
           </Link>
+          <Link href="/docs" className="hover:text-ink">
+            Merchant docs
+          </Link>
           <a href="/store" target="_blank" rel="noreferrer" className="hover:text-ink">
             Demo store
           </a>
