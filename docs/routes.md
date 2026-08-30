@@ -14,8 +14,10 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | `/privacy` | Privacy Policy for the AgentPay web application and services. | Yes | Allowed |
 | `/terms` | Terms of Service for the AgentPay web application and services. | Yes | Allowed |
 | `/connect` | Connect an agent: one-click instructions per assistant. | Yes | Allowed |
-| `/store` | Public AutoParts merchant demonstration. | Yes | Allowed |
+| `/store` | Public AutoParts merchant demonstration, server-rendered so every product id and price is in the HTML. | Yes | Allowed |
+| `/store/products/:id` | Canonical AutoParts product page with `agentpay:*` meta tags and JSON-LD carrying the exact product id, merchant id, category and price. | Yes | Allowed |
 | `/docs` | Merchant documentation: introduction and integration overview. | Yes | Allowed |
+| `/docs/agents` | Agent integration: the MCP tool order, what each result means, and how to act on every decision. | Yes | Allowed |
 | `/docs/quickstart` | Six-step integration from merchant registration through checkout verification. | Yes | Allowed |
 | `/docs/installation` | SDK requirements, one-command installer and manual install. | Yes | Allowed |
 | `/docs/stores` | Merchant console, hosted test-store URLs and supported live-store policy. | Yes | Allowed |
@@ -47,14 +49,16 @@ The documentation site at `/docs` is public canonical content and is listed in `
 
 | Method | Endpoint | Consumer | Purpose |
 |---|---|---|---|
-| `GET` | `/.well-known/agentpay.json` | Agent on a merchant domain | Merchant-owned AgentPay manifest for the AutoParts demo. A real merchant publishes its own manifest. |
+| `GET` | `/.well-known/agentpay.json` | Agent on a merchant domain | Merchant-owned AgentPay manifest for the AutoParts demo, advertising its checkout, catalog endpoint, categories and currency. A real merchant publishes its own manifest. |
+| `GET` | `/api/store/catalog` | Agent via `find_products` | AutoParts demo catalog built with `createAgentPayCatalogHandler`. Accepts `q`, `category`, `product_id`, `max_price_cents` and `limit`. |
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource` | MCP client | OAuth protected-resource metadata for AgentPay MCP. |
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource/mcp` | MCP client | Alias of the protected-resource metadata for the MCP endpoint. |
-| `GET`, `POST` | `/mcp` | OAuth-authenticated MCP client | Streamable HTTP MCP server. Exposes `get_account`, `get_payment_setup_link`, `create_mandate`, `get_mandate`, `purchase` and `revoke_mandate`. |
+| `GET`, `POST` | `/mcp` | OAuth-authenticated MCP client | Streamable HTTP MCP server. Exposes `get_account`, `get_payment_setup_link`, `find_products`, `create_mandate`, `amend_mandate`, `get_mandate`, `check_purchase`, `purchase` and `revoke_mandate`. |
 | `GET` | `/api` | Developer or health-style discovery client | JSON description of the AgentPay MCP, OAuth metadata and merchant-discovery model. |
 | `GET` | `/api/stores` | Agent, developer or public client | Opt-in verified live-store IDs, store URLs and discovery URLs. Returns an empty list until a real live merchant qualifies. It contains no product catalog. |
 | `GET` | `/api/stores/:id` | Hosted test-store client | Exact-ID hosted store metadata and active products. |
-| `GET` | `/api/stores/:id/agentpay.json` | Agent testing a hosted store | AgentPay manifest for an exact hosted test merchant. |
+| `GET` | `/api/stores/:id/agentpay.json` | Agent testing a hosted store | AgentPay manifest for an exact hosted test merchant, including its catalog endpoint and categories. |
+| `GET` | `/api/stores/:id/catalog` | Agent via `find_products` | Catalog endpoint for an exact hosted test merchant, backed by the products managed in the console. |
 | `POST` | `/api/stores/:id/checkout` | Signed agent request | Dynamic merchant-SDK checkout for an exact active hosted merchant. |
 
 ## Application API

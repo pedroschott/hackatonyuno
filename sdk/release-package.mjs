@@ -2,8 +2,8 @@ import { writeFile } from "node:fs/promises";
 
 const packageJson = {
   name: "@agentpay/merchant-sdk",
-  version: "0.1.0",
-  description: "Store-owned discovery and cryptographic checkout verification for AgentPay",
+  version: "0.2.0",
+  description: "Store-owned discovery, catalog search and cryptographic checkout verification for AgentPay",
   license: "MIT",
   main: "./index.js",
   module: "./index.mjs",
@@ -22,13 +22,13 @@ const packageJson = {
 
 const readme = `# @agentpay/merchant-sdk
 
-Publish store-owned AgentPay discovery metadata and protect a checkout route with request, registry-signature, live-status, replay, and deterministic policy verification.
+Publish store-owned AgentPay discovery metadata and a searchable catalog, and protect a checkout route with request, registry-signature, live-status, replay, and deterministic policy verification.
 
 Quickstart: https://agentpay-yuno.vercel.app/docs/quickstart
 Full documentation: https://agentpay-yuno.vercel.app/docs
 Repository: https://github.com/pedroschott/hackatonyuno
 
-## Two routes
+## Three routes
 
 \`\`\`ts
 // app/.well-known/agentpay.json/route.ts
@@ -41,10 +41,24 @@ export function GET(request: Request) {
       merchantId: process.env.AGENTPAY_MERCHANT_ID,
       merchantName: "Demo Store",
       checkoutPath: "/api/agentpay/checkout",
+      catalogPath: "/api/agentpay/catalog",
+      categories: ["tires", "accessories"],
+      currency: "USD",
+      productUrlTemplate: "/product/{id}",
       registryUrl: process.env.AGENTPAY_REGISTRY_URL,
     }),
   );
 }
+
+// app/api/agentpay/catalog/route.ts
+import { createAgentPayCatalogHandler } from "@agentpay/merchant-sdk";
+
+export const GET = createAgentPayCatalogHandler({
+  merchantId: process.env.AGENTPAY_MERCHANT_ID,
+  merchantName: "Demo Store",
+  currency: "USD",
+  products: () => database.products.list(),
+});
 
 // app/api/agentpay/checkout/route.ts
 import { createAgentPayCheckoutHandler } from "@agentpay/merchant-sdk";

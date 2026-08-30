@@ -58,7 +58,17 @@ if (!initialized?.result?.serverInfo) throw new Error("MCP initialization failed
 await call({ jsonrpc: "2.0", method: "notifications/initialized" });
 const listed = await call({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
 const names = listed?.result?.tools?.map((tool) => tool.name) ?? [];
-for (const required of ["get_account", "get_payment_setup_link", "create_mandate", "get_mandate", "revoke_mandate", "purchase"]) {
+for (const required of [
+  "get_account",
+  "get_payment_setup_link",
+  "find_products",
+  "create_mandate",
+  "amend_mandate",
+  "get_mandate",
+  "check_purchase",
+  "revoke_mandate",
+  "purchase",
+]) {
   if (!names.includes(required)) throw new Error(`Missing MCP tool: ${required}`);
 }
 const setupDescriptor = listed.result.tools.find((tool) => tool.name === "get_payment_setup_link");

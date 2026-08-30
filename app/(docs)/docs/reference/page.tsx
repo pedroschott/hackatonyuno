@@ -12,7 +12,7 @@ export default function Page() {
       intro={
         <>
           <Lead>
-            Everything <C>@agentpay/merchant-sdk</C> exports. Four functions carry the integration; the rest exist so you
+            Everything <C>@agentpay/merchant-sdk</C> exports. Six functions carry the integration; the rest exist so you
             can build fixtures and type your own code.
           </Lead>
           <CodeBlock
@@ -20,9 +20,15 @@ export default function Page() {
             code={`import {
   // integration
   merchantManifest,
+  createAgentPayCatalogHandler,
   createAgentPayCheckoutHandler,
   discoverAgentPayMerchant,
+  discoverAgentPayCatalog,
   signAgentPayRequest,
+  // catalog and policy helpers
+  filterCatalogProducts,
+  parseCatalogQuery,
+  evaluatePolicy,
   // fixtures and tests
   generateEd25519KeyPair,
   signText,
@@ -37,6 +43,8 @@ export default function Page() {
   type PolicyDecision,
   type PolicyReason,
   type AgentPayMerchantManifest,
+  type AgentPayCatalogProduct,
+  type AgentPayMerchantCatalog,
 } from "@agentpay/merchant-sdk";`}
           />
         </>
@@ -129,6 +137,59 @@ export default function Page() {
                 Throws if the document is missing (<C>Merchant does not publish AgentPay discovery metadata</C>) or fails
                 schema validation. Agents use it; merchants use it as a self-check.
               </P>
+            </>
+          ),
+        },
+        {
+          id: "catalog-handler",
+          title: "createAgentPayCatalogHandler(config)",
+          body: (
+            <>
+              <P>
+                Returns <C>(request: Request) =&gt; Promise&lt;Response&gt;</C> for the route your manifest advertises
+                as <C>catalog_endpoint</C>. Parses <C>q</C>, <C>category</C>, <C>product_id</C>,{" "}
+                <C>max_price_cents</C> and <C>limit</C> from the URL, filters with <C>filterCatalogProducts</C>, and
+                answers in the <C>AgentPayMerchantCatalog</C> shape with permissive CORS.
+              </P>
+              <PropTable
+                rows={[
+                  { name: "merchantId", type: "string", required: true, description: "Echoed in the response; agents refuse a catalog whose merchant differs from the manifest." },
+                  { name: "merchantName", type: "string", required: true, description: "Store name shown to the buyer." },
+                  { name: "currency", type: "string", required: true, description: "Applied to any product that omits its own currency, and reported at the top level." },
+                  { name: "products", type: "() => AgentPayCatalogProduct[] | Promise<AgentPayCatalogProduct[]>", required: true, description: "Your catalog. Called per request; return the same category and price_cents that resolveProduct returns at checkout." },
+                  { name: "categories", type: "string[]", description: "Category vocabulary to report. Defaults to the distinct categories of the products returned." },
+                  { name: "maxAgeSeconds", type: "number", description: "Cache-control max-age. Defaults to 60." },
+                ]}
+              />
+              <P>
+                Semantics are documented in <A href="/docs/discovery#catalog">Publish the catalog</A>.{" "}
+                <C>parseCatalogQuery(url)</C> and <C>filterCatalogProducts(products, query)</C> are exported separately
+                so the route can be unit-tested without HTTP.
+              </P>
+            </>
+          ),
+        },
+        {
+          id: "discover-catalog",
+          title: "discoverAgentPayCatalog(source, search?, fetcher?)",
+          body: (
+            <>
+              <P>
+                What <C>find_products</C> calls. Accepts a store URL or an already-fetched manifest, sends one request to{" "}
+                <C>catalog_endpoint</C> with the search translated to query parameters, and returns a validated{" "}
+                <C>AgentPayMerchantCatalog</C>. Throws when the manifest advertises no catalog or the catalog names a
+                different merchant.
+              </P>
+              <CodeBlock
+                lang="ts"
+                code={`const catalog = await discoverAgentPayCatalog("https://my-store.example/product/bp-001", {
+  q: "brake rotor",
+  category: "brakes",
+  maxPriceCents: 60000,
+  limit: 5,
+});
+// -> { protocol: "agentpay-catalog/1.0", merchant, currency, categories, query, total, products: [{ product_id, category, price_cents, ... }] }`}
+              />
             </>
           ),
         },
@@ -239,7 +300,35 @@ type AgentPayMerchantManifest = {
   merchant: { id: string; name: string };
   checkout_endpoint: string;
   registry_url: string;
-  capabilities: ["intent-mandates", "live-revocation", "mock-payment"];
+  capabilities: string[]; // "intent-mandates" | "live-revocation" | "mock-payment" | "catalog-search"
+  catalog_endpoint?: string;     // added in 0.2.0; every new field is optional
+  categories?: string[];
+  currency?: string;
+  product_url_template?: string;
+  documentation_url?: string;
+};
+
+type AgentPayCatalogProduct = {
+  product_id: string;
+  name: string;
+  category: string;
+  price_cents: number;
+  currency: string;
+  description?: string;
+  sku?: string;
+  brand?: string;
+  availability?: "in_stock" | "out_of_stock";
+  url?: string;
+};
+
+type AgentPayMerchantCatalog = {
+  protocol: "agentpay-catalog/1.0";
+  merchant: { id: string; name: string };
+  currency: string;
+  categories: string[];
+  query: { q: string | null; category: string | null; product_id: string | null; max_price_cents: number | null; limit: number };
+  total: number;
+  products: AgentPayCatalogProduct[];
 };`}
               />
               <P>

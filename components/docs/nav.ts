@@ -77,6 +77,17 @@ export const DOC_GROUPS: DocGroup[] = [
     ],
   },
   {
+    label: "Agents",
+    pages: [
+      {
+        href: "/docs/agents",
+        title: "Agent integration",
+        description: "The MCP tool order, what each result means, and how an agent acts on every decision without guessing.",
+        keywords: ["mcp", "find_products", "create_mandate", "check_purchase", "amend_mandate", "purchase", "agent", "tools"],
+      },
+    ],
+  },
+  {
     label: "Reference",
     pages: [
       {

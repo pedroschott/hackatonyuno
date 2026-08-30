@@ -124,7 +124,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       mandate_hash: challenge,
       credential_id: verified.credential_id,
     });
-    return Response.json({ mandate: update.data, artifact: signedPayload });
+    // An amendment is a replacement mandate. Signing it is the moment the
+    // mandate it replaces stops working; until now both were exactly as the
+    // user left them, so nothing was ever widened without a passkey.
+    const origin = (update.data.origin ?? {}) as { supersedes?: unknown };
+    const supersedes = typeof origin.supersedes === "string" ? origin.supersedes : null;
+    if (supersedes && supersedes !== id) {
+      const revoked = await supabase.rpc("revoke_agentpay_mandate", { p_mandate_id: supersedes });
+      if (!revoked.error) {
+        await appendAudit(supabase, `user:${user.id}`, "mandate.superseded", supersedes, { replaced_by: id });
+      }
+    }
+    return Response.json({ mandate: update.data, artifact: signedPayload, superseded_mandate_id: supersedes });
   } catch (error) {
     return apiError(error);
   }

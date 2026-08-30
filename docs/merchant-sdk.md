@@ -1,14 +1,14 @@
 # AgentPay merchant SDK
 
-`@agentpay/merchant-sdk` lets each store advertise AgentPay on its own domain and protect its own checkout endpoint. Product discovery remains with search, the agent and the store; there is no AgentPay merchant directory.
+`@agentpay/merchant-sdk` lets each store advertise AgentPay on its own domain, answer an agent's product question from its own catalog, and protect its own checkout endpoint. Product discovery remains with search, the agent and the store; there is no AgentPay merchant directory and AgentPay never copies a catalog.
 
 ## Create the merchant identity
 
 Sign in at `https://agentpay-yuno.vercel.app/developers` and create a merchant before configuring the SDK. The console assigns the immutable `mrc_...` identifier recognized by AgentPay. Do not invent one locally.
 
-For the shortest end-to-end test, choose **Hosted test store**. AgentPay creates a working storefront, manifest, checkout endpoint, sample product, and server-side catalog API key. Choose **Existing live store** to publish the routes below on your own domain and run HTTPS discovery verification.
+For the shortest end-to-end test, choose **Hosted test store**. AgentPay creates a working storefront, manifest, catalog endpoint, checkout endpoint, sample product, and server-side catalog API key. Choose **Existing live store** to publish the routes below on your own domain and run HTTPS discovery verification.
 
-**The complete guide is the documentation site at [`/docs`](https://agentpay-yuno.vercel.app/docs)** — quickstart, installation, discovery, checkout, framework recipes, testing, the SDK and protocol reference, and troubleshooting. It lives in `app/(docs)/docs/**` and deploys with the code it describes. This file is the short version for readers browsing the repository.
+**The complete guide is the documentation site at [`/docs`](https://agentpay-yuno.vercel.app/docs)** — quickstart, installation, discovery, checkout, framework recipes, testing, the SDK and protocol reference, the agent flow, and troubleshooting. It lives in `app/(docs)/docs/**` and deploys with the code it describes. This file is the short version for readers browsing the repository.
 
 ## Install
 
@@ -22,7 +22,7 @@ It builds and packs the SDK, copies the tarball into `my-store/vendor/` and inst
 
 ```bash
 npm run sdk:pack
-npm install ./dist/agentpay-merchant-sdk-0.1.0.tgz
+npm install ./dist/agentpay-merchant-sdk-0.2.0.tgz
 ```
 
 Requirements: Node 22+, zod 4, a public HTTPS origin, and a stable merchant id. Full detail: [`/docs/installation`](https://agentpay-yuno.vercel.app/docs/installation).
@@ -41,13 +41,45 @@ export function GET(request: Request) {
       merchantId: process.env.AGENTPAY_MERCHANT_ID!,
       merchantName: "Example Store",
       checkoutPath: "/api/agentpay/checkout",
+      catalogPath: "/api/agentpay/catalog",
+      categories: ["tires", "accessories"],
+      currency: "USD",
+      productUrlTemplate: "/product/{id}",
       registryUrl: "https://agentpay-yuno.vercel.app",
     }),
   );
 }
 ```
 
-`registryUrl` defaults to the store's own origin, which is almost never what a merchant wants — set it explicitly. Full detail: [`/docs/discovery`](https://agentpay-yuno.vercel.app/docs/discovery).
+`registryUrl` defaults to the store's own origin, which is almost never what a merchant wants — set it explicitly. `catalogPath`, `categories`, `currency` and `productUrlTemplate` are optional and were added in SDK 0.2.0; an agent on the newest SDK still discovers a store that omits them. Full detail: [`/docs/discovery`](https://agentpay-yuno.vercel.app/docs/discovery).
+
+## Publish the catalog
+
+The catalog endpoint is why an agent no longer has to scrape a rendered page or guess a product id. The handler filters the store's own products with one deterministic semantics every store shares — every search word must match, category and product id are exact, price is a ceiling, in-stock items come first — and returns exact ids, categories and prices in minor units:
+
+```ts
+import { createAgentPayCatalogHandler } from "@agentpay/merchant-sdk";
+
+export const GET = createAgentPayCatalogHandler({
+  merchantId: process.env.AGENTPAY_MERCHANT_ID!,
+  merchantName: "Example Store",
+  currency: "USD",
+  products: async () =>
+    (await database.products.list()).map((p) => ({
+      product_id: p.id,
+      name: p.name,
+      description: p.description,
+      category: p.mandateCategory,
+      price_cents: p.priceCents,
+      currency: "USD",
+      sku: p.sku,
+      availability: p.stock > 0 ? "in_stock" : "out_of_stock",
+      url: `https://my-store.example/product/${p.id}`,
+    })),
+});
+```
+
+Return the same `category`, `price_cents` and `currency` that `resolveProduct` returns at checkout: the agent sizes the mandate from the catalog, and a difference between the two is a refusal the buyer cannot explain. If a store cannot publish a catalog, it should at least put the exact id in the product page as `<meta name="agentpay:product_id">` or JSON-LD `productID`; `find_products` tells the agent to read it from there.
 
 ## Protect checkout
 
@@ -79,14 +111,14 @@ The agent sends a product id and never an amount: price, currency and category c
 | `escalated` | Above the per-purchase limit with no approved exception | Charge nothing; the agent asks the buyer for a one-time approval and retries with `exception_id` |
 | `refused` | Revoked, expired, out of scope, out of budget or unverifiable | Charge nothing; surface the reason code |
 
-Every reason code is enumerated in [`/docs/reference/decisions`](https://agentpay-yuno.vercel.app/docs/reference/decisions).
+Every reason code is enumerated in [`/docs/reference/decisions`](https://agentpay-yuno.vercel.app/docs/reference/decisions). On the agent side, AgentPay turns each one into an explanation, a remedy and the next tool to call; a scope refusal leads to `amend_mandate`, never to a revoke-and-retry loop. That flow is documented at [`/docs/agents`](https://agentpay-yuno.vercel.app/docs/agents).
 
 ## Test before you demo
 
-The SDK exports the signing and canonical-JSON helpers used by AgentPay itself, so a merchant can drive approved, refused and escalated paths offline with a stubbed registry and a deterministic clock. The full copy-paste test is in [`/docs/testing`](https://agentpay-yuno.vercel.app/docs/testing).
+The SDK exports the signing and canonical-JSON helpers used by AgentPay itself, so a merchant can drive approved, refused and escalated paths offline with a stubbed registry and a deterministic clock, and `filterCatalogProducts` so the catalog route can be tested without HTTP. The full copy-paste test is in [`/docs/testing`](https://agentpay-yuno.vercel.app/docs/testing).
 
-Do not copy the demo catalog into AgentPay. Keep products and checkout on the store domain, and make revocation effective by checking the live registry for every purchase.
+Do not copy the demo catalog into AgentPay. Keep products, catalog and checkout on the store domain, and make revocation effective by checking the live registry for every purchase.
 
 ## Keeping this current
 
-This file, the docs site and `sdk/index.ts` describe one thing and must change together. When the SDK's exports, options, verification steps or response shape change, update `/docs/reference`, `/docs/checkout` and this summary in the same pull request. See the Documentation section of [`AGENTS.md`](../AGENTS.md).
+This file, the docs site and `sdk/index.ts` describe one thing and must change together. When the SDK's exports, options, verification steps or response shape change, update `/docs/reference`, `/docs/checkout`, `/docs/discovery` and this summary in the same pull request. See the Documentation section of [`AGENTS.md`](../AGENTS.md).
