@@ -210,6 +210,16 @@ Signing up depends on one thing that lives outside the system: a confirmation em
 
 `demo7421@fwdco.space` is an ordinary account, created through the same public sign-up endpoint as everyone else's and confirmed through the same confirmation link. Its password is published in the README. That does not contradict *No seeded account data*: what is seeded is an account, not account data. It holds no passkey, no card, no identity decision and no mandate, so it renders the same empty dashboard as any new account, and the same passkey signature, Didit decision and mandate check stand between it and a charge. Publishing the password grants what an email address grants — the right to start the flow.
 
+## B2B purchasing, not consumer shopping
+
+AgentPay is built for business buyers rather than consumers. The same primitives — a scoped mandate, a passkey signature, a live registry check at checkout — would technically serve either market, but only one of them is worth solving.
+
+Consumer agent shopping is a low-value, low-repetition problem. Someone buying headphones can open the store and check out in a minute, and the ticket is small enough that a wrong purchase is an annoyance rather than a loss. An agent there adds convenience on top of an interaction the person was already able to complete, so the authorization layer around it has little to protect.
+
+Business purchasing inverts both terms. Ticket sizes are an order of magnitude higher, and the buying is genuinely repetitive: supplier restocks, recurring service and infrastructure spend, procurement that runs on the same catalogue and the same rules every month. That is work a company already wants delegated, and the reason it is not delegated today is not that agents cannot browse a store — it is that nobody can hand a purchasing agent authority that is bounded, attributable and revocable. Value per transaction and demand for automation are both high, which is exactly where an enforcement layer earns its place.
+
+This is why the product is a mandate registry and not a shopping assistant. The features that would be overhead in a consumer flow — per-mandate scope and limits, an expiry, a hash-chained audit trail of every attempt and the decision made on it, revocation that stops a checkout already in flight — are the requirements a company has before it lets software spend its money. The challenge build still models a single account owner with saved cards, because that is the smallest shape that demonstrates the enforcement layer end to end; the roles, seats and approval hierarchy a real buying organisation needs sit on top of the same mandate object rather than replacing it.
+
 Its one real limit is the passkey: the app offers registration only while an account holds none, so the first device to register a passkey for the shared account is the only one that can sign for it, and the README says so.
 
 The rejected alternative was a demo account pre-loaded with an approved identity decision and a saved card. It would have saved two minutes and cost the property a payments console cannot afford to lose: that what is on the screen was actually enforced, and can be checked.
