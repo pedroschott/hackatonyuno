@@ -57,7 +57,7 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | `/m` | Phone-first signing inbox and revocation switch, opened by QR from the desktop app |
 | `/docs` | Merchant documentation: install and set up the SDK in a new store |
 | `/store` | Merchant demo with AgentPay checkout verification |
-| `/audit` | Security log: hash-chained record of every decision |
+| `/audit` | Security log: every decision in a versioned, browser-verifiable hash chain, with JSON export |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
 
 Every route above is responsive and usable from a phone. `/m` is a separate, deliberately narrower surface — see the decision log.
@@ -112,3 +112,5 @@ Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml` — t
 Schema changes are versioned in `supabase/migrations/`. Every Data API table has Row Level Security. User-owned cards, credentials, agents and mandates are isolated by `auth.uid()` policies; merchant checkout decisions run through narrowly scoped database functions.
 
 The payment rail is intentionally mocked for the challenge. Authentication, passkey ceremonies, mandate signatures, enforcement, OAuth, MCP, live revocation and merchant verification are functional.
+
+The security log uses one versioned digest contract across Supabase and the browser. Each event stores the exact JSON material used for its hash; the UI checks that material against the visible event and then verifies every link from the account genesis hash. The test suite covers PostgreSQL-formatted material, payload tampering and deleted intermediate events.

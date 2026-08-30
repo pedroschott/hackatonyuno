@@ -30,6 +30,12 @@ The merchant's live read is necessary but not sufficient: revocation can race wi
 
 No real processor is needed for the challenge. Successful checkout returns a mock single-use token, while authentication, signatures, replay protection, policy evaluation, escalation, audit and revocation remain production-shaped and testable.
 
+## Store exact, versioned audit digest material
+
+The first audit implementation hashed PostgreSQL text on append but reconstructed canonical JSON in the browser. Those are different byte sequences, so a valid production chain could be shown as broken. Reimplementing PostgreSQL's timestamp and JSON rendering in JavaScript would make the verifier depend on undocumented formatting details.
+
+Version 2 stores the exact JSON text that Supabase hashed. The browser first checks that the parsed material is semantically identical to the displayed event, then hashes the stored bytes with the previous link. This keeps verification portable across runtimes and detects payload edits, digest-input edits and removed or reordered intermediate events. A one-time migration rechains existing rows without changing their event content, order or timestamps; this repair is documented because silently rewriting an audit derivation would undermine the feature it fixes.
+
 ## Payment setup stays outside the agent conversation
 
 The MCP payment-setup tool accepts no card fields. It returns a 15-minute, signed, user-bound link to AgentPay's authenticated browser UI, where the challenge flow records only brand, last four digits, an optional label, and an encrypted opaque mock-vault reference. The agent receives only safe display metadata and must tell the user never to share a full card number, CVC, PIN, bank password, or vault credential in chat. Saving a payment method grants no purchase authority; a separate passkey-approved mandate is still required.

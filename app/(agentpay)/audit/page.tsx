@@ -96,10 +96,26 @@ function Row({ entry, open, onToggle }: { entry: AuditEntry; open: boolean; onTo
       {open && (
         <div className="ap-in border-t border-line-2 bg-canvas px-4 py-3 sm:px-5">
           <pre className="overflow-auto rounded bg-white p-3 font-mono text-[11.5px] leading-relaxed text-ink-2 shadow-[var(--shadow-card)]">
-            {JSON.stringify({ seq: entry.seq, actor: entry.actor, action: entry.action, entity: entry.entity, payload: entry.payload }, null, 2)}
+            {JSON.stringify(
+              {
+                seq: entry.seq,
+                timestamp: entry.ts,
+                actor: entry.actor,
+                action: entry.action,
+                entity: entry.entity,
+                payload: entry.payload,
+                integrity: {
+                  version: entry.hash_version,
+                  previous_hash: entry.prev_hash,
+                  hash: entry.hash,
+                },
+              },
+              null,
+              2,
+            )}
           </pre>
-          <div className="mt-2 break-all font-mono text-[11px] text-faint">
-            {entry.prev_hash.slice(0, 12)}… → {entry.hash.slice(0, 12)}…
+          <div className="mt-2 break-all font-mono text-[11px] text-faint" title="Previous hash to event hash">
+            Chain v{entry.hash_version}: {entry.prev_hash.slice(0, 12)}… → {entry.hash.slice(0, 12)}…
           </div>
         </div>
       )}

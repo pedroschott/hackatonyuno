@@ -78,22 +78,68 @@ export function mandateHash(m: Mandate) {
 
 export function appendAudit(
   log: AuditEntry[],
-  entry: Omit<AuditEntry, "seq" | "prev_hash" | "hash" | "ts"> & { ts?: string },
+  entry: Omit<AuditEntry, "seq" | "prev_hash" | "hash" | "hash_version" | "hash_material" | "ts"> & { ts?: string },
 ): AuditEntry[] {
   const prev = log.length ? log[log.length - 1].hash : GENESIS_HASH;
   const seq = log.length + 1;
   const ts = entry.ts ?? new Date().toISOString();
-  const body = { seq, ts, actor: entry.actor, action: entry.action, entity: entry.entity, payload: entry.payload };
-  const hash = sha256(prev + canonicalJson(body));
-  return [...log, { ...body, prev_hash: prev, hash }];
+  const body = auditBody({ ...entry, ts });
+  const hashMaterial = canonicalJson(body);
+  const hash = sha256(prev + hashMaterial);
+  return [
+    ...log,
+    {
+      seq,
+      ...entry,
+      ts,
+      prev_hash: prev,
+      hash,
+      hash_version: 2,
+      hash_material: hashMaterial,
+    },
+  ];
 }
 
 export function verifyChain(log: AuditEntry[]): { ok: boolean; brokenAt?: number } {
   let prev = GENESIS_HASH;
   for (const e of log) {
-    const body = { seq: e.seq, ts: e.ts, actor: e.actor, action: e.action, entity: e.entity, payload: e.payload };
-    if (e.prev_hash !== prev || e.hash !== sha256(prev + canonicalJson(body))) return { ok: false, brokenAt: e.seq };
+    let material: unknown;
+    try {
+      material = JSON.parse(e.hash_material);
+    } catch {
+      return { ok: false, brokenAt: e.seq };
+    }
+    if (
+      e.hash_version !== 2 ||
+      e.prev_hash !== prev ||
+      canonicalJson(material) !== canonicalJson(auditBody(e)) ||
+      e.hash !== sha256(prev + e.hash_material)
+    ) {
+      return { ok: false, brokenAt: e.seq };
+    }
     prev = e.hash;
   }
   return { ok: true };
+}
+
+/**
+ * Audit timestamps are stored with six fractional digits in the database hash
+ * material. Normalising the browser representation keeps the semantic check
+ * stable when PostgREST returns `+00:00` instead of `Z`.
+ */
+function auditTimestamp(iso: string) {
+  const utc = iso.replace(" ", "T").replace(/\+00(?::00)?$/, "Z");
+  const match = utc.match(/^(.*?)(?:\.(\d+))?Z$/);
+  if (!match) return iso;
+  return `${match[1]}.${(match[2] ?? "").padEnd(6, "0").slice(0, 6)}Z`;
+}
+
+function auditBody(entry: Pick<AuditEntry, "ts" | "actor" | "action" | "entity" | "payload">) {
+  return {
+    ts: auditTimestamp(entry.ts),
+    actor: entry.actor,
+    action: entry.action,
+    entity: entry.entity ?? "",
+    payload: entry.payload,
+  };
 }

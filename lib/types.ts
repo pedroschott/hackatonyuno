@@ -153,6 +153,10 @@ export type AuditEntry = {
   payload: Record<string, unknown>;
   prev_hash: string;
   hash: string;
+  /** Versioned digest contract shared by Supabase and the browser verifier. */
+  hash_version: 2;
+  /** Exact UTF-8 JSON text that was hashed after prev_hash. */
+  hash_material: string;
 };
 
 export type Scenario =

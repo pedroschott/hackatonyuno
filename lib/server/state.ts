@@ -231,6 +231,8 @@ export async function loadAuthenticatedState(): Promise<{ state: Data; user: Use
             payload: asObject(row.payload),
             prev_hash: String(row.prev_hash),
             hash: String(row.hash),
+            hash_version: 2,
+            hash_material: String(row.hash_material),
           }) satisfies AuditEntry,
       ),
       usedNonces: [],
