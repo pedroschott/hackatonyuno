@@ -1,46 +1,19 @@
 {
-  "name": "hackatonyuno",
-  "version": "0.1.0",
+  "name": "@agentic-mandates/workspace",
+  "version": "0.0.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev --port 3210",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run",
-    "test:mcp": "node --env-file=.env.local tests/live-mcp-smoke.mjs",
-    "sdk:build": "tsup sdk/index.ts --format esm,cjs --dts --out-dir dist/sdk --tsconfig tsconfig.sdk.json && node sdk/release-package.mjs",
-    "sdk:pack": "npm run sdk:build && npm pack ./dist/sdk --pack-destination ./dist",
-    "check": "npm run typecheck && npm run test && npm run sdk:build",
-    "tunnel": "bash scripts/tunnel.sh"
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22"
   },
-  "dependencies": {
-    "@modelcontextprotocol/server": "2.0.0",
-    "@simplewebauthn/browser": "13.3.0",
-    "@simplewebauthn/server": "13.3.3",
-    "@supabase/ssr": "0.12.5",
-    "@supabase/supabase-js": "2.112.4",
-    "lucide-react": "^1.37.0",
-    "mcp-handler": "2.1.1",
-    "next": "16.3.3",
-    "qrcode": "^1.5.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "zod": "4.5.4",
-    "zustand": "^5.0.15"
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "check": "pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/qrcode": "^1.5.6",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.3",
-    "tailwindcss": "^4",
-    "tsup": "8.5.1",
-    "typescript": "5.9.3",
-    "vitest": "4.1.11"
+    "turbo": "2.10.10",
+    "typescript": "5.9.3"
   }
 }

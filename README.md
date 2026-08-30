@@ -1,90 +1,30 @@
-# AgentPay
+# Agentic Mandates
 
-AgentPay is a functional, hackathon-ready authorization and enforcement layer for agent purchases. An agent connects through an OAuth-protected MCP server, requests a narrowly scoped mandate, and can purchase only after the user authorizes that mandate with a real passkey. Stores integrate the merchant SDK and publish their own discovery document; AgentPay never acts as a store directory.
+Agentic Mandates is a backend-first foundation for constrained agent purchases. This repository contains the protocol contracts, policy domain, integration SDK, mandate authorization service, and isolated payment vault. It intentionally contains no storefront, product catalog, fake merchant, seeded consumer data, or frontend demo.
 
-Production: https://agentpay-yuno.vercel.app
+## Repository layout
 
-## Working flow
+- `packages/contracts`: shared Zod schemas and protocol types.
+- `packages/domain`: canonicalization and money-domain helpers.
+- `packages/sdk`: typed, proof-signing HTTP clients for agents and merchant backends.
+- `apps/mandate-api`: injected Hono service that issues capabilities, verifies merchant settlement requests, and handles revocation.
+- `apps/payment-vault`: isolated Hono service boundary for payment-method setup and authorization.
+- `tests/attack-suite`: provider-neutral adversarial scenarios for future integration tests.
 
-1. The user connects `https://agentpay-yuno.vercel.app/mcp` to an MCP client.
-2. Supabase OAuth opens AgentPay for sign-in, account creation and consent.
-3. The user registers one passkey and saves one or more cards. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
-4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The web app has no form for this: a mandate only ever exists because an agent asked for one.
-5. The user opens the approval link and authorizes the mandate with their passkey.
-6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
-7. The user or agent can revoke the mandate immediately. A checkout still in progress performs a final live registry check before settlement and is refused if revocation committed first; every later checkout is refused too.
+Applications integrate this foundation by supplying durable stores, identity and request-proof verification, the merchant registry and taxonomy, signing keys, and a payment-provider adapter. In-memory implementations are test harnesses only; they are not runtime defaults.
 
-## Run locally
+## Requirements
 
-```bash
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-Open http://localhost:3210/dashboard. A new account starts empty: nothing can spend until an agent asks and you approve. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
+- Node.js 22 or newer
+- pnpm 11.19.0
 
 ## Verify
 
-```bash
-npm run check
-npm run build
-npm run sdk:pack
+```sh
+pnpm install
+pnpm check
 ```
 
-`npm run check` runs TypeScript, policy/SDK tests and the installable SDK build. The authenticated live MCP smoke accepts an email and password:
+For package-specific usage, see [the SDK guide](packages/sdk/README.md), [Mandate API guide](apps/mandate-api/README.md), and [Payment Vault guide](apps/payment-vault/README.md).
 
-```bash
-npm run test:mcp -- user@example.com 'password'
-```
-
-### Verify mid-turn revocation
-
-The automated Mandate API test starts a payment authorization, revokes the mandate while that authorization is in flight, then confirms the authorization is voided and no usage is recorded. The deployed checkout route also accepts a bounded, test-only pre-settlement window for live failure rehearsals.
-
-The delay is only a test affordance. The security boundary is the final Supabase transaction: checkout and revocation take the same per-mandate advisory lock, so their outcome has one defensible order under concurrency.
-
-## Main surfaces
-
-| Route | Purpose |
-|---|---|
-| `/dashboard` | Summary: what was spent this month, who is allowed to spend, what is waiting for you |
-| `/activity` | Every purchase and every block, in plain language |
-| `/connect` | Connect an agent: one button per assistant, one link to paste |
-| `/m` | Phone-first approval inbox and off switch, opened by QR from the desktop app |
-| `/store` | Merchant demo with AgentPay checkout verification |
-| `/audit` | Security log: hash-chained record of every decision |
-| `/mcp` | OAuth-protected Streamable HTTP MCP server |
-
-Every route above is responsive and usable from a phone. `/m` is a separate, deliberately narrower surface — see the decision log.
-
-## MCP tools
-
-- `get_account`
-- `get_payment_setup_link` — returns a 15-minute, user-bound AgentPay browser link and accepts no card data
-- `create_mandate`
-- `get_mandate`
-- `purchase`
-- `revoke_mandate`
-
-The protected-resource metadata is at `/.well-known/oauth-protected-resource/mcp`. Supabase publishes OAuth authorization-server metadata and supports dynamic client registration for MCP clients.
-
-## Merchant SDK
-
-Build or pack `@agentpay/merchant-sdk` locally:
-
-```bash
-npm run sdk:build
-npm run sdk:pack
-```
-
-See [docs/merchant-sdk.md](docs/merchant-sdk.md) for store integration.
-
-Architecture and the hackathon tradeoffs are documented in [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md).
-The complete web, MCP, API and V2-service map is in [docs/routes.md](docs/routes.md). Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml`; protocol and authenticated paths are excluded through `/robots.txt`.
-
-## Supabase
-
-Schema changes are versioned in `supabase/migrations/`. Every Data API table has Row Level Security. User-owned cards, credentials, agents and mandates are isolated by `auth.uid()` policies; merchant checkout decisions run through narrowly scoped database functions.
-
-The payment rail is intentionally mocked for the challenge. Authentication, passkey ceremonies, mandate signatures, enforcement, OAuth, MCP, live revocation and merchant verification are functional.
+Architecture boundaries and integration responsibilities are recorded in [docs/architecture.md](docs/architecture.md). Cleanup and foundation decisions are recorded in [docs/decisions.md](docs/decisions.md).

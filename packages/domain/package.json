@@ -20,7 +20,7 @@
     "typecheck": "./node_modules/.bin/tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@agentic-mandates/contracts": "file:../contracts",
+    "@agentic-mandates/contracts": "workspace:*",
     "json-canonicalize": "1.2.0"
   },
   "devDependencies": {

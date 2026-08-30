@@ -22,7 +22,7 @@
     "test:watch": "./node_modules/.bin/vitest"
   },
   "dependencies": {
-    "@agentic-mandates/contracts": "file:../contracts",
+    "@agentic-mandates/contracts": "workspace:*",
     "jose": "6.2.10",
     "zod": "4.5.4"
   },
