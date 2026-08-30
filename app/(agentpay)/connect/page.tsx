@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Smartphone } from "lucide-react";
+import { Copy, Check, Smartphone, Plug } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/AppShell";
 import { Button, Card, CardHeader, Modal } from "@/components/ui";
@@ -11,7 +11,8 @@ import { cn } from "@/lib/cn";
 type App = {
   key: string;
   name: string;
-  initial: string;
+  logo?: string;
+  logoAlt?: string;
   tile: string;
   steps: string[];
 };
@@ -20,8 +21,9 @@ const APPS: App[] = [
   {
     key: "claude",
     name: "Claude",
-    initial: "C",
-    tile: "bg-[#d97757]",
+    logo: "https://api.iconify.design/logos:anthropic-icon.svg",
+    logoAlt: "Claude",
+    tile: "bg-[#f4eee8]",
     steps: [
       "Open Claude and go to Settings, then Connectors.",
       "Choose “Add custom connector” and paste the link below.",
@@ -31,8 +33,9 @@ const APPS: App[] = [
   {
     key: "chatgpt",
     name: "ChatGPT",
-    initial: "G",
-    tile: "bg-[#0f9d76]",
+    logo: "https://api.iconify.design/logos:openai-icon.svg",
+    logoAlt: "ChatGPT",
+    tile: "bg-[#111111]",
     steps: [
       "Open ChatGPT and go to Settings, then Connectors.",
       "Choose to add a connector and paste the link below.",
@@ -42,8 +45,9 @@ const APPS: App[] = [
   {
     key: "openclaw",
     name: "OpenClaw",
-    initial: "O",
-    tile: "bg-[#2f6fed]",
+    logo: "https://raw.githubusercontent.com/openclaw/openclaw/main/apps/ios/Sources/Assets.xcassets/AppIcon.appiconset/1024.png",
+    logoAlt: "OpenClaw",
+    tile: "bg-white",
     steps: [
       "Open OpenClaw and go to its connectors or tools settings.",
       "Add a new connector and paste the link below.",
@@ -51,9 +55,20 @@ const APPS: App[] = [
     ],
   },
   {
+    key: "gemini",
+    name: "Gemini",
+    logo: "https://api.iconify.design/logos:google-gemini.svg",
+    logoAlt: "Gemini",
+    tile: "bg-white",
+    steps: [
+      "Open Gemini and go to its extensions or tools settings.",
+      "Add a new connector and paste the link below.",
+      "Sign in to AgentPay when Gemini asks you to.",
+    ],
+  },
+  {
     key: "other",
-    name: "Another app",
-    initial: "+",
+    name: "Any MCP app",
     tile: "bg-ink-2",
     steps: [
       "Open your assistant's connector or tool settings.",
@@ -75,15 +90,21 @@ export default function AgentsPage() {
         description="Pick where your assistant lives. Connecting takes one link and about a minute."
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {APPS.map((app) => (
           <button
             key={app.key}
             onClick={() => setSelected(app)}
             className="flex flex-col items-center gap-2.5 rounded-xl bg-white px-3 py-5 text-center shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-pop)]"
           >
-            <span className={cn("flex size-11 items-center justify-center rounded-xl text-[19px] font-semibold text-white", app.tile)}>
-              {app.initial}
+            <span className={cn("flex size-11 items-center justify-center overflow-hidden rounded-xl", app.tile)}>
+              {app.logo ? (
+                // External SVGs are brand-owned marks; keeping their source URL avoids shipping altered copies.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={app.logo} alt={app.logoAlt} className="size-full object-contain p-2" />
+              ) : (
+                <Plug className="size-5 text-white" aria-hidden="true" />
+              )}
             </span>
             <span className="text-[13.5px] font-medium">{app.name}</span>
           </button>
