@@ -24,6 +24,8 @@ cp .env.example .env.local
 npm run dev
 ```
 
+The merchant console uses the publishable Supabase key for authenticated, RLS-protected developer work. `SUPABASE_SECRET_KEY` is server-only and is used exclusively to persist a live-domain verification result after the server fetches and validates the merchant discovery document. Never prefix it with `NEXT_PUBLIC_` or expose it to browser code.
+
 Open http://localhost:3210 for the landing page, or http://localhost:3210/dashboard for the app. A new account starts empty: nothing can be charged until an agent requests a mandate and you sign it. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
 
 ## Verify
@@ -57,6 +59,8 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | `/account` | Compliance, delivery address, saved cards, card usage and default-card controls |
 | `/m` | Phone-first signing inbox and revocation switch, opened by QR from the desktop app |
 | `/docs` | Merchant documentation: install and set up the SDK in a new store |
+| `/developers` | Merchant console: create identities, hosted test stores, products, keys, and inspect checkout activity |
+| `/developers/stores` | Verified live-store registry; currently empty until a real public merchant opts in |
 | `/store` | Merchant demo with AgentPay checkout verification |
 | `/audit` | Security log: hash-chained record of every decision |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
@@ -76,7 +80,9 @@ The protected-resource metadata is at `/.well-known/oauth-protected-resource/mcp
 
 ## Merchant SDK
 
-A store integrates AgentPay with two routes: a discovery manifest and a verified checkout endpoint. Install the SDK into a merchant project with one command:
+A store first signs in at [`/developers`](https://agentpay-yuno.vercel.app/developers) and creates a merchant. AgentPay assigns the immutable merchant ID used in mandates; developers no longer invent an ID in configuration. A hosted test merchant immediately receives a working storefront, sample catalog, discovery manifest, checkout endpoint, and server-side catalog API key.
+
+A live store then integrates AgentPay with two routes: a discovery manifest and a verified checkout endpoint. Install the SDK into a merchant project with one command:
 
 ```bash
 npm run sdk:install -- ../my-store
@@ -90,6 +96,8 @@ npm run sdk:pack
 ```
 
 The complete integration guide is the documentation site at [`/docs`](https://agentpay-yuno.vercel.app/docs) — quickstart, installation, discovery, checkout, framework recipes, testing, the SDK and protocol reference, and troubleshooting. [docs/merchant-sdk.md](docs/merchant-sdk.md) is the short version for readers browsing this repository.
+
+The supported live-store endpoint is [`/api/stores`](https://agentpay-yuno.vercel.app/api/stores). It intentionally returns no stores until a real HTTPS merchant completes discovery verification and explicitly opts into public listing. Hosted mocks remain unlisted test fixtures.
 
 ## Documentation
 

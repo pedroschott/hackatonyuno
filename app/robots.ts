@@ -14,6 +14,8 @@ export default function robots(): MetadataRoute.Robots {
         "/mcp",
         "/oauth/",
         "/dashboard",
+        "/developers",
+        "/stores/",
         "/activity",
         "/account",
         "/audit",

@@ -14,8 +14,9 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | `/connect` | Connect an agent: one-click instructions per assistant. | Yes | Allowed |
 | `/store` | Public AutoParts merchant demonstration. | Yes | Allowed |
 | `/docs` | Merchant documentation: introduction and integration overview. | Yes | Allowed |
-| `/docs/quickstart` | Five-step integration for a new store. | Yes | Allowed |
+| `/docs/quickstart` | Six-step integration from merchant registration through checkout verification. | Yes | Allowed |
 | `/docs/installation` | SDK requirements, one-command installer and manual install. | Yes | Allowed |
+| `/docs/stores` | Merchant console, hosted test-store URLs and supported live-store policy. | Yes | Allowed |
 | `/docs/discovery` | Publishing `/.well-known/agentpay.json`. | Yes | Allowed |
 | `/docs/checkout` | Protecting a checkout route and handling each decision. | Yes | Allowed |
 | `/docs/frameworks` | Route code for Next.js, Hono, Express, Fastify and edge runtimes. | Yes | Allowed |
@@ -33,6 +34,12 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | `/m/mandates/:id` | Mobile mandate signing and revocation screen. | No | Disallowed |
 | `/m/approvals/:id` | Mobile one-time exception decision screen. | No | Disallowed |
 | `/oauth/consent` | OAuth consent flow. | No | Disallowed |
+| `/developers` | Developer overview with merchant, catalog, attempt and test-volume metrics. | No | Disallowed |
+| `/developers/merchants` | Owned merchant integrations. | No | Disallowed |
+| `/developers/merchants/new` | Create a hosted test merchant or register a live store. | No | Disallowed |
+| `/developers/merchants/:id` | Integration checklist, endpoints, products, keys, activity and settings for one owned merchant. | No | Disallowed |
+| `/developers/stores` | Human view of verified live stores and their public URLs. | No | Disallowed |
+| `/stores/:id` | Shareable hosted test storefront. Exact URL only; test stores are not publicly listed. | No | Disallowed |
 
 ## Discovery and agent connection
 
@@ -43,6 +50,10 @@ The documentation site at `/docs` is public canonical content and is listed in `
 | `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource/mcp` | MCP client | Alias of the protected-resource metadata for the MCP endpoint. |
 | `GET`, `POST` | `/mcp` | OAuth-authenticated MCP client | Streamable HTTP MCP server. Exposes `get_account`, `get_payment_setup_link`, `create_mandate`, `get_mandate`, `purchase` and `revoke_mandate`. |
 | `GET` | `/api` | Developer or health-style discovery client | JSON description of the AgentPay MCP, OAuth metadata and merchant-discovery model. |
+| `GET` | `/api/stores` | Agent, developer or public client | Opt-in verified live-store IDs, store URLs and discovery URLs. Returns an empty list until a real live merchant qualifies. It contains no product catalog. |
+| `GET` | `/api/stores/:id` | Hosted test-store client | Exact-ID hosted store metadata and active products. |
+| `GET` | `/api/stores/:id/agentpay.json` | Agent testing a hosted store | AgentPay manifest for an exact hosted test merchant. |
+| `POST` | `/api/stores/:id/checkout` | Signed agent request | Dynamic merchant-SDK checkout for an exact active hosted merchant. |
 
 ## Application API
 
@@ -67,6 +78,21 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | `POST` | `/api/passkeys/register` | Register a WebAuthn credential. |
 | `GET` | `/api/state` | Read the authenticated demo state. |
 | `POST` | `/api/store/checkout` | AutoParts demo store checkout. |
+
+## Merchant console API
+
+Browser routes require a Supabase-authenticated owner session and remain protected by merchant ownership RLS. Server-side catalog creation accepts a one-time-revealed high-entropy key; only its SHA-256 hash is stored.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET`, `POST` | `/api/developers/merchants` | List owned merchants with metrics or create a hosted/external merchant identity. |
+| `GET`, `PATCH` | `/api/developers/merchants/:id` | Read the complete owned integration or update mutable settings. |
+| `POST` | `/api/developers/merchants/:id/verify` | Verify that a live public HTTPS manifest names the assigned merchant ID. Redirects and private network destinations are refused. |
+| `GET`, `POST` | `/api/developers/merchants/:id/products` | List or create products in an owned catalog. |
+| `PATCH`, `DELETE` | `/api/developers/merchants/:id/products/:productId` | Update or remove an owned product. |
+| `GET`, `POST` | `/api/developers/merchants/:id/keys` | List key metadata or mint a key whose plaintext is returned once. |
+| `DELETE` | `/api/developers/merchants/:id/keys/:keyId` | Revoke a merchant API key immediately. |
+| `GET`, `POST` | `/api/v1/merchants/:id/products` | Read an active public catalog or create a product with a merchant bearer key. |
 
 ## Merchant verification registry
 

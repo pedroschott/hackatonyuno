@@ -13,8 +13,11 @@ export async function GET(req: Request) {
     documentation: `${base}/docs`,
     mcp_endpoint: `${base}/mcp`,
     oauth_protected_resource: `${base}/.well-known/oauth-protected-resource`,
-    merchant_discovery:
-      "Stores publish /.well-known/agentpay.json on their own domain. AgentPay does not maintain a store directory.",
+    merchant_discovery: {
+      model: "Stores publish /.well-known/agentpay.json on their own domain. Product research remains store-owned.",
+      supported_store_urls: `${base}/api/stores`,
+      developer_console: `${base}/developers`,
+    },
     instructions: [
       "Connect the AgentPay MCP server using OAuth.",
       "Create a draft mandate from the user's stated scope and limits.",
