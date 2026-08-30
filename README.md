@@ -8,9 +8,9 @@ Production: https://agentpay-yuno.vercel.app
 
 1. The user connects `https://agentpay-yuno.vercel.app/mcp` to an MCP client.
 2. Supabase OAuth opens AgentPay for sign-in, account creation and consent.
-3. The user registers one passkey and saves one or more cards. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
-4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The web app has no form for this: a mandate only ever exists because an agent asked for one.
-5. The user opens the approval link and authorizes the mandate with their passkey.
+3. The user registers one passkey, saves one or more cards, chooses a default, and completes the compliance and delivery profile. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
+4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The default card is used unless the agent selects another saved card. The web app has no form for this: a mandate only ever exists because an agent asked for one.
+5. The user opens the approval link, may switch the draft to another saved card, and authorizes that exact mandate and card choice with their passkey.
 6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
 7. The user or agent can revoke the mandate immediately. A checkout still in progress performs a final live registry check before settlement and is refused if revocation committed first; every later checkout is refused too.
 
@@ -51,6 +51,7 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | `/dashboard` | Summary: what was charged this month, which mandates are active, what is waiting for your signature |
 | `/activity` | Every purchase attempt and the mandate decision made on it |
 | `/connect` | Connect an agent: one button per assistant, one link to paste |
+| `/account` | Compliance, delivery address, saved cards, card usage and default-card controls |
 | `/m` | Phone-first signing inbox and revocation switch, opened by QR from the desktop app |
 | `/store` | Merchant demo with AgentPay checkout verification |
 | `/audit` | Security log: hash-chained record of every decision |
@@ -62,7 +63,7 @@ Every route above is responsive and usable from a phone. `/m` is a separate, del
 
 - `get_account`
 - `get_payment_setup_link` — returns a 15-minute, user-bound AgentPay browser link and accepts no card data
-- `create_mandate`
+- `create_mandate` — uses the account default unless `vault_card_id` selects another owned card
 - `get_mandate`
 - `purchase`
 - `revoke_mandate`

@@ -32,7 +32,17 @@ No real processor is needed for the challenge. Successful checkout returns a moc
 
 ## Payment setup stays outside the agent conversation
 
-The MCP tool accepts no card fields. It returns a 15-minute, signed, user-bound link to AgentPay's authenticated browser UI, where the challenge flow records only brand, last four digits, an optional label, and an encrypted opaque mock-vault reference. The agent receives only safe display metadata and must tell the user never to share a full card number, CVC, PIN, bank password, or vault credential in chat. Saving a payment method grants no purchase authority; a separate passkey-approved mandate is still required.
+The MCP payment-setup tool accepts no card fields. It returns a 15-minute, signed, user-bound link to AgentPay's authenticated browser UI, where the challenge flow records only brand, last four digits, an optional label, and an encrypted opaque mock-vault reference. The agent receives only safe display metadata and must tell the user never to share a full card number, CVC, PIN, bank password, or vault credential in chat. Saving a payment method grants no purchase authority; a separate passkey-approved mandate is still required.
+
+## The card choice is signed into each mandate
+
+An account has exactly one default card whenever at least one saved card exists. MCP and REST mandate creation use that default when no explicit card ID is supplied, but the owner can switch a draft through the card picker before passkey signing. Once signed, the payment choice is immutable with the rest of the mandate. Changing the account default therefore affects only future drafts; it can never silently reroute an active mandate.
+
+Checkout validates that the signed card still belongs to the mandate owner, binds its safe ID into the mock token and audit record, and fails closed with `PAYMENT_METHOD_UNAVAILABLE` otherwise. Card removal is refused while a draft or active mandate references it, while historical usage remains visible through the mandate and attempt records.
+
+## Order metadata is private account data, not registry data
+
+Legal name, tax ID, phone and delivery address live in a dedicated user-owned table with RLS and explicit authenticated grants. The authenticated MCP account view may use these fields for a user-requested order, with an instruction to disclose only what that merchant needs. The public merchant registry and payment tokens never include this profile.
 
 ## Exact-ID public registry functions are intentional
 
@@ -40,7 +50,7 @@ Merchant checkout must retrieve a signed agent key and mandate without a user se
 
 ## The full app is responsive; `/m` stays a separate surface
 
-The console at `/dashboard`, `/activity`, `/audit` and `/connect` is fully responsive: a single centred column with a tab bar that scrolls horizontally on small screens. Judges can therefore drive the entire demo from a phone without a second implementation.
+The console at `/dashboard`, `/activity`, `/audit`, `/connect` and `/account` is fully responsive: a single centred column with a tab bar that scrolls horizontally on small screens. Judges can therefore drive the entire demo from a phone without a second implementation.
 
 `/m` is kept anyway because it answers a different question. The console is the owner's full control surface; `/m` is the approval inbox someone opens from a QR code on another device to approve a mandate or exception with a passkey and turn spending off in one tap. Collapsing the two would either bloat the phone approval flow or strip the console.
 

@@ -13,6 +13,7 @@ import { Badge, Button } from "@/components/ui";
 import { PasskeyCeremony } from "@/components/PasskeyCeremony";
 import { CardBrand } from "@/components/CardBrand";
 import { agentLabel } from "@/components/app/agent-label";
+import { MandateCardPicker } from "@/components/app/MandateCardPicker";
 import { KV, StickyActions, Status } from "@/components/mobile/bits";
 
 export default function MandateSheet() {
@@ -91,6 +92,8 @@ export default function MandateSheet() {
       </div>
 
       <KV rows={rows} />
+
+      <MandateCardPicker mandate={mandate} />
 
       {status === "active" && (
         <Status
