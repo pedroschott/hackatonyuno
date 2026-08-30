@@ -3,9 +3,17 @@ export {
   type MerchantMocksOptions,
 } from './app.js';
 export {
+  autopartsPublicJwk,
+  harvestMarketPublicJwk,
+  cityBasketPublicJwk,
+  mareBotanicalsPublicJwk,
+  pneufastPublicJwk,
   merchantDefinitions,
   merchantRegistrySeed,
+  findMerchantDefinition,
+  type CatalogProduct,
   type MerchantDefinition,
+  type MerchantPricingRules,
 } from './catalog.js';
 export {
   JoseMerchantRequestAuthenticator,

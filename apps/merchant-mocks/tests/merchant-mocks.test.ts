@@ -20,7 +20,23 @@ const harvestBasePath = '/merchants/harvest-market/v1/agents-pay';
 const cityBasketBasePath = '/merchants/city-basket/v1/agents-pay';
 
 describe('merchant mocks', () => {
-  it('exposes two catalogs with distinct local taxonomies and no canonical category', async () => {
+  it('serves the discovery document with BRL currency and capabilities', async () => {
+    const app = createTestApp();
+
+    const response = await app.request('/merchants/autoparts/.well-known/agentpay.json');
+    expect(response.status).toBe(200);
+
+    const discovery = await response.json();
+    expect(discovery).toEqual({
+      protocol: 'agentpay/1.0',
+      merchant: { id: 'mrc_autoparts', name: 'AutoParts' },
+      checkout_endpoint: '/merchants/autoparts/v1/agents-pay/orders/verification',
+      capabilities: ['intent-mandates', 'live-revocation', 'mock-payment'],
+      currency: 'BRL',
+    });
+  });
+
+  it('exposes catalogs with distinct local taxonomies and no canonical category', async () => {
     const app = createTestApp();
 
     const [harvestResponse, cityBasketResponse] = await Promise.all([
@@ -34,15 +50,15 @@ describe('merchant mocks', () => {
     const harvest = (await harvestResponse.json()) as SearchResponse;
     const cityBasket = (await cityBasketResponse.json()) as SearchResponse;
 
-    expect(harvest.merchantId).toBe('harvest-market');
-    expect(cityBasket.merchantId).toBe('city-basket');
+    expect(harvest.merchantId).toBe('mrc_harvest_market');
+    expect(cityBasket.merchantId).toBe('mrc_city_basket');
     expect(harvest.offers[0]?.merchantCategoryId).toBe('pantry.rice-and-grains');
     expect(cityBasket.offers[0]?.merchantCategoryId).toBe('grocery/dry-goods/rice');
     expect(harvest.offers[0]).not.toHaveProperty('canonicalCategoryId');
     expect(cityBasket.offers[0]).not.toHaveProperty('trustTier');
   });
 
-  it('calculates, signs, and returns an immutable merchant quote', async () => {
+  it('calculates, signs, and returns an immutable merchant quote in BRL', async () => {
     const app = createTestApp();
     const createResponse = await requestJson(
       app,
@@ -54,15 +70,16 @@ describe('merchant mocks', () => {
     expect(createResponse.status).toBe(201);
     const created = (await createResponse.json()) as QuoteResponse;
 
-    expect(created.quote.subtotalMinor).toBe(799);
-    expect(created.quote.shippingMinor).toBe(499);
-    expect(created.quote.taxMinor).toBe(107);
-    expect(created.quote.totalMinor).toBe(1_405);
+    expect(created.quote.subtotalMinor).toBe(3_490);
+    expect(created.quote.shippingMinor).toBe(1_490);
+    expect(created.quote.taxMinor).toBe(411);
+    expect(created.quote.totalMinor).toBe(5_391);
+    expect(created.quote.currency).toBe('BRL');
     expect(created.quote.keyId).toBe('harvest-market-2026-08');
     expect(
       await verifyMerchantQuoteSignature(
         created.quote,
-        merchantDefinitions[0]!.signingPublicJwk,
+        merchantDefinitions[1]!.signingPublicJwk,
       ),
     ).toBe(true);
 
@@ -85,7 +102,7 @@ describe('merchant mocks', () => {
     expect(
       await verifyMerchantQuoteSignature(
         modifiedQuote,
-        merchantDefinitions[0]!.signingPublicJwk,
+        merchantDefinitions[1]!.signingPublicJwk,
       ),
     ).toBe(false);
 
@@ -240,7 +257,7 @@ describe('merchant mocks', () => {
     const quoteResponse = await requestJson(
       app,
       `${harvestBasePath}/quotes`,
-      { items: [{ merchantSku: 'hm-store-credit-25', quantity: 1 }] },
+      { items: [{ merchantSku: 'hm-store-credit-50', quantity: 1 }] },
       { 'idempotency-key': 'quote-unmapped-category-001' },
     );
     const { quote } = (await quoteResponse.json()) as QuoteResponse;

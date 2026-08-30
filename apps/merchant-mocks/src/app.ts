@@ -181,6 +181,16 @@ function createMerchantRouter(
 ): Hono<AppEnv> {
   const router = new Hono<AppEnv>();
 
+  router.get('/.well-known/agentpay.json', (context) =>
+    context.json({
+      protocol: 'agentpay/1.0',
+      merchant: { id: merchant.id, name: merchant.name },
+      checkout_endpoint: `${merchant.basePath}/v1/agents-pay/orders/verification`,
+      capabilities: ['intent-mandates', 'live-revocation', 'mock-payment'],
+      currency: 'BRL',
+    }),
+  );
+
   router.post('/v1/agents-pay/search', async (context) => {
     const authenticationFailure = await requireMerchantRequestAuthentication(
       context,
@@ -685,7 +695,7 @@ async function createQuote(
     shippingMinor,
     taxMinor,
     totalMinor,
-    currency: 'USD',
+    currency: 'BRL',
     expiresAt,
     keyId,
   };

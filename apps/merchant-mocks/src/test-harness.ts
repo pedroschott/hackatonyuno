@@ -27,7 +27,17 @@ import {
 } from './rate-limit.js';
 import { createMerchantMocksApp, type MerchantMocksOptions } from './app.js';
 
-const harvestMarketPrivateJwk: JWK = {
+export const autopartsPrivateJwk: JWK = {
+  kty: 'EC',
+  crv: 'P-256',
+  x: 'uBUFVoWW2YeBOibdYSSYlV_uyAG58V7_lzMHbPWfYBw',
+  y: '0o2yc-c6uIY301hip_fuAmoc1Ce9QSxN9XE0hzbQVbk',
+  d: 'ZhsWKVZs_Ex77EEIUCeSy2IXDVR1I7OytfV_zWEvDeI',
+  key_ops: ['sign'],
+  ext: true,
+};
+
+export const harvestMarketPrivateJwk: JWK = {
   kty: 'EC',
   crv: 'P-256',
   x: '7C4izDlK5_4FlwtsBXTTWJpLa4ZlQbSirEZWWWBwKbo',
@@ -37,7 +47,7 @@ const harvestMarketPrivateJwk: JWK = {
   ext: true,
 };
 
-const cityBasketPrivateJwk: JWK = {
+export const cityBasketPrivateJwk: JWK = {
   kty: 'EC',
   crv: 'P-256',
   x: 'Y15afop1gkzDoqOqQ77BrISq-uSqjPxTSfGQxEeQ8Yc',
@@ -47,7 +57,27 @@ const cityBasketPrivateJwk: JWK = {
   ext: true,
 };
 
-const mandateReceiptPrivateJwk: JWK = {
+export const mareBotanicalsPrivateJwk: JWK = {
+  kty: 'EC',
+  crv: 'P-256',
+  x: 'Iv1Wb5kXS5k41A0M-dwBjhoeFLkEPWFtjU4U-gzB5Yg',
+  y: 'syS_Gu66yn4l-IZxXMKtNug8nrZsRLukk8Wk2C2ACqA',
+  d: 'PPD-bbNtawcJAhXjnxKpEBx51JyL-rLWTgQHwICgUyg',
+  key_ops: ['sign'],
+  ext: true,
+};
+
+export const pneufastPrivateJwk: JWK = {
+  kty: 'EC',
+  crv: 'P-256',
+  x: 'rip6umXYk0Vl415u2PNbN5JMcRQrM51AbPdQAeC2coo',
+  y: 'tPOW7x5QIYynzPW2Cyv9GjsMhxSUt30PWSkS6e68M2M',
+  d: '7UZu-YSgLk2ojj1s55n4X2BVlHkZrQTVAPpkRgmugbc',
+  key_ops: ['sign'],
+  ext: true,
+};
+
+export const mandateReceiptPrivateJwk: JWK = {
   kty: 'EC',
   crv: 'P-256',
   x: '_U6_KjIfZq3bwaeySN0mCRglstUGvHQ3Y8dRi5QKGQs',
@@ -190,15 +220,29 @@ export type DemoMerchantMocksOptions = Omit<
   rateLimiter?: MerchantRateLimiter;
 };
 
+const merchantPrivateKeys: Record<string, JWK> = {
+  mrc_autoparts: autopartsPrivateJwk,
+  mrc_harvest_market: harvestMarketPrivateJwk,
+  mrc_city_basket: cityBasketPrivateJwk,
+  mrc_mare_botanicals: mareBotanicalsPrivateJwk,
+  mrc_pneufast: pneufastPrivateJwk,
+  autoparts: autopartsPrivateJwk,
+  'harvest-market': harvestMarketPrivateJwk,
+  'city-basket': cityBasketPrivateJwk,
+  'mare-botanicals': mareBotanicalsPrivateJwk,
+  pneufast: pneufastPrivateJwk,
+};
+
 /**
  * Creates a completely in-memory, deterministic test/demo app. It is not a
  * Vercel production bootstrap and must not be imported by browser code.
  */
 export function createDemoMerchantMocksApp(options: DemoMerchantMocksOptions) {
+  const definitions = options.merchantDefinitions ?? merchantDefinitions;
   const signingKeys = new Map(
-    merchantDefinitions.map((merchant) => [
+    definitions.map((merchant) => [
       merchant.id,
-      merchant.id === 'harvest-market' ? harvestMarketPrivateJwk : cityBasketPrivateJwk,
+      merchantPrivateKeys[merchant.id] ?? harvestMarketPrivateJwk,
     ]),
   );
 
