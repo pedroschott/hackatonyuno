@@ -1,5 +1,11 @@
 # AgentPay decision log
 
+## Start with urgent auto-parts procurement
+
+AgentPay's initial vertical focus is auto-parts procurement, especially time-sensitive vehicle repairs and fleet downtime. These are situations where an agent needs to find a compatible part, compare availability and complete the purchase quickly because every extra approval round keeps a vehicle or operation stopped.
+
+Speed does not mean unlimited authority. The account holder approves a narrow mandate in advance, including merchant or category scope, amount, use-count and expiry limits. The agent can then act immediately inside those limits; only an out-of-scope or above-limit purchase returns to the person for a passkey-approved exception. Auto parts are a strong first niche because fitment, inventory, price and delivery constraints are structured, the decision window is short and the cost of delay is visible.
+
 ## One user role and one personal account
 
 The challenge flow uses one account owner with multiple saved cards. There are no buyer/admin/judge roles in the product path. This keeps OAuth consent and mandate ownership understandable while RLS still isolates every user's data.
