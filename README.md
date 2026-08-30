@@ -10,9 +10,9 @@ Production: https://agentpay-yuno.vercel.app
 
 1. The user connects `https://agentpay-yuno.vercel.app/mcp` to an MCP client.
 2. Supabase OAuth opens AgentPay for sign-in, account creation and consent.
-3. The user registers one passkey, saves one or more cards, chooses a default, and completes the compliance and delivery profile. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
+3. The user registers one passkey, saves one or more cards, chooses a default, completes the compliance and delivery profile, and passes a hosted Didit identity and fraud-verification workflow. AgentPay stores only Didit's session status; documents, images, biometrics, and the full decision remain with Didit. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
 4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The default card is used unless the agent selects another saved card. The web app has no form for this: a mandate only ever exists because an agent asked for one.
-5. The user opens the approval link, may switch the draft to another saved card, and authorizes that exact mandate and card choice with their passkey.
+5. The user opens the approval link, may switch the draft to another saved card, and—only while Didit's latest decision is approved and the user is not flagged or blocked—authorizes that exact mandate and card choice with their passkey.
 6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
 7. The user or agent can revoke the mandate immediately. A checkout still in progress performs a final live registry check before settlement and is refused if revocation committed first; every later checkout is refused too.
 
@@ -25,6 +25,8 @@ npm run dev
 ```
 
 The merchant console uses the publishable Supabase key for authenticated, RLS-protected developer work. `MERCHANT_VERIFICATION_SECRET` is a dedicated server-only proof used after AgentPay fetches and validates a live merchant discovery document. Generate it with `openssl rand -hex 32`, keep it identical in the Vercel environment and the hashed Supabase verification configuration, and never expose it to browser code. The deployed project is already configured.
+
+Identity verification requires server-only `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`, `DIDIT_WEBHOOK_SECRET`, and `SUPABASE_SECRET_KEY` values. A legacy `SUPABASE_SERVICE_ROLE_KEY` remains accepted as a fallback. Configure the Didit v3 webhook destination as `https://<agentpay-host>/api/webhooks/didit`, webhook version `v3`, subscribed to `status.updated`, `data.updated`, `user.status.updated`, and `user.data.updated`. The workflow determines which fraud checks run; for the demo, include ID verification, liveness, face match, AML, and IP analysis. Never prefix these values with `NEXT_PUBLIC_`.
 
 Open http://localhost:3210 for the landing page, or http://localhost:3210/dashboard for the app. A new account starts empty: nothing can be charged until an agent requests a mandate and you sign it. Localhost is a WebAuthn secure context. On a phone, open the canonical production HTTPS URL directly in Safari or Chrome; passkeys are bound to that exact hostname and embedded browsers may not expose the device authenticator.
 
@@ -58,7 +60,7 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | `/dashboard` | Summary: what was charged this month, which mandates are active, what is waiting for your signature |
 | `/activity` | Every purchase attempt and the mandate decision made on it |
 | `/connect` | See connected assistants and connect another with one link |
-| `/account` | Compliance, delivery address, saved cards, card usage and default-card controls |
+| `/account` | Didit identity/fraud verification, compliance, delivery address, saved cards, card usage and default-card controls |
 | `/m` | Phone-first signing inbox and revocation switch, opened by QR from the desktop app |
 | `/docs` | Merchant documentation: install and set up the SDK in a new store |
 | `/developers` | Merchant console: create identities, hosted test stores, products, keys, and inspect checkout activity |
@@ -71,7 +73,7 @@ Every route above is responsive and usable from a phone. `/m` is a separate, del
 
 ## MCP tools
 
-- `get_account`
+- `get_account` — includes the latest minimal Didit status and the account verification URL
 - `get_payment_setup_link` — returns a 15-minute, user-bound AgentPay browser link and accepts no card data
 - `create_mandate` — uses the account default unless `vault_card_id` selects another owned card
 - `get_mandate`

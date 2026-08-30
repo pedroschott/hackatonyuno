@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: ["/", "/docs", "/connect", "/store", "/.well-known/agentpay.json"],
       disallow: [
-        "/api/",
+        "/api/", // Includes identity-verification callbacks and provider webhooks.
         "/mcp",
         "/oauth/",
         "/dashboard",

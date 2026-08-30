@@ -9,6 +9,7 @@ import {
   type AgentRecord,
 } from "@/lib/data";
 import { apiError, authenticatedRequest } from "@/lib/http";
+import { requireVerifiedIdentity } from "@/lib/identity-verification";
 import {
   transactionAuthenticationOptions,
   verifyTransactionAuthentication,
@@ -54,6 +55,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { id } = await context.params;
     const input = requestSchema.parse(await request.json());
     const { supabase, user } = await authenticatedRequest();
+    await requireVerifiedIdentity(supabase);
     const { mandate, agent } = await loadMandateAndAgent(supabase, id);
     if (mandate.status !== "draft") throw new Error("Only draft mandates can be authorized");
     const unsignedPayload = mandatePayload({

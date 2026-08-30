@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { appendAudit } from "@/lib/data";
 import { apiError, authenticatedRequest } from "@/lib/http";
+import { loadLatestIdentityVerification } from "@/lib/identity-verification";
 
 const profileSchema = z.object({
   legal_name: z.string().trim().max(120).optional(),
@@ -21,8 +22,9 @@ const profileFields =
 export async function GET() {
   try {
     const { supabase, user } = await authenticatedRequest();
-    const [profile, cards, mandates, approvals, attempts, credentials] = await Promise.all([
+    const [profile, identityVerification, cards, mandates, approvals, attempts, credentials] = await Promise.all([
       supabase.from("customer_profiles").select(profileFields).maybeSingle(),
+      loadLatestIdentityVerification(supabase),
       supabase
         .from("vault_cards")
         .select("id, brand, last4, label, is_default, created_at")
@@ -40,6 +42,7 @@ export async function GET() {
     return Response.json({
       user: { id: user.id, email: user.email },
       profile: profile.data,
+      identity_verification: identityVerification,
       cards: cards.data,
       mandates: mandates.data,
       approvals: approvals.data,

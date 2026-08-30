@@ -15,6 +15,20 @@ export function merchantVerificationSecret(): string {
   return required("MERCHANT_VERIFICATION_SECRET");
 }
 
+export function diditEnv() {
+  return {
+    apiKey: required("DIDIT_API_KEY"),
+    workflowId: required("DIDIT_WORKFLOW_ID"),
+    webhookSecret: required("DIDIT_WEBHOOK_SECRET"),
+  };
+}
+
+export function supabaseSecretKey(): string {
+  const value = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!value) throw new Error("Missing required environment variable: SUPABASE_SECRET_KEY");
+  return value;
+}
+
 export function agentPayBaseUrl(requestUrl?: string): string {
   const configured = process.env.AGENTPAY_BASE_URL;
   if (configured) return new URL(configured).origin;

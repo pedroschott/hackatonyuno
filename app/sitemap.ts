@@ -5,8 +5,9 @@ import { agentPayBaseUrl } from "@/lib/env";
 
 /**
  * Only include public, canonical HTML surfaces here. Authenticated screens,
- * OAuth callbacks and machine endpoints are described in docs/routes.md but
- * must never be suggested to search crawlers as content pages.
+ * OAuth callbacks and machine endpoints—including Didit returns and webhooks—
+ * are described in docs/routes.md but must never be suggested to search
+ * crawlers as content pages.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = agentPayBaseUrl();
