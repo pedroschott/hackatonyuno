@@ -6,6 +6,7 @@ sequenceDiagram
     participant Agent as Claude / ChatGPT / MCP client
     participant AgentPay as AgentPay on Vercel
     participant Auth as Supabase Auth + OAuth
+    participant KYC as Didit hosted KYC
     participant Registry as Supabase mandate registry
     participant Store as Store + merchant SDK
 
@@ -19,6 +20,10 @@ sequenceDiagram
     Agent->>Auth: OAuth authorization + PKCE
     Auth->>User: AgentPay sign-in and consent screen
     User->>AgentPay: Create account/passkey if needed
+    User->>AgentPay: Consent to identity verification
+    AgentPay->>KYC: Create user-bound hosted KYC session
+    KYC->>User: Collect identity evidence in hosted flow
+    KYC-->>AgentPay: Signed webhook with verification status
     Auth-->>Agent: Access token
     Agent->>AgentPay: get_account
     AgentPay-->>Agent: Order profile + saved-card metadata + default
@@ -47,6 +52,7 @@ Checkout settlement and revocation use the same per-mandate transaction lock. A 
 
 - The agent proposes scope and purchase details but cannot approve its own authority.
 - Supabase Auth owns user sessions and OAuth grants. AgentPay stores WebAuthn public credentials, never private passkey material.
+- Didit owns identity evidence and decisions. AgentPay creates KYC sessions server-side and retains only the signed webhook's current status and timestamps; agents and merchants never receive Didit data or credentials.
 - The registry signs canonical mandates and exposes only the exact signed records required for merchant verification.
 - The store owns products, discovery and checkout. The SDK checks live revocation on every purchase.
 - The payment rail is the only mocked boundary. The mock token is issued only after the real authorization and enforcement path succeeds and is bound to the card ID inside the signed mandate.

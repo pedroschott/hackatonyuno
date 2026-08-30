@@ -51,6 +51,7 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | Method | Endpoint | Purpose |
 |---|---|---|
 | `GET`, `PATCH` | `/api/account` | Read or update the user-owned compliance and fulfillment profile plus account state. |
+| `GET`, `POST` | `/api/identity-verification` | Read the caller's minimal Didit KYC state or create one hosted verification session for that authenticated account. |
 | `POST` | `/api/cards` | Save non-sensitive payment-method display metadata and an opaque mock-vault reference. The first card becomes the default. |
 | `PATCH`, `DELETE` | `/api/cards/:id` | Set an owned card as default or remove it when no draft/active mandate is bound to it. |
 | `POST` | `/api/checkout` | Execute the deployed demo checkout path. A test-only request may use a bounded pre-settlement revocation window; the final database decision always rechecks live mandate state. |
@@ -67,6 +68,7 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | `POST` | `/api/passkeys/register` | Register a WebAuthn credential. |
 | `GET` | `/api/state` | Read the authenticated demo state. |
 | `POST` | `/api/store/checkout` | AutoParts demo store checkout. |
+| `POST` | `/api/webhooks/didit` | Didit V3 session-status webhook. It accepts only a fresh, HMAC-authenticated delivery and is idempotent by Didit event ID. |
 
 ## Merchant verification registry
 

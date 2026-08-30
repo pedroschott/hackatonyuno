@@ -10,7 +10,7 @@ Production: https://agentpay-yuno.vercel.app
 
 1. The user connects `https://agentpay-yuno.vercel.app/mcp` to an MCP client.
 2. Supabase OAuth opens AgentPay for sign-in, account creation and consent.
-3. The user registers one passkey, saves one or more cards, chooses a default, and completes the compliance and delivery profile. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
+3. The user registers one passkey, saves one or more cards, chooses a default, completes the compliance and delivery profile, and can complete a Didit identity check. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata. Didit KYC stores only the resulting status and timestamps in AgentPay.
 4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The default card is used unless the agent selects another saved card. The web app has no form for this: a mandate only ever exists because an agent asked for one.
 5. The user opens the approval link, may switch the draft to another saved card, and authorizes that exact mandate and card choice with their passkey.
 6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
@@ -113,3 +113,7 @@ Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml` — t
 Schema changes are versioned in `supabase/migrations/`. Every Data API table has Row Level Security. User-owned cards, credentials, agents and mandates are isolated by `auth.uid()` policies; merchant checkout decisions run through narrowly scoped database functions.
 
 The payment rail is intentionally mocked for the challenge. Authentication, passkey ceremonies, mandate signatures, enforcement, OAuth, MCP, live revocation and merchant verification are functional.
+
+## Didit identity verification
+
+AgentPay creates Didit KYC sessions only from its authenticated backend and opens the returned hosted URL with the web SDK. The client callback is an interface hint only: the signed Didit webhook at `/api/webhooks/didit` is the sole source of truth for the decision. See [docs/didit-kyc.md](docs/didit-kyc.md) for deployment, webhook registration, privacy boundaries, and verification steps.

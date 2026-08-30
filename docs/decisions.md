@@ -4,6 +4,12 @@
 
 The challenge flow uses one account owner with multiple saved cards. There are no buyer/admin/judge roles in the product path. This keeps OAuth consent and mandate ownership understandable while RLS still isolates every user's data.
 
+## Didit KYC is a Control Plane signal, not merchant data
+
+Identity verification answers whether the account holder has completed the provider's compliance flow. It does not grant a mandate, replace a passkey, or become an attribute passed to a merchant. The user starts an authenticated, user-bound Didit session from AgentPay; the browser modal and callback are presentation only, while a fresh signed V3 webhook is authoritative.
+
+AgentPay deliberately stores only the current provider status, session ID, workflow ID, and timestamps. It does not retain Didit's decision payload, document values, images, biometrics, liveness values, or government identifiers. This makes the integration demonstrable without expanding the merchant SDK's trust boundary or pretending that the demo is an identity-document vault. A future product policy can require an `Approved` state for a defined high-risk mandate class, but making it universal now would change the existing passkey-authorized mandate flow and make a provider outage block the main demo.
+
 ## Store-owned discovery instead of a directory
 
 Agents find products through search or store tools, then read `/.well-known/agentpay.json` on that store. This avoids central catalog drift and lets every merchant own its products and checkout URL.

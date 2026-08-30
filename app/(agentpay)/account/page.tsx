@@ -5,6 +5,7 @@ import { Check, CreditCard, MapPin, ShieldCheck, Trash2 } from "lucide-react";
 
 import { PageHeader } from "@/components/AppShell";
 import { CardBrand } from "@/components/CardBrand";
+import { IdentityVerification } from "@/components/IdentityVerification";
 import { useStore } from "@/lib/store";
 import { cardUsageFor } from "@/lib/cards";
 import {
@@ -200,6 +201,8 @@ export default function AccountPage() {
           <Field label="Phone"><Input value={profile.phone} onChange={(event) => setField("phone", event.target.value)} autoComplete="tel" /></Field>
         </div>
       </Card>
+
+      <IdentityVerification />
 
       <Card>
         <CardHeader
