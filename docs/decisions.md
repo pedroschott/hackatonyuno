@@ -103,3 +103,9 @@ A merchant cannot rehearse an approved purchase without a signed mandate, and co
 `/` is now a static public page that explains the product in the user's terms — connect an assistant, sign a mandate with a passkey, watch every attempt, revoke in one tap — with a single developer section pointing at `/docs`. It is a server component that reads no account state, so `StoreProvider` excludes it from the 1.5s `/api/state` poll alongside `/docs`.
 
 The mandate shown in the hero is deliberately static markup rather than live data: a marketing surface must not depend on a session, and a fabricated "live" panel would be exactly the seeded-demo-data problem this log already rejects. It mirrors what `MandateCard` renders, and the page states that the payment rail is mocked rather than implying settled money.
+
+## USD is the single product currency
+
+AgentPay stores every price, mandate limit, attempt and mock payment allowance as exact integer USD cents. It does not fetch exchange rates or compare values across denominations: a merchant product outside USD is refused with `CURRENCY_MISMATCH`.
+
+The forward migration preserves each integer cent amount instead of inventing a one-time exchange rate. Currency is part of the signed mandate artifact, so any active legacy non-USD mandate is revoked and its obsolete authorization material is cleared; the buyer must sign a new USD mandate. Historical audit payloads remain untouched because rewriting them would invalidate the append-only hash chain.

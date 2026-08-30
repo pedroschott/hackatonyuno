@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { effectiveStatus, sameMonth } from "@/lib/engine";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { Button, Card, CardHeader, EmptyState } from "@/components/ui";
 import { MandateCard } from "@/components/app/MandateCard";
 import { RequestCard } from "@/components/app/RequestCard";
@@ -38,12 +38,12 @@ export default function SummaryPage() {
       <section className="rounded-xl bg-white px-5 py-5 shadow-[var(--shadow-card)] sm:px-6 sm:py-6">
         <div className="text-[13.5px] text-muted">Charged under your mandates this month</div>
         <div className="mt-1 text-[34px] font-semibold leading-none tracking-[-0.02em] tabular sm:text-[40px]">
-          {brl(spent)}
+          {usd(spent)}
         </div>
         <div className="mt-2 text-[13.5px] text-muted">
           {active.length === 0
             ? "No active mandate. Nothing can be charged to your cards."
-            : `${brl(Math.max(0, allowance - spent))} left across ${active.length} active ${
+            : `${usd(Math.max(0, allowance - spent))} left across ${active.length} active ${
                 active.length === 1 ? "mandate" : "mandates"
               }.`}
         </div>

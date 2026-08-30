@@ -21,7 +21,7 @@ import { useEffect, useState } from "react";
 import { CopyButton } from "@/components/docs/CopyButton";
 import { Badge, Button, buttonClassName, Card, CardHeader, EmptyState, Field, Input, Modal } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import {
   merchantTone,
   type DeveloperMerchant,
@@ -246,7 +246,7 @@ function CatalogTab({ merchant, products, onChange }: { merchant: DeveloperMerch
           category: form.category,
           sku: form.sku,
           price_cents: Math.round(Number(form.price) * 100),
-          currency: "BRL",
+          currency: "USD",
         }),
       });
       setOpen(false);
@@ -278,7 +278,7 @@ function CatalogTab({ merchant, products, onChange }: { merchant: DeveloperMerch
                   <tr key={product.id} className="border-b border-line last:border-b-0">
                     <td className="px-5 py-3"><div className="font-medium">{product.name}</div><div className="mt-0.5 font-mono text-[10.5px] text-faint">{product.sku} · {product.id}</div></td>
                     <td className="px-4 py-3 text-muted">{product.category}</td>
-                    <td className="px-4 py-3 font-medium tabular">{brl(product.price_cents)}</td>
+                    <td className="px-4 py-3 font-medium tabular">{usd(product.price_cents)}</td>
                     <td className="px-4 py-3"><Badge tone={product.active ? "success" : "neutral"} dot>{product.active ? "active" : "inactive"}</Badge></td>
                     <td className="px-5 py-3 text-right"><button onClick={() => void remove(product.id)} className="rounded p-1.5 text-faint hover:bg-danger-soft hover:text-danger-ink" aria-label={`Delete ${product.name}`}><Trash2 className="size-3.5" /></button></td>
                   </tr>
@@ -293,7 +293,7 @@ function CatalogTab({ merchant, products, onChange }: { merchant: DeveloperMerch
           <Field label="Name"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Sample product" /></Field>
           <Field label="SKU"><Input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} placeholder="SKU-001" /></Field>
           <Field label="Category"><Input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></Field>
-          <Field label="Price (BRL)"><Input inputMode="decimal" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></Field>
+          <Field label="Price (USD)"><Input inputMode="decimal" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></Field>
           <Field label="Description" className="sm:col-span-2"><Input value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="What an agent should know about this product" /></Field>
           {error && <div className="rounded-md bg-danger-soft px-3 py-2 text-[12px] text-danger-ink sm:col-span-2">{error}</div>}
           <div className="flex justify-end gap-2 border-t border-line pt-4 sm:col-span-2"><Button onClick={() => setOpen(false)}>Cancel</Button><Button variant="primary" loading={busy} disabled={!form.name || !form.sku || !form.description || Number(form.price) <= 0} onClick={createProduct}>Add product</Button></div>
@@ -331,7 +331,7 @@ function KeysTab({ merchant, keys, onChange }: { merchant: DeveloperMerchant; ke
   const curl = `curl -X POST https://agentpay-yuno.vercel.app/api/v1/merchants/${merchant.id}/products \\
   -H "Authorization: Bearer $AGENTPAY_MERCHANT_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"name":"Desk lamp","description":"LED task lamp","category":"office","sku":"LAMP-01","price_cents":12900,"currency":"BRL"}'`;
+  -d '{"name":"Desk lamp","description":"LED task lamp","category":"office","sku":"LAMP-01","price_cents":12900,"currency":"USD"}'`;
 
   return (
     <div className="space-y-5">
@@ -366,11 +366,11 @@ function ActivityTab({ attempts }: { attempts: MerchantAttempt[] }) {
   const volume = approved.reduce((sum, attempt) => sum + attempt.amount_cents, 0);
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3"><MetricCard label="Attempts" value={attempts.length} /><MetricCard label="Approved" value={approved.length} /><MetricCard label="Mock volume" value={brl(volume)} /></div>
+      <div className="grid gap-3 sm:grid-cols-3"><MetricCard label="Attempts" value={attempts.length} /><MetricCard label="Approved" value={approved.length} /><MetricCard label="Mock volume" value={usd(volume)} /></div>
       <Card>
         <CardHeader title="Checkout decisions" description="Merchant-side view; buyer identity, cards, and mandate details stay private." />
         {attempts.length ? (
-          <div className="overflow-x-auto"><table className="w-full min-w-[660px] text-left text-[12px]"><thead className="border-b border-line bg-[#fafbfc] text-[10.5px] uppercase tracking-[0.08em] text-faint"><tr><th className="px-5 py-2.5">Time</th><th className="px-4 py-2.5">Product</th><th className="px-4 py-2.5">Amount</th><th className="px-4 py-2.5">Decision</th><th className="px-5 py-2.5">Reason</th></tr></thead><tbody>{attempts.map((attempt) => <tr key={attempt.id} className="border-b border-line last:border-b-0"><td className="px-5 py-3 text-muted">{formatDate(attempt.created_at)}</td><td className="px-4 py-3 font-mono text-[10.5px]">{attempt.product_id}</td><td className="px-4 py-3 font-medium tabular">{brl(attempt.amount_cents)}</td><td className="px-4 py-3"><Badge tone={attempt.decision === "approved" ? "success" : attempt.decision === "refused" ? "danger" : "warn"} dot>{attempt.decision}</Badge></td><td className="px-5 py-3 text-muted">{attempt.reason_code ?? "—"}</td></tr>)}</tbody></table></div>
+          <div className="overflow-x-auto"><table className="w-full min-w-[660px] text-left text-[12px]"><thead className="border-b border-line bg-[#fafbfc] text-[10.5px] uppercase tracking-[0.08em] text-faint"><tr><th className="px-5 py-2.5">Time</th><th className="px-4 py-2.5">Product</th><th className="px-4 py-2.5">Amount</th><th className="px-4 py-2.5">Decision</th><th className="px-5 py-2.5">Reason</th></tr></thead><tbody>{attempts.map((attempt) => <tr key={attempt.id} className="border-b border-line last:border-b-0"><td className="px-5 py-3 text-muted">{formatDate(attempt.created_at)}</td><td className="px-4 py-3 font-mono text-[10.5px]">{attempt.product_id}</td><td className="px-4 py-3 font-medium tabular">{usd(attempt.amount_cents)}</td><td className="px-4 py-3"><Badge tone={attempt.decision === "approved" ? "success" : attempt.decision === "refused" ? "danger" : "warn"} dot>{attempt.decision}</Badge></td><td className="px-5 py-3 text-muted">{attempt.reason_code ?? "—"}</td></tr>)}</tbody></table></div>
         ) : <EmptyState title="No checkout attempts yet" description="Create and approve a mandate for this merchant, then ask the agent to purchase an active product." />}
       </Card>
     </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Approval, Mandate } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { storeName } from "@/lib/plain";
 import { Button, Card } from "../ui";
 import { PasskeyCeremony } from "../PasskeyCeremony";
@@ -30,11 +30,11 @@ export function ApprovalCard({ approval, mandate }: { approval: Approval; mandat
         <h3 className="text-[16px] font-semibold">One-time approval requested</h3>
         <p className="mt-1.5 text-[14px] text-ink-2">
           {name} tried to buy <b className="text-ink">{approval.product_name}</b> at {store} for{" "}
-          <b className="text-ink tabular">{brl(approval.amount_cents)}</b>.
+          <b className="text-ink tabular">{usd(approval.amount_cents)}</b>.
         </p>
         {over > 0 && mandate && (
           <p className="mt-1 text-[13.5px] text-muted">
-            That is {brl(over)} over the {brl(mandate.limits.per_purchase_cents)} per-purchase limit on its mandate, so
+            That is {usd(over)} over the {usd(mandate.limits.per_purchase_cents)} per-purchase limit on its mandate, so
             it was held instead of charged.
           </p>
         )}
@@ -72,8 +72,8 @@ export function ApprovalCard({ approval, mandate }: { approval: Approval; mandat
         facts={[
           { label: "Item", value: approval.product_name },
           { label: "Store", value: store },
-          { label: "Amount", value: brl(approval.amount_cents) },
-          { label: "Mandate limit", value: mandate ? brl(mandate.limits.per_purchase_cents) : "—" },
+          { label: "Amount", value: usd(approval.amount_cents) },
+          { label: "Mandate limit", value: mandate ? usd(mandate.limits.per_purchase_cents) : "—" },
           { label: "Covers", value: "This purchase only" },
         ]}
         onComplete={(pk) => {

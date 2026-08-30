@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { Mark } from "@/components/Logo";
 import { CheckoutModal } from "@/components/store/CheckoutModal";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import type { DeveloperMerchant, DeveloperProduct } from "@/lib/merchant-console";
 import type { Product } from "@/lib/types";
 
@@ -76,7 +76,7 @@ export function DynamicStorefront({
               <h2 className="mt-1 text-[16px] font-semibold">{product.name}</h2>
               <p className="mt-1 line-clamp-2 text-[12.5px] text-[#697386]">{product.description}</p>
               <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-                <span className="text-[18px] font-semibold tabular">{brl(product.priceCents)}</span>
+                <span className="text-[18px] font-semibold tabular">{usd(product.priceCents)}</span>
                 <button
                   onClick={() => setSelected(product)}
                   className="inline-flex h-9 items-center gap-2 rounded-md bg-brand px-3 text-[12.5px] font-semibold text-white hover:bg-brand-hover"

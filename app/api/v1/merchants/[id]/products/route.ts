@@ -10,7 +10,7 @@ const productSchema = z.object({
   category: z.string().trim().min(1).max(80),
   sku: z.string().trim().min(1).max(80),
   price_cents: z.number().int().positive(),
-  currency: z.string().trim().length(3).default("BRL"),
+  currency: z.literal("USD").default("USD"),
 });
 
 export async function GET(_request: Request, context: RouteContext<"/api/v1/merchants/[id]/products">) {
@@ -43,7 +43,7 @@ export async function POST(request: Request, context: RouteContext<"/api/v1/merc
       p_category: input.category,
       p_sku: input.sku,
       p_price_cents: input.price_cents,
-      p_currency: input.currency.toUpperCase(),
+      p_currency: input.currency,
     });
     if (result.error) return Response.json({ error: result.error.message }, { status: 400 });
     const product = result.data as { merchant_id?: string } | null;

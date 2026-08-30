@@ -77,7 +77,7 @@ const artifact = {
   issuer: { user_id: "user-1" },
   agent: { agent_id: "agt_test", public_key: agent.publicKey },
   scope: { merchants: [MERCHANT_ID], categories: ["tires"] },
-  limits: { per_purchase_cents: 200000, cumulative_cents: 400000, max_uses: 3, period: "month", currency: "BRL" },
+  limits: { per_purchase_cents: 200000, cumulative_cents: 400000, max_uses: 3, period: "month", currency: "USD" },
   validity: { not_before: "2026-08-01T00:00:00.000Z", expires_at: "2026-09-01T00:00:00.000Z" },
   payment: { vault_card_id: "card-1" },
   authorization: { credential_id: "cred-1", mandate_hash: "hash", signed_at: "2026-08-29T11:00:00.000Z" },
@@ -119,7 +119,7 @@ function handlerFor(current: RegistryMandate) {
       name: "Standard tire set",
       category: "tires",
       price_cents: 154800,
-      currency: "BRL",
+      currency: "USD",
     }),
   });
 }
@@ -225,7 +225,7 @@ describe("agentpay checkout", () => {
                   assistant from <A href="https://agentpay-yuno.vercel.app/connect">/connect</A>.
                 </LI>
                 <LI>
-                  Ask the agent for something specific: <em>buy one set of tires from Demo Store, up to R$ 1,600, once</em>.
+                  Ask the agent for something specific: <em>buy one set of tires from Demo Store, up to $1,600, once</em>.
                   It creates a mandate; approve it with your passkey.
                 </LI>
                 <LI>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { effectiveStatus } from "@/lib/engine";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { Badge } from "@/components/ui";
 import { MandateCard } from "@/components/app/MandateCard";
 import { PurchaseRow } from "@/components/app/PurchaseRow";
@@ -44,7 +44,7 @@ export default function MobileInbox() {
             >
               <div className="min-w-0 flex-1">
                 <div className="text-[14.5px] font-semibold">{agentLabel(m, agents)} requested a mandate</div>
-                <div className="truncate text-[13px] text-muted">Up to {brl(m.limits.per_purchase_cents)} per purchase</div>
+                <div className="truncate text-[13px] text-muted">Up to {usd(m.limits.per_purchase_cents)} per purchase</div>
               </div>
               <ChevronRight className="size-4 shrink-0 text-faint" />
             </Link>
@@ -58,7 +58,7 @@ export default function MobileInbox() {
               <div className="min-w-0 flex-1">
                 <div className="text-[14.5px] font-semibold">One-time approval requested</div>
                 <div className="truncate text-[13px] text-muted">
-                  {a.product_name} · {brl(a.amount_cents)} at {storeName(merchants, a.merchant_id)}
+                  {a.product_name} · {usd(a.amount_cents)} at {storeName(merchants, a.merchant_id)}
                 </div>
               </div>
               <ChevronRight className="size-4 shrink-0 text-faint" />

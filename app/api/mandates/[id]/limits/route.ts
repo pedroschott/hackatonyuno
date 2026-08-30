@@ -15,7 +15,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (current.data.status !== "draft") {
       return error("Active mandates are immutable. Revoke and authorize a replacement.", 409);
     }
-    const limits = { ...(current.data.limits as MandateLimits), ...(body.limits ?? {}) };
+    if (body.limits?.currency && body.limits.currency !== "USD") {
+      return error("Mandate limits must use USD", 400);
+    }
+    const limits: MandateLimits = {
+      ...(current.data.limits as MandateLimits),
+      ...(body.limits ?? {}),
+      currency: "USD",
+    };
     if (
       limits.per_purchase_cents <= 0 ||
       limits.cumulative_cents < limits.per_purchase_cents ||

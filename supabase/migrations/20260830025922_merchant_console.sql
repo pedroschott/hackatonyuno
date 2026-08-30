@@ -410,7 +410,7 @@ begin
     ) values (
       p_sample_product_id, p_merchant_id, 'Sample product',
       'A test product for the first AgentPay integration run.', lower(p_category),
-      'SAMPLE-001', 4900, 'BRL'
+      'SAMPLE-001', 4900, 'USD'
     ) returning * into v_product;
   end if;
 
@@ -455,7 +455,7 @@ begin
     or char_length(p_category) not between 1 and 80
     or char_length(p_sku) not between 1 and 80
     or p_price_cents <= 0
-    or p_currency !~ '^[A-Z]{3}$' then
+    or p_currency <> 'USD' then
     raise exception 'Invalid product payload';
   end if;
 
@@ -481,7 +481,7 @@ begin
     id, merchant_id, name, description, category, sku, price_cents, currency
   ) values (
     p_product_id, v_merchant_id, p_name, p_description, lower(p_category), p_sku,
-    p_price_cents, upper(p_currency)
+    p_price_cents, p_currency
   ) returning * into v_product;
 
   return to_jsonb(v_product);

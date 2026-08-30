@@ -10,7 +10,7 @@ const productSchema = z.object({
   category: z.string().trim().min(1).max(80),
   sku: z.string().trim().min(1).max(80),
   price_cents: z.number().int().positive(),
-  currency: z.string().trim().length(3).default("BRL"),
+  currency: z.literal("USD").default("USD"),
 });
 
 export async function GET(_request: Request, context: RouteContext<"/api/developers/merchants/[id]/products">) {
@@ -39,7 +39,7 @@ export async function POST(request: Request, context: RouteContext<"/api/develop
         merchant_id: id,
         ...input,
         category: input.category.toLowerCase(),
-        currency: input.currency.toUpperCase(),
+        currency: input.currency,
       })
       .select(PRODUCT_FIELDS)
       .single();
