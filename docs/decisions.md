@@ -146,13 +146,15 @@ The forward migration preserves each integer cent amount instead of inventing a 
 
 ## B2B emergency procurement is the primary demo case
 
-We considered consumer purchases, recurring procurement and emergency operational purchases.
+The protocol and merchant SDK are deliberately market-agnostic: the same signed mandate can constrain a B2C purchase, B2B procurement, or a B2B2C marketplace transaction. The initial pitch still needs one concrete buyer with a problem worth solving, rather than a catalogue of possible verticals.
 
-The demo uses an unexpected fleet maintenance event: a vehicle is immobilized, every additional day creates operational cost, and an agent must find the required part from an unfamiliar supplier and complete the purchase quickly.
+We chose B2B first because it is a more predictable and economically meaningful setting for bounded delegation. Procurement repeats, ticket sizes and operational cost are visible, and businesses already have manual controls worth automating: policy limits, supplier trust, escalation, approvals, receipts and audit. It is therefore the clearest environment in which to demonstrate a rich mandate, human-in-the-loop exceptions and a purchase trail without making those controls look like needless consumer friction.
 
-This scenario demonstrates why agentic purchasing is valuable beyond convenience. The agent can search broadly and act quickly, while AgentPay limits the authority granted to it and keeps the purchase verifiable and auditable.
+We considered several B2B examples. Restaurants were rejected because supplier changes often depend on long-standing quality and reliability relationships; a price-first autonomous switch would be a weak representation of their real buying process. Passenger-car rental fleets were also considered because they buy tires and maintenance items repeatedly, but large fleets commonly already operate through contracted workshops and suppliers. Neither case makes independent discovery under time pressure central enough to the demo.
 
-The rejected primary demo was a simple recurring purchase. It was easier to automate, but did not demonstrate the economic value of discovery, urgency and controlled autonomy as clearly.
+The chosen case is long-haul vans, trucks and freight operations. When a vehicle fails far from its usual workshop, a driver cannot wait days for a price audit and a manager's payment approval while the vehicle is idle. The agent can find an available, policy-compliant part from an unfamiliar merchant; AgentPay then proves exactly what it may buy, routes an exception when price, category or merchant trust falls outside the contract, and records why the purchase happened. That combines urgency with the controls a business needs before it delegates spend.
+
+The rejected primary demo was a simple recurring purchase. It was easier to automate, but did not demonstrate discovery, urgency, exception handling and controlled autonomy as clearly. B2C remains a valid integration surface, not a rejected product market: the SDK does not encode fleet, freight, business roles or any vertical-specific policy. The hackathon build models one account owner because it is the smallest end-to-end proof; organisational roles, approval hierarchies and marketplace flows can be layered over the same mandate object later.
 
 ## Every purchase states why it was made
 
@@ -210,16 +212,12 @@ Signing up depends on one thing that lives outside the system: a confirmation em
 
 `demo7421@fwdco.space` is an ordinary account, created through the same public sign-up endpoint as everyone else's and confirmed through the same confirmation link. Its password is published in the README. That does not contradict *No seeded account data*: what is seeded is an account, not account data. It holds no passkey, no card, no identity decision and no mandate, so it renders the same empty dashboard as any new account, and the same passkey signature, Didit decision and mandate check stand between it and a charge. Publishing the password grants what an email address grants — the right to start the flow.
 
-## B2B purchasing, not consumer shopping
-
-AgentPay is built for business buyers rather than consumers. The same primitives — a scoped mandate, a passkey signature, a live registry check at checkout — would technically serve either market, but only one of them is worth solving.
-
-Consumer agent shopping is a low-value, low-repetition problem. Someone buying headphones can open the store and check out in a minute, and the ticket is small enough that a wrong purchase is an annoyance rather than a loss. An agent there adds convenience on top of an interaction the person was already able to complete, so the authorization layer around it has little to protect.
-
-Business purchasing inverts both terms. Ticket sizes are an order of magnitude higher, and the buying is genuinely repetitive: supplier restocks, recurring service and infrastructure spend, procurement that runs on the same catalogue and the same rules every month. That is work a company already wants delegated, and the reason it is not delegated today is not that agents cannot browse a store — it is that nobody can hand a purchasing agent authority that is bounded, attributable and revocable. Value per transaction and demand for automation are both high, which is exactly where an enforcement layer earns its place.
-
-This is why the product is a mandate registry and not a shopping assistant. The features that would be overhead in a consumer flow — per-mandate scope and limits, an expiry, a hash-chained audit trail of every attempt and the decision made on it, revocation that stops a checkout already in flight — are the requirements a company has before it lets software spend its money. The challenge build still models a single account owner with saved cards, because that is the smallest shape that demonstrates the enforcement layer end to end; the roles, seats and approval hierarchy a real buying organisation needs sit on top of the same mandate object rather than replacing it.
-
 Its one real limit is the passkey: the app offers registration only while an account holds none, so the first device to register a passkey for the shared account is the only one that can sign for it, and the README says so.
 
 The rejected alternative was a demo account pre-loaded with an approved identity decision and a saved card. It would have saved two minutes and cost the property a payments console cannot afford to lose: that what is on the screen was actually enforced, and can be checked.
+
+## B2B is the pitch focus, not an API boundary
+
+The B2B case is not an assertion that consumer purchasing has no value. A personal assistant can also benefit from a constrained, attributable and revocable mandate, particularly for recurring or higher-risk purchases. The distinction is product positioning: emergency freight procurement demonstrates the economic cost of delay and the value of complex controls most clearly in a short live demo.
+
+This is why AgentPay is a mandate registry rather than a shopping assistant. A scoped mandate, passkey signature, live registry check, expiry, audit trail and live revocation are generic enforcement primitives. They fit consumer, business and marketplace flows; the merchant integration is universal through the SDK, and the pitch deliberately shows one demanding use case rather than claiming a vertical lock-in.
