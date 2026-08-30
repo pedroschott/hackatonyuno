@@ -28,7 +28,7 @@ export type Product = {
   merchantId: string;
   name: string;
   description: string;
-  category: "tires" | "accessories";
+  category: string;
   priceCents: number;
   sku: string;
 };

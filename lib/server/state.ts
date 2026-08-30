@@ -106,9 +106,9 @@ function verificationChecks(row: Record<string, unknown>): Check[] {
   ];
 }
 
-function mapAttempt(row: Record<string, unknown>): Attempt {
+function mapAttempt(row: Record<string, unknown>, products: Array<{ id: string; name: string }>): Attempt {
   const verification = asObject(row.verification);
-  const product = seedProducts.find((candidate) => candidate.id === row.product_id);
+  const product = products.find((candidate) => candidate.id === row.product_id);
   return {
     id: String(row.id),
     mandate_id: typeof row.mandate_id === "string" ? row.mandate_id : null,
@@ -163,7 +163,7 @@ function mapApproval(row: Record<string, unknown>, attempts: Attempt[]): Approva
 export async function loadAuthenticatedState(): Promise<{ state: Data; user: User }> {
   const { supabase, user } = await authenticatedRequest();
   const agent = await ensureAgent(supabase, user.id);
-  const [cards, mandates, attempts, approvals, audit, products] = await Promise.all([
+  const [cards, mandates, attempts, approvals, audit, products, merchants] = await Promise.all([
     supabase
       .from("vault_cards")
       .select("id, brand, last4, label, is_default, created_at")
@@ -174,20 +174,37 @@ export async function loadAuthenticatedState(): Promise<{ state: Data; user: Use
     supabase.from("approvals").select("*").order("created_at", { ascending: false }),
     supabase.from("audit_log").select("*").order("seq"),
     supabase.from("products").select("*"),
+    supabase.from("merchants").select("id, name, category, agent_ready"),
   ]);
   const error =
-    cards.error ?? mandates.error ?? attempts.error ?? approvals.error ?? audit.error ?? products.error;
+    cards.error ?? mandates.error ?? attempts.error ?? approvals.error ?? audit.error ?? products.error ?? merchants.error;
   if (error) throw new Error(error.message);
 
   const productRows = (products.data ?? []) as Array<Record<string, unknown>>;
-  const productsForUi = seedProducts.map((product) => {
+  const seededProducts = seedProducts.map((product) => {
     const live = productRows.find((row) => row.id === product.id);
     return live ? { ...product, priceCents: Number(live.price_cents) } : product;
   });
+  const productsForUi = [
+    ...seededProducts,
+    ...productRows
+      .filter((row) => !seededProducts.some((product) => product.id === row.id))
+      .map((row) => ({
+        id: String(row.id),
+        merchantId: String(row.merchant_id),
+        name: String(row.name),
+        description: String(row.description ?? row.name),
+        category: String(row.category),
+        priceCents: Number(row.price_cents),
+        sku: String(row.sku ?? row.id),
+      })),
+  ];
   const mappedMandates = ((mandates.data ?? []) as Array<Record<string, unknown>>).map((row) =>
     mapMandate(row, agent, user),
   );
-  const mappedAttempts = ((attempts.data ?? []) as Array<Record<string, unknown>>).map(mapAttempt);
+  const mappedAttempts = ((attempts.data ?? []) as Array<Record<string, unknown>>).map((row) =>
+    mapAttempt(row, productsForUi),
+  );
   const mappedApprovals = ((approvals.data ?? []) as Array<Record<string, unknown>>).map((row) =>
     mapApproval(row, mappedAttempts),
   );
@@ -215,7 +232,17 @@ export async function loadAuthenticatedState(): Promise<{ state: Data; user: Use
           currentMandateId: current?.id ?? null,
         },
       ],
-      merchants: seedMerchants,
+      merchants: [
+        ...seedMerchants,
+        ...((merchants.data ?? []) as Array<Record<string, unknown>>)
+          .filter((row) => !seedMerchants.some((merchant) => merchant.id === row.id))
+          .map((row) => ({
+            id: String(row.id),
+            name: String(row.name),
+            category: String(row.category),
+            agentReady: row.agent_ready === true,
+          })),
+      ],
       products: productsForUi,
       mandates: mappedMandates,
       attempts: mappedAttempts,

@@ -12,10 +12,10 @@ const POLL_MS = 1500;
 /** Server is the source of truth; every panel (desktop, phone, store) polls /api/state. */
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useStore((s) => s.hydrated);
-  // The landing page and the documentation site are public and read no account
-  // state, so they never poll.
-  const path = usePathname();
-  const polls = path !== "/" && !path.startsWith("/docs");
+  const pathname = usePathname();
+  // Public content and the merchant console do not read buyer state. Keeping
+  // them off the poller also prevents a developer-only account creating buyer data.
+  const polls = pathname !== "/" && !pathname.startsWith("/docs") && !pathname.startsWith("/developers");
 
   useEffect(() => {
     if (!polls) return;

@@ -5,7 +5,18 @@ const DIR = path.join(process.cwd(), ".data");
 
 /** Public base URL for links handed to phones/agents: env → tunnel file → request host. */
 export function publicBaseUrl(req?: Request): string {
-  if (process.env.AGENTPAY_BASE_URL) return process.env.AGENTPAY_BASE_URL.replace(/\/$/, "");
+  if (process.env.AGENTPAY_BASE_URL) {
+    const configured = process.env.AGENTPAY_BASE_URL.replace(/\/$/, "");
+    if (req) {
+      const configuredUrl = new URL(configured);
+      const requestUrl = new URL(req.url);
+      const localHosts = new Set(["localhost", "127.0.0.1"]);
+      if (localHosts.has(configuredUrl.hostname) && localHosts.has(requestUrl.hostname)) {
+        return requestUrl.origin;
+      }
+    }
+    return configured;
+  }
   if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/$/, "");
   try {
     const f = path.join(DIR, "public-url.txt");

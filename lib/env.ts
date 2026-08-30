@@ -11,6 +11,10 @@ export function publicSupabaseEnv() {
   };
 }
 
+export function merchantVerificationSecret(): string {
+  return required("MERCHANT_VERIFICATION_SECRET");
+}
+
 export function agentPayBaseUrl(requestUrl?: string): string {
   const configured = process.env.AGENTPAY_BASE_URL;
   if (configured) return new URL(configured).origin;

@@ -1,4 +1,4 @@
-import { BookOpen, Boxes, PlugZap, Rocket, ShieldCheck, TerminalSquare } from "lucide-react";
+import { BookOpen, Boxes, Building2, PlugZap, Rocket, ShieldCheck, TerminalSquare } from "lucide-react";
 
 import { DocPage, docMetadata } from "@/components/docs/DocPage";
 import { A, C, Callout, Cards, CodeBlock, LI, Lead, LinkCard, List, P, Steps, Step } from "@/components/docs/prose";
@@ -23,6 +23,13 @@ export default function Page() {
             Your side of that is small on purpose. Install one package, publish one JSON file, and wrap one route. The
             SDK does the signature checks, the live revocation check and the policy evaluation for you.
           </P>
+          <Callout tone="tip" title="Start in the merchant console">
+            <p>
+              <A href="/developers">AgentPay Developers</A> assigns the immutable merchant ID used by mandates. It can
+              also create a hosted test store, sample catalog, checkout endpoint and server-side catalog key so the
+              complete flow works before you deploy your own store.
+            </p>
+          </Callout>
           <Cards>
             <LinkCard
               href="/docs/quickstart"
@@ -35,6 +42,12 @@ export default function Page() {
               icon={<Boxes className="size-4" />}
               title="Install the SDK"
               description="One command to build and install @agentpay/merchant-sdk into your project."
+            />
+            <LinkCard
+              href="/docs/stores"
+              icon={<Building2 className="size-4" />}
+              title="Merchant console"
+              description="Get a merchant ID, hosted mock store, API key, and live-domain verification."
             />
           </Cards>
         </>
@@ -160,8 +173,8 @@ export default function Page() {
                   tunnel works; see <A href="/docs/testing">Test the integration</A>.
                 </LI>
                 <LI>
-                  <strong>A stable merchant id</strong> — a slug like <C>mrc_demo_store</C>. Mandates are scoped to it,
-                  so once buyers hold mandates naming your id, it cannot change.
+                  <strong>An AgentPay merchant ID</strong> — create one at <A href="/developers">/developers</A>.
+                  Mandates are scoped to it, so the console makes it immutable after creation.
                 </LI>
               </List>
               <Callout tone="warn" title="Node-only signature verification today">

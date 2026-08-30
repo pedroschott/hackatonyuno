@@ -18,8 +18,9 @@ export default function Page() {
           </Lead>
           <Callout tone="note" title="What you need before you start">
             <p>
-              A store project you can add two routes to, Node.js 22+, and a merchant id you are happy to keep forever
-              (this guide uses <C>mrc_demo_store</C>).
+              A store project you can add two routes to, Node.js 22+, and a merchant ID from the{" "}
+              <A href="/developers">AgentPay merchant console</A>. Do not invent the ID in configuration: the registry
+              must recognize it before a mandate can target it.
             </p>
           </Callout>
         </>
@@ -27,10 +28,18 @@ export default function Page() {
       sections={[
         {
           id: "steps",
-          title: "Five steps",
+          title: "Six steps",
           body: (
             <Steps>
-              <Step n={1} title="Install the SDK">
+              <Step n={1} title="Create the merchant identity">
+                <P>
+                  Sign in at <A href="/developers/merchants/new">AgentPay Developers</A>. Choose a hosted test store for
+                  an immediately working catalog and checkout, or an existing live store if you already have a public
+                  HTTPS deployment. Copy the assigned <C>mrc_…</C> value.
+                </P>
+              </Step>
+
+              <Step n={2} title="Install the SDK">
                 <P>
                   The package is built from the AgentPay repository. One command builds it, packs it, drops the tarball
                   into your store under <C>vendor/</C> and installs it:
@@ -48,17 +57,17 @@ npm run sdk:install -- ~/code/my-store`}
                 </P>
               </Step>
 
-              <Step n={2} title="Set two environment variables">
+              <Step n={3} title="Set two environment variables">
                 <P>Your merchant id and the AgentPay registry your buyers use.</P>
                 <CodeBlock
                   lang="bash"
                   filename=".env.local"
-                  code={`AGENTPAY_MERCHANT_ID=mrc_demo_store
+                  code={`AGENTPAY_MERCHANT_ID=mrc_your_assigned_id
 AGENTPAY_REGISTRY_URL=https://agentpay-yuno.vercel.app`}
                 />
               </Step>
 
-              <Step n={3} title="Publish discovery">
+              <Step n={4} title="Publish discovery">
                 <P>
                   Create the file below. It tells any agent standing on your product page who you are and where to send
                   a purchase.
@@ -83,7 +92,7 @@ export function GET(request: Request) {
                 />
               </Step>
 
-              <Step n={4} title="Protect checkout">
+              <Step n={5} title="Protect checkout">
                 <P>
                   Create the handler once, hand it your own product lookup, and return whatever it returns. The lookup is
                   the only store-specific code in the integration.
@@ -127,7 +136,7 @@ export async function POST(request: Request) {
                 </Callout>
               </Step>
 
-              <Step n={5} title="Verify it works" last>
+              <Step n={6} title="Verify it works" last>
                 <P>Start your store and check both routes.</P>
                 <CodeBlock
                   lang="bash"
@@ -156,7 +165,7 @@ curl -s -o /dev/null -w "%{http_code}\\n" \\
                 lang="json"
                 code={`{
   "protocol": "agentpay/1.0",
-  "merchant": { "id": "mrc_demo_store", "name": "Demo Store" },
+  "merchant": { "id": "mrc_your_assigned_id", "name": "Demo Store" },
   "checkout_endpoint": "https://my-store.example/api/agentpay/checkout",
   "registry_url": "https://agentpay-yuno.vercel.app/",
   "capabilities": ["intent-mandates", "live-revocation", "mock-payment"]
@@ -185,7 +194,7 @@ curl -s -o /dev/null -w "%{http_code}\\n" \\
                   <A href="https://agentpay-yuno.vercel.app/connect">/connect</A>.
                 </LI>
                 <LI>
-                  The agent calls <C>create_mandate</C> scoped to <C>mrc_demo_store</C> and one of your categories; the
+                  The agent calls <C>create_mandate</C> scoped to your assigned merchant ID and one of your categories; the
                   buyer approves it with a passkey.
                 </LI>
                 <LI>The agent posts a signed request to your checkout route, and your handler decides.</LI>

@@ -2,6 +2,12 @@
 
 `@agentpay/merchant-sdk` lets each store advertise AgentPay on its own domain and protect its own checkout endpoint. Product discovery remains with search, the agent and the store; there is no AgentPay merchant directory.
 
+## Create the merchant identity
+
+Sign in at `https://agentpay-yuno.vercel.app/developers` and create a merchant before configuring the SDK. The console assigns the immutable `mrc_...` identifier recognized by AgentPay. Do not invent one locally.
+
+For the shortest end-to-end test, choose **Hosted test store**. AgentPay creates a working storefront, manifest, checkout endpoint, sample product, and server-side catalog API key. Choose **Existing live store** to publish the routes below on your own domain and run HTTPS discovery verification.
+
 **The complete guide is the documentation site at [`/docs`](https://agentpay-yuno.vercel.app/docs)** — quickstart, installation, discovery, checkout, framework recipes, testing, the SDK and protocol reference, and troubleshooting. It lives in `app/(docs)/docs/**` and deploys with the code it describes. This file is the short version for readers browsing the repository.
 
 ## Install
@@ -32,7 +38,7 @@ export function GET(request: Request) {
   return Response.json(
     merchantManifest({
       origin: request.url,
-      merchantId: "merchant_example",
+      merchantId: process.env.AGENTPAY_MERCHANT_ID!,
       merchantName: "Example Store",
       checkoutPath: "/api/agentpay/checkout",
       registryUrl: "https://agentpay-yuno.vercel.app",
@@ -51,7 +57,7 @@ Create the handler once and pass it the store's own product lookup:
 import { createAgentPayCheckoutHandler } from "@agentpay/merchant-sdk";
 
 const checkout = createAgentPayCheckoutHandler({
-  merchantId: "merchant_example",
+  merchantId: process.env.AGENTPAY_MERCHANT_ID!,
   registryUrl: "https://agentpay-yuno.vercel.app",
   resolveProduct: async (productId) => database.products.find(productId),
 });
