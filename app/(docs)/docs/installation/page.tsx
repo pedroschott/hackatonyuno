@@ -218,7 +218,8 @@ DIDIT_WEBHOOK_SECRET=your-webhook-destination-secret`}
                 Configure the Didit v3 destination at <C>https://your-agentpay-host/api/webhooks/didit</C> for
                 <C>status.updated</C>, <C>data.updated</C>, <C>user.status.updated</C>, and <C>user.data.updated</C>.
                 AgentPay sends the public <C>Free KYC</C> workflow ID from server code with every session request.
-                Only the API key and webhook signing key are Didit secrets.
+                Only the API key and webhook signing key are Didit secrets. Keep paid add-ons such as White Label
+                disabled on that workflow; otherwise Didit requires a cash balance before a session can use the free allowance.
               </P>
             </>
           ),

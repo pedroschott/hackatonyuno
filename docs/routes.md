@@ -70,7 +70,7 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | `GET`, `PATCH` | `/api/account` | Read or update the user-owned compliance and fulfillment profile plus account state. |
 | `POST` | `/api/identity-verification/session` | Create or resume the authenticated user's hosted Didit v3 verification session. Returns only the hosted URL and status. |
 | `GET` | `/api/identity-verification/return` | Reconcile Didit's redirect against the server-retrieved decision, then return the authenticated user to `/account`. |
-| `POST` | `/api/webhooks/didit` | Receive Didit v3 status events, verify the timestamp and HMAC signature, de-duplicate the event, and persist only minimal verification state. |
+| `POST` | `/api/webhooks/didit` | Receive Didit v3 status events, verify the timestamp and HMAC signature, acknowledge unrelated signed onboarding events, de-duplicate AgentPay-bound events, and persist only minimal verification state. |
 | `POST` | `/api/cards` | Save non-sensitive payment-method display metadata and an opaque mock-vault reference. The first card becomes the default. |
 | `PATCH`, `DELETE` | `/api/cards/:id` | Set an owned card as default or remove it when no draft/active mandate is bound to it. |
 | `POST` | `/api/checkout` | Execute the deployed demo checkout path. The route requires a current passing Didit decision. A test-only request may use a bounded pre-settlement revocation window; the final database decision always rechecks live mandate and identity state. |
