@@ -9,11 +9,11 @@ This inventory is the canonical map of the AgentPay web application and the isol
 | Route | Purpose | Sitemap | Crawl policy |
 |---|---|---:|---|
 | `/` | Redirects to the authenticated dashboard. It is not a canonical content page. | No | No |
-| `/connect` | Public MCP connection instructions. | Yes | Allowed |
+| `/connect` | Connect an agent: one-click instructions per assistant. | Yes | Allowed |
 | `/store` | Public AutoParts merchant demonstration. | Yes | Allowed |
-| `/dashboard` | Account holder mandate dashboard. | No | Disallowed |
-| `/audit` | Account audit view. | No | Disallowed |
-| `/contracts/new` | Create and passkey-authorize a mandate. | No | Disallowed |
+| `/dashboard` | Account summary: spending, permissions and recent activity. | No | Disallowed |
+| `/activity` | Full purchase history in plain language. | No | Disallowed |
+| `/audit` | Security log: every account decision, hash-chained. | No | Disallowed |
 | `/payment-methods/setup?token=...` | User-bound hosted payment setup callback. | No | Disallowed |
 | `/m` | Mobile approval inbox. | No | Disallowed |
 | `/m/mandates/:id` | Mobile mandate approval and revocation screen. | No | Disallowed |
@@ -37,10 +37,9 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | Method | Endpoint | Purpose |
 |---|---|---|
 | `GET` | `/api/account` | Safe account and payment-method display metadata. |
-| `POST` | `/api/agent` | Register or update the connected agent. |
 | `POST` | `/api/cards` | Save non-sensitive payment-method display metadata and an opaque mock-vault reference. |
-| `POST` | `/api/checkout` | Execute the deployed demo checkout path. The dashboard trial may request a bounded pre-settlement revocation window; the final database decision always rechecks live mandate state. |
-| `GET`, `POST` | `/api/mandates` | List mandates or create a draft mandate. |
+| `POST` | `/api/checkout` | Execute the deployed demo checkout path. A test-only request may use a bounded pre-settlement revocation window; the final database decision always rechecks live mandate state. |
+| `GET`, `POST` | `/api/mandates` | List mandates or create a draft mandate. Mandates are only ever created by an agent through MCP; the web app has no manual creation form. |
 | `GET` | `/api/mandates/:id` | Read a mandate. |
 | `GET`, `POST` | `/api/mandates/:id/authorize` | Fetch a passkey challenge or authorize the mandate. |
 | `POST` | `/api/mandates/:id/decline` | Decline a draft mandate. |
@@ -51,7 +50,6 @@ All application API routes are same-origin service endpoints. Routes that mutate
 | `POST` | `/api/approvals/:id/decide` | Approve or deny a one-time exception. |
 | `POST` | `/api/passkeys/register` | Register a WebAuthn credential. |
 | `GET` | `/api/state` | Read the authenticated demo state. |
-| `POST` | `/api/reset` | Reset the authenticated demo state. |
 | `POST` | `/api/store/checkout` | AutoParts demo store checkout. |
 
 ## Merchant verification registry

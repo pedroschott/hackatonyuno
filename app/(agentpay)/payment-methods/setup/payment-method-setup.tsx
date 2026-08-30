@@ -4,7 +4,7 @@ import { CheckCircle2, CreditCard, LockKeyhole, ShieldCheck } from "lucide-react
 import { useState } from "react";
 
 import { PageHeader } from "@/components/AppShell";
-import { CardBrand } from "@/components/dashboard/MandateCard";
+import { CardBrand } from "@/components/CardBrand";
 import { Badge, Button, Card, CardHeader, Field, Input, Select } from "@/components/ui";
 import { useStore } from "@/lib/store";
 

@@ -69,15 +69,6 @@ export function Badge({ tone = "neutral", className, children, dot }: { tone?: "
   );
 }
 
-/* ---------- Mono ---------- */
-export function Mono({ className, children, ...rest }: React.HTMLAttributes<HTMLSpanElement>) {
-  return (
-    <span className={cn("rounded bg-line-2 px-1 py-px font-mono text-[11.5px] text-ink-2", className)} {...rest}>
-      {children}
-    </span>
-  );
-}
-
 /* ---------- Form ---------- */
 export function Label({ className, children, ...rest }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
@@ -109,34 +100,6 @@ export function Select({ className, children, ...rest }: React.SelectHTMLAttribu
     <select className={cn(inputCls, "appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23697386%22 stroke-width=%222.5%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:12px] bg-[position:right_10px_center] bg-no-repeat pr-8", className)} {...rest}>
       {children}
     </select>
-  );
-}
-
-export function MoneyInput({ valueCents, onChange, className, ...rest }: { valueCents: number; onChange: (cents: number) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
-  return (
-    <div className="relative">
-      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[13px] text-muted">R$</span>
-      <input
-        type="number"
-        min={0}
-        step={1}
-        className={cn(inputCls, "pl-9 tabular", className)}
-        value={Math.round(valueCents / 100)}
-        onChange={(e) => onChange(Math.max(0, Math.round(Number(e.target.value || 0) * 100)))}
-        {...rest}
-      />
-    </div>
-  );
-}
-
-export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
-  return (
-    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className="inline-flex items-center gap-2 text-[13px] text-ink-2">
-      <span className={cn("relative h-5 w-9 rounded-full transition-colors", checked ? "bg-brand" : "bg-[#cdd3dc]")}>
-        <span className={cn("absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform", checked ? "translate-x-4" : "translate-x-0.5")} />
-      </span>
-      {label}
-    </button>
   );
 }
 
@@ -174,16 +137,6 @@ export function Modal({ open, onClose, title, children, width = "max-w-md", dism
 }
 
 /* ---------- Misc ---------- */
-export function Stat({ label, value, sub, className }: { label: string; value: React.ReactNode; sub?: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn("min-w-0", className)}>
-      <div className="text-[12px] font-medium uppercase tracking-wide text-faint">{label}</div>
-      <div className="mt-0.5 text-[15px] font-semibold text-ink tabular">{value}</div>
-      {sub && <div className="text-[12px] text-muted">{sub}</div>}
-    </div>
-  );
-}
-
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center">

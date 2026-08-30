@@ -16,7 +16,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
         <Link href="/m">
           <Logo />
         </Link>
-        <span className="ml-auto text-[12px] text-muted">Locadora Atlas</span>
+        <span className="ml-auto" />
         <span className={online ? "size-2 rounded-full bg-success" : "size-2 rounded-full bg-danger"} title={online ? "connected" : "offline"} />
       </header>
       <main className="flex flex-1 flex-col px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-4">

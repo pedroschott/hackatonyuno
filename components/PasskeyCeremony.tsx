@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Fingerprint, Check, ShieldCheck, AlertCircle } from "lucide-react";
-import { Button, Modal, Mono } from "./ui";
+import { Button, Modal } from "./ui";
 import { biometricName, passkeyAuthorize, platformPasskeyAvailable, type PasskeyResult } from "@/lib/passkey";
 import { cn } from "@/lib/cn";
 
@@ -15,11 +15,11 @@ type Props = {
   challenge: string;
   endpoint: string;
   title: React.ReactNode;
+  subtitle?: string;
   facts: { label: string; value: React.ReactNode }[];
   cta?: string;
   successTitle?: string;
-  cosignLabel?: string;
-  user?: { id: string; name: string; displayName: string };
+  successBody?: string;
 };
 
 export function PasskeyCeremony(props: Props) {
@@ -35,16 +35,15 @@ function CeremonyBody({
   challenge,
   endpoint,
   title,
+  subtitle = "Only you can approve this. Your card details are never shared.",
   facts,
-  cta = "Authorize with passkey",
-  successTitle = "Authorized",
-  cosignLabel = "Registry co-signing…",
-  user = { id: "u_cfo", name: "cfo@atlas.example", displayName: "CFO — Locadora Atlas" },
+  cta = "Confirm",
+  successTitle = "Done",
+  successBody = "This is active right away.",
 }: Props) {
   const [phase, setPhase] = useState<Phase>("review");
   const [real, setReal] = useState<boolean | null>(null);
   const [bio] = useState(() => biometricName());
-  const [result, setResult] = useState<PasskeyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,16 +58,15 @@ function CeremonyBody({
     setPhase("prompt");
     setError(null);
     try {
-      const r = await passkeyAuthorize(challenge, { user, endpoint });
-      setResult(r);
+      const r = await passkeyAuthorize(challenge, { endpoint });
       setPhase("signed");
-      await new Promise((res) => setTimeout(res, 700));
+      await new Promise((res) => setTimeout(res, 500));
       setPhase("cosign");
-      await new Promise((res) => setTimeout(res, 650));
+      await new Promise((res) => setTimeout(res, 500));
       setPhase("done");
       await onComplete(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Passkey ceremony failed");
+      setError(e instanceof Error ? e.message : "That did not go through. Please try again.");
       setPhase("error");
     }
   }
@@ -77,9 +75,8 @@ function CeremonyBody({
   const platformUnavailable = real === false;
 
   return (
-    <Modal open={open} onClose={onClose} dismissible={!busy} width="max-w-[440px]">
+    <Modal open={open} onClose={onClose} dismissible={!busy} width="max-w-[420px]">
       <div className="px-5 pt-6 pb-5 sm:px-6">
-        {/* Icon stage */}
         <div className="flex flex-col items-center text-center">
           <div
             className={cn(
@@ -90,8 +87,7 @@ function CeremonyBody({
               phase === "error" && "ap-shake bg-danger-soft text-danger",
             )}
           >
-            {phase === "review" && <Fingerprint className="size-8" strokeWidth={1.6} />}
-            {phase === "prompt" && <Fingerprint className="size-8" strokeWidth={1.6} />}
+            {(phase === "review" || phase === "prompt") && <Fingerprint className="size-8" strokeWidth={1.6} />}
             {phase === "signed" && <Check className="size-8" strokeWidth={2.2} />}
             {(phase === "cosign" || phase === "done") && <ShieldCheck className="size-8" strokeWidth={1.8} />}
             {phase === "error" && <AlertCircle className="size-8" strokeWidth={1.8} />}
@@ -99,28 +95,25 @@ function CeremonyBody({
           <h3 className="mt-4 text-[17px] font-semibold text-ink">
             {phase === "review" && title}
             {phase === "prompt" && `Confirm with ${bio}`}
-            {phase === "signed" && "Signed"}
-            {phase === "cosign" && cosignLabel}
+            {(phase === "signed" || phase === "cosign") && "Confirming…"}
             {phase === "done" && successTitle}
-            {phase === "error" && "Couldn’t complete"}
+            {phase === "error" && "That didn’t work"}
           </h3>
           <p className="mt-1 text-[13px] text-muted">
-            {phase === "review" && "Your device signs the mandate hash. The card never leaves the vault."}
-            {phase === "prompt" && `Use ${bio} to sign this on this device.`}
-            {phase === "signed" && "Assertion captured over the mandate hash."}
-            {phase === "cosign" && "Registry verifies the assertion and co-signs."}
-            {phase === "done" && "Status flipped to active in the registry."}
+            {phase === "review" && subtitle}
+            {phase === "prompt" && `Use ${bio} on this device.`}
+            {(phase === "signed" || phase === "cosign") && "One moment."}
+            {phase === "done" && successBody}
             {phase === "error" && error}
           </p>
         </div>
 
-        {/* Facts */}
         {phase === "review" && (
           <>
             {platformUnavailable && (
               <p className="mt-5 rounded-md bg-warn-soft px-3 py-2 text-[12.5px] text-warn-ink" role="alert">
-                This browser cannot access this device&apos;s passkey. Open this AgentPay link directly in Safari or Chrome,
-                then approve with Face ID or Touch ID.
+                This browser cannot use the passkey on this device. Open AgentPay directly in Safari or Chrome, then confirm
+                with Face ID or Touch ID.
               </p>
             )}
             <dl className="mt-5 divide-y divide-line rounded-md border border-line">
@@ -134,49 +127,28 @@ function CeremonyBody({
           </>
         )}
 
-        {/* Challenge / assertion */}
-        <div className="mt-4 rounded-md bg-canvas px-3 py-2.5 text-[12px]">
-          <div className="flex items-center justify-between">
-            <span className="text-muted">challenge = sha256(mandate)</span>
-            <Mono>{challenge.slice(0, 16)}…</Mono>
-          </div>
-          {result && (
-            <div className="mt-1.5 flex items-center justify-between ap-in">
-              <span className="text-muted">assertion · {result.method}</span>
-              <Mono className="text-success-ink">{result.assertion.slice(0, 16)}…</Mono>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+        <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
           {phase === "review" && (
             <>
-              <span className="text-[12px] text-muted">
-                {platformUnavailable ? "Use a browser with Face ID or Touch ID" : "Verified by the AgentPay registry"}
-              </span>
-              <div className="flex gap-2">
-                <Button onClick={onClose}>Cancel</Button>
-                <Button variant="primary" icon={<Fingerprint className="size-4" />} onClick={run} disabled={real !== true}>
-                  {cta}
-                </Button>
-              </div>
+              <Button onClick={onClose}>Cancel</Button>
+              <Button variant="primary" icon={<Fingerprint className="size-4" />} onClick={run} disabled={real !== true}>
+                {cta}
+              </Button>
             </>
           )}
           {phase === "error" && (
             <>
-              <span className="text-[12px] text-muted">A registered passkey is required</span>
-              <div className="flex gap-2">
-                <Button onClick={onClose}>Cancel</Button>
-                <Button variant="primary" onClick={run} disabled={platformUnavailable}>Try again</Button>
-              </div>
+              <Button onClick={onClose}>Cancel</Button>
+              <Button variant="primary" onClick={run} disabled={platformUnavailable}>
+                Try again
+              </Button>
             </>
           )}
           {busy && <div className="h-8 w-full" />}
           {phase === "done" && (
-            <div className="flex w-full justify-end">
-              <Button variant="primary" onClick={onClose}>Done</Button>
-            </div>
+            <Button variant="primary" onClick={onClose}>
+              Done
+            </Button>
           )}
         </div>
       </div>

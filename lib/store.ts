@@ -1,13 +1,11 @@
 "use client";
 
 import { create } from "zustand";
-import type { Approval, Attempt, Mandate, MandateLimits, Scenario, VaultCard } from "./types";
-import type { AgentState, CheckoutOpts, Data, MandateDraftInput } from "./engine";
+import type { Approval, Attempt, Mandate, Scenario } from "./types";
+import type { CheckoutOpts, Data } from "./engine";
 import { usageFor } from "./engine";
 import type { PasskeyResult } from "./passkey";
 
-export type Actor = "user:cfo" | "judge";
-export type { AgentState, MandateDraftInput };
 export { usageFor };
 
 type Client = {
@@ -15,27 +13,19 @@ type Client = {
   online: boolean;
   publicBaseUrl: string;
   serverTime: string | null;
-  actor: Actor;
 
   refresh: () => Promise<void>;
-  createDraft: (input: MandateDraftInput) => Promise<Mandate>;
   authorizeMandate: (id: string, pk: PasskeyResult) => Promise<Mandate>;
   declineMandate: (id: string, actor?: string) => Promise<void>;
   revokeMandate: (id: string, actor: string) => Promise<void>;
-  updateLimits: (id: string, limits: Partial<MandateLimits>, actor: string) => Promise<void>;
   checkout: (scenario: Scenario, opts?: CheckoutOpts) => Promise<Attempt>;
   decideApproval: (id: string, decision: "approved" | "denied", actor: string, pk?: PasskeyResult) => Promise<{ approval: Approval; retry?: Attempt }>;
-  addCard: (card: Omit<VaultCard, "id">) => Promise<VaultCard>;
-  setAgent: (patch: Partial<AgentState>) => Promise<void>;
-  setActor: (actor: Actor) => void;
-  reset: () => Promise<void>;
 };
 
 export type Store = Data & Client;
 
 const empty: Data = {
   cards: [], agents: [], merchants: [], products: [], mandates: [], attempts: [], approvals: [], audit: [], usedNonces: [],
-  agent: { running: false, target: "standard", intervalMs: 8000 },
 };
 
 type Envelope = { state?: Data; public_base_url?: string; server_time?: string; error?: string } & Record<string, unknown>;
@@ -69,7 +59,6 @@ export const useStore = create<Store>()((set, get) => ({
   online: true,
   publicBaseUrl: "",
   serverTime: null,
-  actor: "user:cfo",
 
   refresh: async () => {
     try {
@@ -80,7 +69,6 @@ export const useStore = create<Store>()((set, get) => ({
     }
   },
 
-  createDraft: async (input) => (await api<Envelope & { mandate: Mandate }>("/api/mandates", { ...input, via: "panel" })).mandate,
   authorizeMandate: async (id) => {
     await get().refresh();
     const mandate = get().mandates.find((candidate) => candidate.id === id);
@@ -88,13 +76,10 @@ export const useStore = create<Store>()((set, get) => ({
     return mandate;
   },
   declineMandate: async (id, actor) => {
-    await api(`/api/mandates/${id}/decline`, { actor: actor ?? get().actor });
+    await api(`/api/mandates/${id}/decline`, { actor: actor ?? "user" });
   },
   revokeMandate: async (id, actor) => {
     await api(`/api/mandates/${id}/revoke`, { actor });
-  },
-  updateLimits: async (id, limits, actor) => {
-    await api(`/api/mandates/${id}/limits`, { limits, actor }, "PATCH");
   },
   checkout: async (scenario, opts = {}) => (await api<Envelope & { attempt: Attempt }>("/api/checkout", { scenario, ...opts })).attempt,
   decideApproval: async (id, decision, actor, pk) => {
@@ -107,17 +92,4 @@ export const useStore = create<Store>()((set, get) => ({
     const j = await api<Envelope & { approval: Approval; retry?: Attempt }>(`/api/approvals/${id}/decide`, { decision, actor, passkey: pk });
     return { approval: j.approval, retry: j.retry };
   },
-  addCard: async (card) => (await api<Envelope & { card: VaultCard }>("/api/cards", card)).card,
-  setAgent: async (patch) => {
-    set((s) => ({ agent: { ...s.agent, ...patch } })); // optimistic
-    await api("/api/agent", patch);
-  },
-  setActor: (actor) => set({ actor }),
-  reset: async () => {
-    await api("/api/reset", {});
-  },
 }));
-
-// ---- selectors ----
-export const selectAgent = (s: Store) => s.agents[0];
-export const selectCurrentMandate = (s: Store) => s.mandates.find((m) => m.id === s.agents[0]?.currentMandateId);

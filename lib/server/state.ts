@@ -1,7 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 
 import { ensureAgent } from "@/lib/data";
-import { latestHeldMandate, type Data, type AgentState } from "@/lib/engine";
+import { latestHeldMandate, type Data } from "@/lib/engine";
 import { authenticatedRequest } from "@/lib/http";
 import { seedMerchants, seedProducts } from "@/lib/seed";
 import type {
@@ -14,19 +14,6 @@ import type {
   VaultCard,
 } from "@/lib/types";
 
-type RuntimeGlobal = typeof globalThis & { __agentpayRuntime?: AgentState };
-const runtimeGlobal = globalThis as RuntimeGlobal;
-
-export function getAgentRuntime(): AgentState {
-  runtimeGlobal.__agentpayRuntime ??= { running: false, target: "standard", intervalMs: 8000 };
-  return runtimeGlobal.__agentpayRuntime;
-}
-
-export function setAgentRuntime(patch: Partial<AgentState>): AgentState {
-  runtimeGlobal.__agentpayRuntime = { ...getAgentRuntime(), ...patch };
-  return runtimeGlobal.__agentpayRuntime;
-}
-
 export function publicState(): Data {
   return {
     cards: [],
@@ -38,7 +25,6 @@ export function publicState(): Data {
     approvals: [],
     audit: [],
     usedNonces: [],
-    agent: getAgentRuntime(),
   };
 }
 
@@ -242,7 +228,6 @@ export async function loadAuthenticatedState(): Promise<{ state: Data; user: Use
           }) satisfies AuditEntry,
       ),
       usedNonces: [],
-      agent: getAgentRuntime(),
     },
   };
 }

@@ -1,132 +1,111 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { Plus } from "lucide-react";
-import { useStore, selectCurrentMandate } from "@/lib/store";
-import { PageHeader } from "@/components/AppShell";
-import { Button, Card, CardHeader, EmptyState, Badge, Mono } from "@/components/ui";
-import { MandateCard } from "@/components/dashboard/MandateCard";
-import { ApprovalCard, DecidedApprovalRow } from "@/components/dashboard/ApprovalCard";
-import { AttemptFeed } from "@/components/dashboard/AttemptFeed";
-import { AgentPanel } from "@/components/dashboard/AgentPanel";
-import { PendingDraftCard, PhoneQrButton } from "@/components/dashboard/PendingDraftCard";
-import { timeShort } from "@/lib/format";
+import { useMemo, useState } from "react";
+import { ShieldCheck } from "lucide-react";
+import { useStore } from "@/lib/store";
+import { effectiveStatus, sameMonth } from "@/lib/engine";
+import { brl } from "@/lib/format";
+import { Button, Card, CardHeader, EmptyState } from "@/components/ui";
+import { PermissionCard } from "@/components/app/PermissionCard";
+import { RequestCard } from "@/components/app/RequestCard";
+import { ApprovalCard } from "@/components/app/ApprovalCard";
+import { PurchaseRow } from "@/components/app/PurchaseRow";
 
-export default function DashboardPage() {
-  const mandate = useStore(selectCurrentMandate);
+export default function SummaryPage() {
   const mandates = useStore((s) => s.mandates);
-  const cards = useStore((s) => s.cards);
   const attempts = useStore((s) => s.attempts);
   const approvals = useStore((s) => s.approvals);
-  const pending = useMemo(() => approvals.filter((a) => a.status === "pending"), [approvals]);
-  const actor = useStore((s) => s.actor);
+  const [turnedOff, setTurnedOff] = useState(false);
 
-  const card = mandate ? cards.find((c) => c.id === mandate.payment.vault_card_id) : undefined;
-  const decided = approvals.filter((a) => a.status !== "pending").slice(0, 5);
-  const drafts = mandates.filter((m) => m.status === "draft");
-  const others = mandates.filter((m) => m.id !== mandate?.id && m.status !== "draft");
+  const requests = mandates.filter((m) => m.status === "draft");
+  const active = mandates.filter((m) => effectiveStatus(m) === "active");
+  const waiting = approvals.filter((a) => a.status === "pending");
+  const recent = attempts.slice(0, 4);
+
+  const spent = useMemo(() => {
+    const now = new Date();
+    return attempts
+      .filter((a) => a.decision === "approved" && sameMonth(a.created_at, now))
+      .reduce((sum, a) => sum + a.amount_cents, 0);
+  }, [attempts]);
+
+  const allowance = active.reduce((sum, m) => sum + m.limits.cumulative_cents, 0);
+  const mandateFor = (merchantId: string) => active.find((m) => m.scope.merchants.includes(merchantId)) ?? active[0];
 
   return (
-    <>
-      <PageHeader
-        title="Mandates"
-        description="What your agent may buy — and the button that stops it."
-        actions={
-          <>
-            <PhoneQrButton />
-            <Link href="/contracts/new">
-              <Button variant="primary" icon={<Plus className="size-4" />}>New contract</Button>
-            </Link>
-          </>
-        }
-      />
-
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6">
-        {/* Left */}
-        <div className="space-y-6">
-          {drafts.length > 0 && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-semibold">Awaiting your approval</h2>
-                <Badge tone="brand">{drafts.length}</Badge>
-              </div>
-              {drafts.map((m) => (
-                <PendingDraftCard key={m.id} mandate={m} />
-              ))}
-            </section>
-          )}
-          {mandate ? (
-            <MandateCard mandate={mandate} card={card} actor={actor} />
-          ) : (
-            <Card>
-              <EmptyState
-                title="No mandate"
-                description="Create a contract so FleetBuyer has something to shop with."
-                action={
-                  <Link href="/contracts/new">
-                    <Button variant="primary">Create contract</Button>
-                  </Link>
-                }
-              />
-            </Card>
-          )}
-
-          {(pending.length > 0 || decided.length > 0) && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-semibold">Pending approvals</h2>
-                {pending.length > 0 && <Badge tone="warn">{pending.length}</Badge>}
-              </div>
-              {pending.map((a) => (
-                <ApprovalCard key={a.id} approval={a} mandate={mandate} actor={actor} />
-              ))}
-              {pending.length === 0 && <p className="text-[13px] text-muted">Nothing waiting on you.</p>}
-              {decided.length > 0 && (
-                <Card className="divide-y divide-line-2">
-                  {decided.map((a) => (
-                    <DecidedApprovalRow key={a.id} approval={a} />
-                  ))}
-                </Card>
-              )}
-            </section>
-          )}
-
-          {others.length > 0 && (
-            <Card>
-              <CardHeader title="Previous mandates" />
-              <ul className="divide-y divide-line-2">
-                {others.map((m) => (
-                  <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-[13px]">
-                    <Mono>{m.id}</Mono>
-                    <span className="text-muted">{m.scope.categories.join(", ")} · {m.scope.merchants.length} merchant</span>
-                    <span className="text-muted sm:ml-auto">{timeShort(m.created_at)}</span>
-                    {m.status === "revoked" && <Badge tone="danger">revoked</Badge>}
-                    {m.status === "active" && <Badge tone="neutral">superseded</Badge>}
-                    {m.status === "declined" && <Badge tone="danger">declined</Badge>}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
+    <div className="space-y-6">
+      <section className="rounded-xl bg-white px-5 py-5 shadow-[var(--shadow-card)] sm:px-6 sm:py-6">
+        <div className="text-[13.5px] text-muted">Your agents spent this month</div>
+        <div className="mt-1 text-[34px] font-semibold leading-none tracking-[-0.02em] tabular sm:text-[40px]">
+          {brl(spent)}
         </div>
+        <div className="mt-2 text-[13.5px] text-muted">
+          {active.length === 0
+            ? "No agent can spend right now."
+            : `${brl(Math.max(0, allowance - spent))} still allowed this month.`}
+        </div>
+      </section>
 
-        {/* Right */}
-        <div className="space-y-4">
-          <AgentPanel />
+      {turnedOff && active.length === 0 && (
+        <div className="ap-in flex items-start gap-2.5 rounded-lg bg-success-soft px-4 py-3 text-[13.5px] text-success-ink">
+          <ShieldCheck className="mt-px size-4 shrink-0" />
+          <span>Spending is off. Anything your agent tries from now on will be declined.</span>
+        </div>
+      )}
+
+      {(requests.length > 0 || waiting.length > 0) && (
+        <section className="space-y-3">
+          <h2 className="text-[16px] font-semibold">Waiting for you</h2>
+          {requests.map((m) => (
+            <RequestCard key={m.id} mandate={m} />
+          ))}
+          {waiting.map((a) => (
+            <ApprovalCard key={a.id} approval={a} mandate={mandateFor(a.merchant_id)} />
+          ))}
+        </section>
+      )}
+
+      <section className="space-y-3">
+        <h2 className="text-[16px] font-semibold">Who can spend</h2>
+        {active.length > 0 ? (
+          active.map((m) => <PermissionCard key={m.id} mandate={m} onTurnedOff={() => setTurnedOff(true)} />)
+        ) : (
+          <Card>
+            <EmptyState
+              title="Nobody can spend your money"
+              description="Connect an agent and ask it to buy something. It will ask you here first, and you decide how much it may spend."
+              action={
+                <Link href="/connect">
+                  <Button variant="primary" size="lg">
+                    Connect an agent
+                  </Button>
+                </Link>
+              }
+            />
+          </Card>
+        )}
+      </section>
+
+      {attempts.length > 0 && (
+        <section>
           <Card>
             <CardHeader
-              title="Live attempts"
-              description="Every checkout decision, as the merchant sees it."
-              actions={<span className="text-[12px] text-muted tabular">{attempts.length}</span>}
-              className="px-4 py-3"
+              title="Recent activity"
+              actions={
+                <Link href="/activity" className="text-[13px] font-medium text-brand-ink hover:underline">
+                  See all
+                </Link>
+              }
             />
-            <div className="max-h-[420px] overflow-y-auto xl:max-h-[calc(100vh-380px)]">
-              <AttemptFeed attempts={attempts.slice(0, 60)} />
-            </div>
+            <ul className="divide-y divide-line-2">
+              {recent.map((a, i) => (
+                <PurchaseRow key={a.id} attempt={a} fresh={i === 0} />
+              ))}
+            </ul>
           </Card>
-        </div>
-      </div>
-    </>
+        </section>
+      )}
+    </div>
   );
 }
