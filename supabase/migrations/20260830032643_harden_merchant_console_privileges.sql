@@ -24,6 +24,6 @@ revoke all on function public.create_agentpay_merchant_product(text, text, text,
 grant execute on function public.create_agentpay_merchant(text, text, text, text, text, text, text, boolean, text)
   to authenticated;
 grant execute on function public.create_agentpay_merchant_product(text, text, text, text, text, text, text, integer, text)
-  to anon, authenticated;
+  to anon;
 
 commit;

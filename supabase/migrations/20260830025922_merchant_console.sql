@@ -117,12 +117,21 @@ comment on table public.merchant_api_keys is
 create index merchant_api_keys_merchant_created_idx
   on public.merchant_api_keys (merchant_id, created_at desc);
 
+create index merchant_api_keys_created_by_idx
+  on public.merchant_api_keys (created_by);
+
 alter table public.merchant_api_keys enable row level security;
 
-create policy "Developers read their merchants"
+drop policy "Merchant metadata is public" on public.merchants;
+
+create policy "Agent-ready merchant metadata is public"
+  on public.merchants for select to anon
+  using (agent_ready = true);
+
+create policy "Developers read public and owned merchants"
   on public.merchants for select to authenticated
   using (
-    exists (
+    agent_ready = true or exists (
       select 1
       from public.merchant_memberships membership
       where membership.merchant_id = merchants.id
@@ -155,7 +164,7 @@ create policy "Developers update their merchants"
 drop policy "Product catalog is public" on public.products;
 
 create policy "Agent-ready product catalog is public"
-  on public.products for select to anon, authenticated
+  on public.products for select to anon
   using (
     active = true and exists (
       select 1
@@ -165,10 +174,17 @@ create policy "Agent-ready product catalog is public"
     )
   );
 
-create policy "Developers read their products"
+create policy "Developers read public and owned products"
   on public.products for select to authenticated
   using (
-    exists (
+    (
+      active = true and exists (
+        select 1
+        from public.merchants merchant
+        where merchant.id = products.merchant_id
+          and merchant.agent_ready = true
+      )
+    ) or exists (
       select 1
       from public.merchant_memberships membership
       where membership.merchant_id = products.merchant_id
@@ -222,10 +238,12 @@ create policy "Developers delete products from their merchants"
     )
   );
 
-create policy "Developers read merchant attempts"
+drop policy "Users read their attempts" on public.attempts;
+
+create policy "Users and developers read relevant attempts"
   on public.attempts for select to authenticated
   using (
-    exists (
+    (select auth.uid()) = user_id or exists (
       select 1
       from public.merchant_memberships membership
       where membership.merchant_id = attempts.merchant_id
@@ -474,6 +492,6 @@ comment on function public.create_agentpay_merchant_product(text, text, text, te
   'API-key-authenticated product creation for an active merchant test or live catalog.';
 
 revoke all on function public.create_agentpay_merchant_product(text, text, text, text, text, text, text, integer, text) from public, anon, authenticated;
-grant execute on function public.create_agentpay_merchant_product(text, text, text, text, text, text, text, integer, text) to anon, authenticated;
+grant execute on function public.create_agentpay_merchant_product(text, text, text, text, text, text, text, integer, text) to anon;
 
 commit;
