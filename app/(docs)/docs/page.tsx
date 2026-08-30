@@ -93,7 +93,7 @@ export default function Page() {
                 <CopyButton
                   value={AGENT_SETUP_PROMPT}
                   label="Copy agent prompt"
-                  className="bg-brand text-white hover:bg-brand-ink focus-visible:ring-brand/40"
+                  className="bg-brand text-white hover:bg-brand-ink hover:text-white focus-visible:ring-brand/40"
                 />
               </div>
               <p className="mt-3 text-[12.5px] leading-5 text-muted">
