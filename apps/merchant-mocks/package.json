@@ -1,0 +1,31 @@
+{
+  "name": "@agentic-mandates/merchant-mocks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "./node_modules/.bin/tsx watch src/demo-server.ts",
+    "demo": "./node_modules/.bin/tsx src/demo-server.ts",
+    "build": "./node_modules/.bin/tsc --project tsconfig.json",
+    "typecheck": "./node_modules/.bin/tsc --project tsconfig.json",
+    "test": "./node_modules/.bin/vitest run",
+    "test:watch": "./node_modules/.bin/vitest"
+  },
+  "dependencies": {
+    "@agentic-mandates/contracts": "file:../../packages/contracts",
+    "@agentic-mandates/domain": "file:../../packages/domain",
+    "@hono/node-server": "1.19.17",
+    "hono": "4.13.5",
+    "jose": "6.2.10",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

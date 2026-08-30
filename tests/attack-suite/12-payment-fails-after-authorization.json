@@ -1,0 +1,84 @@
+{
+  "suiteVersion": "1.0",
+  "id": "12-payment-fails-after-authorization",
+  "title": "A capture failure is voided and never consumes authority",
+  "description": "The isolated Vault authorizes the opaque payment method but deterministically fails capture. The authorization must be voided before the capability is released.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-capture-failure-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-capture-failure-350",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-capture-failure-350",
+      "totalMinor": 35000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    },
+    "paymentVault": { "scenario": "capture_failed" }
+  },
+  "steps": [
+    {
+      "id": "issue-capability",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-capture-failure-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-capture-failure-350",
+        "idempotencyKey": "intent-capture-failure"
+      }
+    },
+    {
+      "id": "verify-with-capture-failure",
+      "kind": "merchant-verification",
+      "input": {
+        "actor": "merchant-a",
+        "merchantId": "merchant-a",
+        "merchantOrderRef": "order-capture-failure-350",
+        "quoteId": "quote-capture-failure-350",
+        "purchaseCapability": "$purchaseCapability",
+        "idempotencyKey": "verify-capture-failure"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "issue-capability",
+        "httpStatus": 200,
+        "decision": "approved",
+        "reasonCode": "AUTHORIZED"
+      },
+      {
+        "step": "verify-with-capture-failure",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "PAYMENT_CAPTURE_FAILED",
+        "settlementStatus": "failed"
+      }
+    ],
+    "invariants": {
+      "vaultCalls": ["authorize", "capture", "void"],
+      "authorizationVoided": true,
+      "captureCount": 0,
+      "capturedAmountMinorDelta": 0,
+      "capturedUsesDelta": 0,
+      "capabilityReleasedAfterVoid": true
+    }
+  }
+}

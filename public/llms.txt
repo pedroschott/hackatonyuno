@@ -1,0 +1,32 @@
+# AgentPay
+
+> AgentPay is an authorization and enforcement layer for agent purchases. It lets a user create a narrow payment mandate, approve it with a passkey, and revoke it immediately.
+
+## Public entry points
+
+- [Connect an MCP client](https://agentpay-yuno.vercel.app/connect): user-facing instructions for connecting an authenticated agent.
+- [Merchant demo](https://agentpay-yuno.vercel.app/store): an example merchant checkout experience.
+- [MCP endpoint](https://agentpay-yuno.vercel.app/mcp): OAuth-protected Streamable HTTP MCP server.
+- [MCP protected-resource metadata](https://agentpay-yuno.vercel.app/.well-known/oauth-protected-resource): OAuth discovery for the MCP endpoint.
+- [Merchant discovery example](https://agentpay-yuno.vercel.app/.well-known/agentpay.json): an example of a merchant-owned AgentPay manifest.
+
+## Protocol documentation
+
+- [Repository README](https://github.com/pedroschott/hackatonyuno#readme)
+- [Route and endpoint inventory](https://github.com/pedroschott/hackatonyuno/blob/main/docs/routes.md)
+- [Merchant SDK guide](https://github.com/pedroschott/hackatonyuno/blob/main/docs/merchant-sdk.md)
+- [Architecture](https://github.com/pedroschott/hackatonyuno/blob/main/docs/architecture.md)
+- [Security decisions](https://github.com/pedroschott/hackatonyuno/blob/main/docs/decisions.md)
+
+## Agent operating rules
+
+- Authenticate to the MCP endpoint before using tools.
+- Discover stores from their own product pages or `/.well-known/agentpay.json`; AgentPay is not a merchant directory.
+- Start with `get_account`. If payment setup is required, use the browser link returned by `get_payment_setup_link` and never request card numbers, CVCs, PINs, bank passwords, or vault credentials in chat.
+- Create the narrowest mandate that matches the user's request, then wait for the user to approve it with a passkey before purchasing.
+- A purchase outside an active mandate must be escalated for a one-time approval. Do not retry a refused purchase without that approval.
+- Revoke the mandate immediately when the user asks to stop.
+
+## Indexing boundary
+
+The sitemap intentionally contains only public HTML pages. APIs, OAuth flows, the MCP transport, authenticated screens, payment setup and registry endpoints are protocol surfaces rather than crawlable content; their supported methods and trust boundaries are listed in the route inventory.

@@ -1,0 +1,65 @@
+{
+  "suiteVersion": "1.0",
+  "id": "07-mandate-used-by-other-agent",
+  "title": "A valid but non-permitted agent cannot use another agent's mandate",
+  "description": "agent-secondary is authenticated with its own valid key but is outside the mandate's permittedAgentId.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-other-agent-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 50000,
+        "remainingAuthorityMinor": 50000,
+        "currency": "USD"
+      }
+    },
+    "quote": {
+      "id": "quote-other-agent-100",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-other-agent-100",
+      "totalMinor": 10000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    },
+    "requestProof": {
+      "authenticatedAgentId": "agent-secondary",
+      "validSignatureForClaim": true
+    }
+  },
+  "steps": [
+    {
+      "id": "submit-other-agent-intent",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-secondary",
+        "mandateId": "mandate-other-agent-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-other-agent-100",
+        "idempotencyKey": "intent-other-agent"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "submit-other-agent-intent",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "AGENT_MISMATCH"
+      }
+    ],
+    "invariants": {
+      "purchaseCapabilityIssued": false,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0
+    }
+  }
+}

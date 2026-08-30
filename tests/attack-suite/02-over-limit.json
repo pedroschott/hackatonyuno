@@ -1,0 +1,63 @@
+{
+  "suiteVersion": "1.0",
+  "id": "02-over-limit",
+  "title": "A purchase above the per-purchase limit is denied",
+  "description": "A correctly authenticated agent cannot turn a valid quote into authority above the mandate maximum.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "mandate": {
+      "id": "mandate-over-limit-1",
+      "status": "active",
+      "version": 1,
+      "paymentMethodId": "pm-fixture-primary",
+      "policy": {
+        "permittedAgentId": "agent-primary",
+        "merchantAllowlist": ["merchant-a"],
+        "allowedCanonicalCategoryPaths": ["food.pantry"],
+        "maxAmountMinor": 50000,
+        "totalBudgetMinor": 100000,
+        "remainingAuthorityMinor": 100000,
+        "currency": "USD",
+        "escalationAllowlist": []
+      }
+    },
+    "quote": {
+      "id": "quote-over-limit-550",
+      "merchantId": "merchant-a",
+      "merchantOrderRef": "order-over-limit-550",
+      "totalMinor": 55000,
+      "currency": "USD",
+      "canonicalCategories": ["food.pantry.rice"],
+      "signature": "valid merchant fixture signature"
+    }
+  },
+  "steps": [
+    {
+      "id": "submit-over-limit-intent",
+      "kind": "agent-intent",
+      "input": {
+        "actor": "agent-primary",
+        "mandateId": "mandate-over-limit-1",
+        "merchantId": "merchant-a",
+        "quoteId": "quote-over-limit-550",
+        "idempotencyKey": "intent-over-limit-550"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "submit-over-limit-intent",
+        "httpStatus": 200,
+        "decision": "rejected",
+        "reasonCode": "AMOUNT_EXCEEDED"
+      }
+    ],
+    "invariants": {
+      "purchaseCapabilityIssued": false,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0,
+      "capturedUsesDelta": 0
+    }
+  }
+}

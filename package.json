@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:mcp": "node --env-file=.env.local tests/live-mcp-smoke.mjs",
     "sdk:build": "tsup sdk/index.ts --format esm,cjs --dts --out-dir dist/sdk --tsconfig tsconfig.sdk.json && node sdk/release-package.mjs",

@@ -1,0 +1,30 @@
+{
+  "name": "@agentic-mandates/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "./node_modules/.bin/tsc --project tsconfig.json",
+    "typecheck": "./node_modules/.bin/tsc --project tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@agentic-mandates/contracts": "file:../contracts",
+    "json-canonicalize": "1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "suiteVersion": "1.0",
+  "id": "13-malformed-request",
+  "title": "Malformed JSON fails before authorization",
+  "description": "A syntactically invalid request body reaches the public intent endpoint. It must receive a stable client error and create no state.",
+  "preconditions": {
+    "clock": "2026-08-29T12:00:00.000Z",
+    "authentication": "valid agent fixture proof",
+    "state": "empty except for default test identities"
+  },
+  "steps": [
+    {
+      "id": "post-malformed-intent",
+      "kind": "malformed-request",
+      "input": {
+        "actor": "agent-primary",
+        "route": "/v1/agent/intents",
+        "method": "POST",
+        "contentType": "application/json",
+        "rawBody": "{\"mandateId\":"
+      }
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "step": "post-malformed-intent",
+        "httpStatus": 400,
+        "reasonCode": "MALFORMED_REQUEST"
+      }
+    ],
+    "invariants": {
+      "purchaseCapabilityIssued": false,
+      "idempotencyRecordCreated": false,
+      "vaultCalls": [],
+      "capturedAmountMinorDelta": 0
+    }
+  }
+}

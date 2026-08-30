@@ -1,0 +1,111 @@
+# Route and endpoint inventory
+
+This inventory is the canonical map of the AgentPay web application and the isolated V2 services. It is intentionally more complete than `sitemap.xml`.
+
+`sitemap.xml` is for public canonical HTML pages only. It must not enumerate API operations, OAuth/session flows, dynamic approval links, payment setup, MCP transport or registry endpoints. `robots.txt` therefore disallows those paths from generic crawlers; this is crawl guidance, not an authorization mechanism.
+
+## Public web routes
+
+| Route | Purpose | Sitemap | Crawl policy |
+|---|---|---:|---|
+| `/` | Redirects to the authenticated dashboard. It is not a canonical content page. | No | No |
+| `/connect` | Public MCP connection instructions. | Yes | Allowed |
+| `/store` | Public AutoParts merchant demonstration. | Yes | Allowed |
+| `/dashboard` | Account holder mandate dashboard. | No | Disallowed |
+| `/audit` | Account audit view. | No | Disallowed |
+| `/contracts/new` | Create and passkey-authorize a mandate. | No | Disallowed |
+| `/payment-methods/setup?token=...` | User-bound hosted payment setup callback. | No | Disallowed |
+| `/m` | Mobile approval inbox. | No | Disallowed |
+| `/m/mandates/:id` | Mobile mandate approval and revocation screen. | No | Disallowed |
+| `/m/approvals/:id` | Mobile one-time exception decision screen. | No | Disallowed |
+| `/oauth/consent` | OAuth consent flow. | No | Disallowed |
+
+## Discovery and agent connection
+
+| Method | Endpoint | Consumer | Purpose |
+|---|---|---|---|
+| `GET` | `/.well-known/agentpay.json` | Agent on a merchant domain | Merchant-owned AgentPay manifest for the AutoParts demo. A real merchant publishes its own manifest. |
+| `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource` | MCP client | OAuth protected-resource metadata for AgentPay MCP. |
+| `GET`, `OPTIONS` | `/.well-known/oauth-protected-resource/mcp` | MCP client | Alias of the protected-resource metadata for the MCP endpoint. |
+| `GET`, `POST` | `/mcp` | OAuth-authenticated MCP client | Streamable HTTP MCP server. Exposes `get_account`, `get_payment_setup_link`, `create_mandate`, `get_mandate`, `purchase` and `revoke_mandate`. |
+| `GET` | `/api` | Developer or health-style discovery client | JSON description of the AgentPay MCP, OAuth metadata and merchant-discovery model. |
+
+## Application API
+
+All application API routes are same-origin service endpoints. Routes that mutate user state require the applicable authenticated session and/or passkey ceremony; they are not public integration APIs.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/account` | Safe account and payment-method display metadata. |
+| `POST` | `/api/agent` | Register or update the connected agent. |
+| `POST` | `/api/cards` | Save non-sensitive payment-method display metadata and an opaque mock-vault reference. |
+| `POST` | `/api/checkout` | Execute the legacy demo checkout path. |
+| `GET`, `POST` | `/api/mandates` | List mandates or create a draft mandate. |
+| `GET` | `/api/mandates/:id` | Read a mandate. |
+| `GET`, `POST` | `/api/mandates/:id/authorize` | Fetch a passkey challenge or authorize the mandate. |
+| `POST` | `/api/mandates/:id/decline` | Decline a draft mandate. |
+| `PATCH` | `/api/mandates/:id/limits` | Update a mandate's permitted limits. |
+| `POST` | `/api/mandates/:id/revoke` | Revoke a mandate immediately. |
+| `GET` | `/api/mandates/:id/status` | Read live mandate status for the UI. |
+| `POST` | `/api/approvals/:id/authorize` | Get or verify the passkey ceremony for a one-time exception. |
+| `POST` | `/api/approvals/:id/decide` | Approve or deny a one-time exception. |
+| `POST` | `/api/passkeys/register` | Register a WebAuthn credential. |
+| `GET` | `/api/state` | Read the authenticated demo state. |
+| `POST` | `/api/reset` | Reset the authenticated demo state. |
+| `POST` | `/api/store/checkout` | AutoParts demo store checkout. |
+
+## Merchant verification registry
+
+These narrowly scoped endpoints are a public protocol boundary for stores that have already received a signed request. They return exact-ID registry projections, not arbitrary user data.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/registry/agents/:id` | Read an exact agent verification key. |
+| `GET` | `/api/registry/keys` | Read current AgentPay registry verification keys. |
+| `GET` | `/api/registry/mandates/:id` | Read an exact signed mandate and its live status. |
+| `POST` | `/api/registry/nonces` | Consume a signed request nonce to prevent replay. |
+
+## Isolated V2 services
+
+The following Hono applications are source-level services in this branch. They are intentionally not mounted into the production Next application until their durable Supabase adapters and deployment boundaries are configured. Their interfaces are listed for integration and manual test planning, not as already deployed public endpoints.
+
+### Mock merchant APIs
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/health` | Service health check. |
+| `POST` | `/v1/agents-pay/search` | Search the merchant's own mock catalog. |
+| `POST` | `/v1/agents-pay/quotes` | Create a signed, time-bound merchant quote. |
+| `GET` | `/v1/agents-pay/quotes/:quoteId` | Retrieve an issued quote. |
+| `POST` | `/v1/agents-pay/orders/:merchantOrderRef/verification` | Verify and atomically claim an order for one settlement attempt. |
+
+### Mandate service
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/health` | Service health check. |
+| `POST` | `/v1/agent/intents` | Evaluate a signed agent purchase intent against a mandate and issue a scoped capability or escalation. |
+| `POST` | `/v1/merchant/verifications` | Verify a merchant order and coordinate authorization/capture state. |
+| `POST` | `/v1/mandates/:mandateId/revocations` | Revoke a mandate and trigger the defined authorization/capture outcome. |
+
+### Hosted test-payment Vault
+
+| Method | Endpoint | Consumer | Purpose |
+|---|---|---|---|
+| `GET` | `/health` | Operator | Service health check. |
+| `GET`, `POST` | `/hosted/test-payment-methods/setup` | User browser | Hosted test-payment-method setup form. |
+| `POST` | `/internal/v1/hosted-setup-sessions` | Mandate service | Create a short-lived hosted setup session. |
+| `POST` | `/internal/v1/hosted-setup-sessions/:sessionId/exchange` | Mandate service | Exchange the browser callback code for safe payment-method metadata. |
+| `POST` | `/internal/v1/payment-methods/test` | Controlled test setup | Create a deterministic test payment method. |
+| `POST` | `/internal/v1/payment-authorizations` | Mandate service | Authorize a mock payment with an idempotency key. |
+| `GET` | `/internal/v1/payment-authorizations/:authorizationId` | Mandate service | Reconcile an authorization after a timeout. |
+| `POST` | `/internal/v1/payment-authorizations/:authorizationId/capture` | Mandate service | Capture a prior authorization. |
+| `POST` | `/internal/v1/payment-authorizations/:authorizationId/void` | Mandate service | Void an uncaptured authorization. |
+
+The Vault accepts service-authenticated internal calls only. It never accepts card details through the agent, MCP, merchant API or a browser callback to the mandate service.
+
+## HTTP conventions
+
+- Mutation endpoints use idempotency keys where the protocol requires them; retries must reuse the same key and request body.
+- Internal V2 calls use signed request proofs, request IDs and audience-bound verification. The agent and merchant never receive Vault credentials or provider tokens.
+- The route inventory describes reachability, not permission. Every caller must still satisfy the authentication, passkey, signature, policy, replay and live-revocation checks defined in [the architecture](architecture.md) and [decision log](decisions.md).

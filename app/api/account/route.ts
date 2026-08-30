@@ -4,7 +4,7 @@ export async function GET() {
   try {
     const { supabase, user } = await authenticatedRequest();
     const [cards, mandates, approvals, attempts, credentials] = await Promise.all([
-      supabase.from("vault_cards").select("id, brand, last4, payment_ref, created_at").order("created_at"),
+      supabase.from("vault_cards").select("id, brand, last4, label, created_at").order("created_at"),
       supabase.from("mandates").select("*").order("created_at", { ascending: false }),
       supabase.from("approvals").select("*").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("attempts").select("*").order("created_at", { ascending: false }).limit(30),
