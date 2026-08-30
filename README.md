@@ -6,16 +6,17 @@
 
 An agent connects to AgentPay through an OAuth-protected MCP server. It can *ask* for spending authority, but it can never grant itself any. You sign a narrow, time-boxed **mandate** with your passkey, and every purchase is checked against that mandate at the moment of settlement. Revoke it and the very next checkout fails.
 
-🔗 **Live:** https://agentpay-yuno.vercel.app · **Merchant docs:** https://agentpay-yuno.vercel.app/docs · **Merchant console:** https://agentpay-yuno.vercel.app/developers
+🔗 **Live:** https://agentpay-yuno.vercel.app · 🏪 **Store you can actually buy from:** https://partsroute.vercel.app · 📘 **Merchant docs:** https://agentpay-yuno.vercel.app/docs
 
 ---
 
 ## The whole idea in one picture
 
 ```
-        YOU                        THE AGENT                    AGENTPAY                    THE STORE
+        YOU                        THE AGENT                    AGENTPAY                  PARTSROUTE
          │                             │                            │                           │
-         │  "buy 4 tires, max $1,600"  │                            │                           │
+         │  "fix my squealing brakes,  │                            │                           │
+         │   under $150 total"         │                            │                           │
          ├────────────────────────────►│                            │                           │
          │                             │  find_products(store URL)  │                           │
          │                             ├───────────────────────────►│──── reads the store's ───►│
@@ -43,18 +44,9 @@ It holds one thing: permission you signed, with limits you chose.
 
 # Part 1 — Using AgentPay
 
-> ⏱️ **Total setup time: about 8 minutes.** Steps 1–5 are done once. Step 6 is done once per assistant. Steps 7–10 are what you do every time you shop.
-
-## What you need before you start
-
-| | |
-|---|---|
-| 📱 **A device with a screen lock** | iPhone, iPad, Mac, or Android with Face ID / Touch ID / fingerprint. This is your signing device. |
-| 📧 **An email address you can check** | Including the **spam folder** — see the warning in Step 1. |
-| 🪪 **A government ID** | Passport, national ID or driver's licence, for identity verification. |
-| 🤖 **An AI assistant that speaks MCP** | Claude, ChatGPT, Gemini, OpenClaw, or any MCP client. |
-
-> ⚠️ **Open AgentPay directly in Safari or Chrome.** Passkeys are bound to the exact hostname `agentpay-yuno.vercel.app`. Embedded browsers (the little in-app browser inside Slack, Instagram, LinkedIn, or a QR scanner app) often cannot reach Face ID or Touch ID, and you will get a confusing failure at signing time.
+> ⏱️ **Three steps, about five minutes.**
+> Create an account → connect your assistant → ask it to buy something.
+> Everything else — your passkey, identity verification, your card — the agent hands you at the exact moment it is needed. You do not have to set any of it up in advance.
 
 ---
 
@@ -65,181 +57,63 @@ It holds one thing: permission you signed, with limits you chose.
 3. Enter your email and a password of **at least 8 characters**
 4. Click **Create account**
 
-### 📮 THE EMAIL LANDS IN SPAM. GO LOOK IN SPAM.
-
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  🚨  CHECK YOUR SPAM / JUNK FOLDER.  🚨                       │
+│  🚨  THE CONFIRMATION EMAIL LANDS IN SPAM.  🚨                │
 │                                                              │
-│  The confirmation email is sent from:                        │
+│  It is sent from:                                            │
 │                                                              │
 │         AgentPay  <auth@fwdco.space>                         │
 │                                                              │
-│  Gmail, Outlook and iCloud all like to file it as spam,      │
-│  because fwdco.space is a young sending domain with no       │
-│  reputation history yet.                                     │
+│  Gmail, Outlook and iCloud all file it as spam, because      │
+│  fwdco.space is a young sending domain with no reputation    │
+│  history yet.                                                │
 │                                                              │
-│  It is annoying. There is no way around it today. Just       │
-│  open the spam folder, mark it as "Not spam", and click      │
-│  the confirmation link.                                      │
+│  It is annoying. There is no way around it today. Open the   │
+│  spam folder, mark it "Not spam", and click the link.        │
 │                                                              │
-│  Nothing else in the flow will work until you confirm.       │
+│  Nothing else works until you confirm.                       │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**If you cannot find it at all:**
-
-| Try this | Why |
-|---|---|
-| Search your whole mailbox for `fwdco.space` | Some clients hide spam from the default search |
-| Wait 60 seconds and refresh | Delivery is near-instant but not always |
-| Check the hourly limit | The project sends **max 30 auth emails per hour**. During a busy demo you can genuinely hit it. Wait, then retry. |
-| Use a different provider | A personal Gmail is usually the most reliable; strict corporate filters sometimes drop it entirely |
-
 Once confirmed, come back and **sign in**.
 
----
-
-## Step 2 · Create your signing passkey
-
-The moment you sign in, AgentPay stops and asks for one thing:
-
-> **Create your authorization passkey**
-> This is the only approval credential AgentPay needs. Your device verifies every mandate and exception.
-
-Click **Create passkey** and complete Face ID / Touch ID / your fingerprint.
-
-**What actually happens:** your device generates a keypair. The private key never leaves the secure enclave. AgentPay stores only the *public* credential. There is no password, no OTP, and no shared secret that could be phished out of you or leaked from the database.
-
-> 🔒 **You cannot use AgentPay without a passkey.** That is deliberate — the passkey *is* the authorization mechanism, not a login convenience.
-
-**If the button is greyed out:** you are in an embedded browser or on a device with no screen lock. Open `https://agentpay-yuno.vercel.app` directly in Safari or Chrome and try again.
+> ⚠️ **Open AgentPay directly in Safari or Chrome.** Passkeys are bound to the exact hostname `agentpay-yuno.vercel.app`. Embedded browsers — the little in-app browser inside Slack, Instagram, LinkedIn or a QR-scanner app — often cannot reach Face ID or Touch ID, and you will get a confusing failure later at signing time.
 
 ---
 
-## Step 3 · Verify your identity
+## Step 2 · Connect your agent 🤖
 
-Go to **`/account`** → the **"Identity and fraud verification"** card at the top.
-
-1. Read and tick the consent checkbox (it links to Didit's privacy notice and end-user terms)
-2. Click **Verify with Didit**
-3. You are redirected to Didit's hosted flow: photograph your ID, then a liveness selfie
-4. You are returned to `/account`
-
-| Badge you'll see | What it means | What to do |
-|---|---|---|
-| 🟢 **Verified** | Approved, and your risk entity is `ACTIVE` | Nothing. You can sign mandates. |
-| 🟡 **In review** | Didit is doing a manual check | Wait. The webhook updates you automatically. |
-| 🟡 **Needs review** | Your entity came back `FLAGGED` | Purchases are blocked until it clears. |
-| 🔴 **Not verified** | `Declined` or `BLOCKED` | Purchases are blocked. |
-| ⚪ **Required** | Not started yet | Click **Verify with Didit**. |
-
-**Why this gate is real, not decoration:** identity is checked in *three* independent places — when the mandate is signed, when the agent calls `check_purchase`/`purchase`, and again by a database trigger that refuses to mint a payment token for an unverified, flagged or blocked account. A direct API call cannot route around it.
-
-> 🔐 **What AgentPay stores:** the session id, workflow, environment, decision status and entity risk state. **Nothing else.** Your documents, selfies, biometric captures and the full decision stay with Didit.
-
----
-
-## Step 4 · Add a payment method
-
-Still on **`/account`**, scroll to **"Add payment method"**.
-
-1. Pick a **brand** (Visa or Mastercard)
-2. Enter **last four digits** — `4242` is fine
-3. Give it a **label** — "Personal", "Fleet card", "Company"
-4. Optionally tick **Make this my default payment method**
-5. **Save payment method**
-
-> 💡 **Never type a real card number here — there is no field for one.** The payment rail is deliberately mocked for this challenge. AgentPay stores the brand, last four digits, a label, and an encrypted mock-vault reference. That is the entire card record.
-
-**Your agent can also start this for you.** If it calls `get_payment_setup_link`, it gets a **15-minute, user-bound browser link** and hands it to you. It does not, and cannot, collect card data in chat.
-
-```
-🚫  No legitimate AgentPay flow will EVER ask you to type a card number,
-    CVC, PIN, bank password or vault credential into a chat window.
-    If an agent asks, it is not following the protocol. Refuse.
-```
-
-**Managing cards later** (all on `/account`):
-
-- **Make default** — the card an agent uses when it does not pick one explicitly
-- **Remove** — disabled while a card is bound to a live or pending mandate, so you cannot orphan a signed authorization
-- Each card shows its **successful purchase count** and **last used date**
-
----
-
-## Step 5 · Fill in compliance and delivery details
-
-Two more cards on **`/account`**:
-
-**Order and compliance details** — full legal name, tax ID, phone.
-**Delivery address** — street, city, region, postal code, two-letter country code.
-
-Click **Save account details**. Each card shows a **Ready** / **Needs details** badge so you know where you stand.
-
-Your agent reads these through your authenticated connection so it can complete a real order without interrogating you mid-purchase. They never enter a payment token or a public registry record.
-
----
-
-## Step 6 · Connect your agent 🤖
-
-This is the part people ask about most. Go to **`/connect`**.
-
-The page shows two things: **which assistants are already connected** to your account, and a picker to add another. Click your assistant's logo and it gives you the exact steps plus your link.
-
-### Your connection link is always the same
+Your connection link is always the same, and it is the *only* thing you need. No API key, no client ID, no secret to paste:
 
 ```
 https://agentpay-yuno.vercel.app/mcp
 ```
 
-That single URL is everything. No API key, no client ID, no secret to paste. Authentication happens through OAuth in your browser.
-
-<br>
-
-### 🟠 Claude (web, desktop, or mobile)
+The flow is identical in every assistant:
 
 ```
-1.  Open Claude → Settings → Connectors
-2.  Click "Add custom connector"
-3.  Paste:   https://agentpay-yuno.vercel.app/mcp
-4.  Click Add. Claude opens a browser window.
-5.  Sign in to AgentPay (or create the account right there)
-6.  Approve the consent screen
-7.  Done — "AgentPay" appears in your connector list
-```
-
-### 🟢 ChatGPT
-
-```
-1.  Open ChatGPT → Settings → Connectors
-2.  Add a connector
-3.  Paste:   https://agentpay-yuno.vercel.app/mcp
-4.  Sign in to AgentPay when ChatGPT redirects you
+1.  Open your assistant's connector / tools settings
+2.  Add a custom connector
+3.  Paste   https://agentpay-yuno.vercel.app/mcp
+4.  A browser window opens — sign in to AgentPay
 5.  Approve the consent screen
+6.  "AgentPay" now appears in your connector list
 ```
 
-### 🔵 Gemini
+| Assistant | Where the setting lives |
+|---|---|
+| 🟠 **Claude** (web, desktop, mobile) | Settings → **Connectors** → *Add custom connector* |
+| 🟢 **ChatGPT** | Settings → **Connectors** → add a connector |
+| 🔵 **Gemini** | **Extensions / Tools** settings → add a connector |
+| 🐾 **OpenClaw** | **Connectors / Tools** settings → add a connector |
+| ⚙️ **Anything else** | Wherever it keeps MCP servers |
 
-```
-1.  Open Gemini → Extensions / Tools settings
-2.  Add a new connector
-3.  Paste:   https://agentpay-yuno.vercel.app/mcp
-4.  Sign in to AgentPay when prompted
-```
+Already connected assistants are listed on **`/connect`**, with a picker to add another.
 
-### 🐾 OpenClaw
+### Config-file clients
 
-```
-1.  Open OpenClaw → Connectors / Tools settings
-2.  Add a new connector
-3.  Paste:   https://agentpay-yuno.vercel.app/mcp
-4.  Sign in to AgentPay when prompted
-```
-
-### ⚙️ Any other MCP client (config-file style)
-
-For clients configured by file — Claude Desktop, Cursor, a local `.mcp.json`, your own agent framework — the server is a **remote Streamable HTTP MCP server**:
+For clients configured by file — Claude Desktop, Cursor, a local `.mcp.json`, your own framework — this is a **remote Streamable HTTP MCP server**:
 
 ```json
 {
@@ -264,13 +138,11 @@ Clients that only speak stdio can bridge to it:
 }
 ```
 
-Running locally instead of production? Swap the host for `http://localhost:3210/mcp`.
-
-<br>
+Running the app locally? Swap the host for `http://localhost:3210/mcp`.
 
 ### 🔑 What the authentication actually does
 
-AgentPay never hands your assistant a long-lived key. It runs a full **OAuth 2.1 authorization-code flow with PKCE**, and the client discovers everything it needs on its own:
+AgentPay never hands your assistant a long-lived key. It runs a full **OAuth 2.1 authorization-code flow with PKCE**, and the client discovers everything on its own:
 
 ```
   1. Agent  →  POST https://agentpay-yuno.vercel.app/mcp
@@ -286,93 +158,188 @@ AgentPay never hands your assistant a long-lived key. It runs a full **OAuth 2.1
      }
 
   3. Agent  →  GET  <authorization server>/.well-known/oauth-authorization-server
-               Dynamic client registration — the agent registers itself, no
-               manual client ID needed.
+               Dynamic client registration — the agent registers itself.
+               No manual client ID anywhere.
 
   4. Browser opens the AgentPay consent screen  (/oauth/consent)
-               ├─ Not signed in?      Sign in or create the account inline
-               ├─ No passkey yet?     Create it inline
+               ├─ Not signed in?   Sign in or create the account inline
+               ├─ No passkey yet?  Create it inline — approval is blocked until you do
                └─ Approve / Deny the named client
 
   5. Agent  ←  Authorization code  →  access token (scope: email)
 
   6. Every MCP call:   Authorization: Bearer <token>
-     AgentPay verifies the token with Supabase on EVERY request and resolves
+     AgentPay re-verifies the token with Supabase on EVERY request and resolves
      it to exactly one user id. Row Level Security does the rest.
 ```
 
-**What this buys you:**
-
-- 🔐 The agent's token is scoped to *your* account only. Row Level Security in Postgres means one user's token physically cannot read another user's cards, mandates or attempts.
-- 👤 **Consent is a real screen**, not a checkbox in a config file. You see which client is asking, by name, and you can deny it.
-- ✍️ The consent screen refuses to finish until you have a passkey — so an agent can never be connected to an account that has no way to authorize anything.
-- 🧾 Every connected client appears on `/connect` under **Connected agents**, resolved to a recognisable name and logo.
+- 🔐 The token is scoped to *your* account. RLS in Postgres means one user's token physically cannot read another user's cards, mandates or attempts.
+- 👤 **Consent is a real screen**, not a config flag. You see which client is asking, by name, and you can deny it.
+- ✍️ The screen refuses to finish until you have a passkey — an agent can never be attached to an account that has no way to authorize anything.
 
 > **Connecting an agent grants it exactly zero spending power.** It can look at your account and *ask*. Nothing more. Money requires a mandate you signed.
 
 ---
 
-## Step 7 · Ask your agent to buy something 🛒
+## Step 3 · Make a real payment at PartsRoute 🛒
 
-Now just talk to it. **Give it the store URL** — AgentPay is not a store directory, so the link comes from you or from the agent's own web search.
+This is the actual test. Not a simulation, not a seeded fixture inside this repo — a **real, independent store on its own domain** that integrated the AgentPay merchant SDK, and a full purchase that ends in a settled decision.
 
-> *"Buy 4 standard tires from https://agentpay-yuno.vercel.app/stores/mrc_abc123 — nothing premium, and don't spend more than $1,600 per purchase."*
+### 🏪 https://partsroute.vercel.app
 
-### 🏪 Need a store to test with?
-
-AgentPay does not host a storefront on its own domain — production stores live on their own domains. Spin up a **hosted test store** in about a minute:
+PartsRoute is an auto-parts store built and deployed **separately from AgentPay**, in its own repository ([`pedroschott/autoparts`](https://github.com/pedroschott/autoparts)), on its own domain. It installed `@agentpay/merchant-sdk` and published the three routes the protocol asks for. AgentPay has no special knowledge of it — it discovers PartsRoute exactly the way it would discover any other store, by reading documents PartsRoute serves itself.
 
 ```
-1.  Open  https://agentpay-yuno.vercel.app/developers/merchants/new
-2.  Create a TEST merchant. AgentPay assigns an immutable id like  mrc_abc123
-3.  Add a couple of products in the console
-4.  You now have four working URLs:
-
-    Storefront   https://agentpay-yuno.vercel.app/stores/mrc_abc123
-    Manifest     https://agentpay-yuno.vercel.app/api/stores/mrc_abc123/agentpay.json
-    Checkout     https://agentpay-yuno.vercel.app/api/stores/mrc_abc123/checkout
-    Catalog API  https://agentpay-yuno.vercel.app/api/v1/merchants/mrc_abc123/products
-
-5.  Hand the storefront URL to your agent.
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🚨  PartsRoute is the ONLY store where a purchase can complete today.  🚨│
+│                                                                         │
+│  Point your agent at   https://partsroute.vercel.app                    │
+│                                                                         │
+│  AgentPay is not a store directory — it never ranks, indexes or         │
+│  recommends merchants, so it cannot suggest a store for you. Any        │
+│  store works the moment it integrates the SDK. PartsRoute is the one    │
+│  that is live right now, so give your agent that URL.                   │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-Test stores work when you share the exact URL, but they are **never publicly listed** and must never be presented as real merchants.
+**What the agent finds there** — all of it published by PartsRoute, none of it stored by AgentPay:
 
-### What the agent does next
+| | |
+|---|---|
+| **Merchant ID** | `mrc_835dda9e14b9709870f2` — assigned by AgentPay, immutable, the value that goes into your mandate |
+| **Manifest** | `https://partsroute.vercel.app/.well-known/agentpay.json` |
+| **Catalog** | `https://partsroute.vercel.app/api/agentpay/catalog` |
+| **Checkout** | `https://partsroute.vercel.app/api/agentpay/checkout` |
+| **Product pages** | `https://partsroute.vercel.app/product/{id}` |
+| **Catalog size** | 55 real products, USD |
+| **Categories** | `brakes` · `cooling` · `drivetrain` · `electrical` · `engine` · `exhaust` · `filters` · `fluids` · `fuel` · `lighting` · `suspension` · `tires` |
+| **Price range** | $6.40 (a spark plug) to $312.00 (a muffler) |
 
-| # | The agent calls | What happens |
+Curl any of it yourself — it is all public:
+
+```bash
+curl https://partsroute.vercel.app/.well-known/agentpay.json
+curl 'https://partsroute.vercel.app/api/agentpay/catalog?q=brake+pad&max_price_cents=5000'
+```
+
+### 💬 Prompts to try
+
+Copy-paste these into your assistant. **Start with #1** — the first one walks you through passkey, identity verification and card setup along the way, so everything after it is instant.
+
+**1 · The straightforward buy**
+
+> *"Buy a Fram oil filter from https://partsroute.vercel.app. Don't spend more than $15."*
+
+**2 · A problem, not a product** — the one worth demoing
+
+> *"My front brakes are squealing. Find me front rotors and ceramic pads at https://partsroute.vercel.app, keep the whole job under $150, and buy the best-value combination you find."*
+>
+> The agent has to search the catalog, compare real parts, decide what "best value" means, ask for a mandate wide enough to cover both purchases, and then make two separate purchases inside one budget you signed once.
+
+**3 · A shopping list with a budget**
+
+> *"I'm doing an oil change on Saturday. From https://partsroute.vercel.app get me synthetic 5W-30 and a good oil filter — max $40 per item, no more than 3 purchases total, and the mandate should expire in 3 days."*
+
+**4 · Watch a refusal, then an amendment** 🔴
+
+> *"Now also buy a gallon of coolant from the same store."*
+>
+> If your mandate only covered `filters`, this comes back **refused** with `CATEGORY_NOT_IN_SCOPE`. Watch the agent call **`amend_mandate`** rather than revoking — you sign the replacement once, and the old mandate retires at that exact moment.
+
+**5 · Watch an escalation** 🟡
+
+> *"Buy the ACDelco Group 35 battery from https://partsroute.vercel.app."*
+>
+> It's $164.50. If your per-purchase limit is lower, this comes back **escalated** — nothing charged, and a link to approve *that one purchase* with your passkey. Your mandate's limits stay exactly as you set them.
+
+**6 · The kill switch** 🛑
+
+> *"Stop buying. Revoke that mandate."*
+>
+> Immediate. The next checkout fails, and so does one that is already in flight.
+
+### What the agent does behind the scenes
+
+| # | Tool | What happens |
 |---|---|---|
-| 1 | `get_account` | Reads your verification state, saved cards and existing mandates. Gets back **one** `next_step` telling it exactly what to do. |
-| 2 | `find_products` | Fetches the store's **own** `/.well-known/agentpay.json`, then the catalog endpoint that manifest advertises. Returns the exact `mrc_…` merchant id, the store's real category slugs, its currency, and product ids with prices in cents. |
-| 3 | `create_mandate` | Builds a **draft** using those exact values and your stated limits, and returns an `authorization_url` for you. |
+| 1 | `get_account` | Reads your verification state, saved cards and existing mandates. Gets **one** `next_step` back telling it exactly what to do — including sending you off to verify or add a card. |
+| 2 | `find_products` | Fetches PartsRoute's own manifest, then the catalog endpoint that manifest advertises. Returns the exact merchant id, real category slugs, currency, product ids and prices in cents. |
+| 3 | `create_mandate` | Builds a **draft** from those exact values plus your stated limits, and hands you an `authorization_url`. |
+| 4 | `get_mandate` | Polls until you have signed. `draft` is a normal state, not an error. |
+| 5 | `check_purchase` | Dry run against the live mandate. Same policy engine, no merchant contact, **nothing recorded**. |
+| 6 | `purchase` | Signed checkout at PartsRoute, then the final atomic decision at the registry. |
 
 ### 🧠 Why `find_products` exists
 
-The agent is **structurally forbidden from guessing**. Not "discouraged" — forbidden. It cannot invent a merchant id from a domain name, or a product id from a URL slug, or a category from a page heading. Every one of those values must come back from the store's own machine-readable catalog first.
+The agent is **structurally forbidden from guessing**. Not "discouraged" — forbidden. It cannot invent a merchant id from a domain, a product id from a URL slug, or a category from a page heading. Every one of those values must come back from the store's own machine-readable catalog first.
 
-That kills the most common agentic-commerce failure mode: an agent confidently hallucinating a SKU and buying the wrong thing. And a category the store does not sell is **rejected at mandate-creation time — before you are ever asked to sign** — instead of failing mysteriously at checkout.
-
-> **AgentPay is not a store directory.** It never ranks, indexes or recommends merchants. The store URL comes from *you* or from the agent's normal web search. Discovery is the store's own document, on the store's own domain.
+That kills the most common agentic-commerce failure mode: an agent confidently hallucinating a SKU and buying the wrong thing. And a category the store does not sell is **rejected when the mandate is created — before you are ever asked to sign** — instead of failing mysteriously at checkout.
 
 ---
 
-## Step 8 · Sign the mandate ✍️
+## What the agent will walk you through
 
-Your agent gives you a link. Open it — on your phone, or by scanning the QR from the desktop app.
+The first time you run Step 3, the agent stops and hands you links. Here is what each one is, and what to check.
 
-You land on the **mobile signing sheet** (`/m/mandates/<id>`), which shows in plain language:
+### 🔑 Your signing passkey
+
+The first time you sign in, AgentPay asks for one thing before anything else:
+
+> **Create your authorization passkey** — this is the only approval credential AgentPay needs.
+
+Your device generates a keypair; the private key never leaves the secure enclave. AgentPay stores only the **public** credential. No password, no OTP, no shared secret that could be phished out of you or leaked from a database.
+
+**Button greyed out?** You are in an embedded browser or on a device with no screen lock. Open `https://agentpay-yuno.vercel.app` directly in Safari or Chrome.
+
+### 🪪 Identity verification
+
+The agent sends you to **`/account`** → **Identity and fraud verification**. Tick the consent box, click **Verify with Didit**, photograph your ID, do the liveness selfie, and you are returned automatically.
+
+| Badge | Meaning | What to do |
+|---|---|---|
+| 🟢 **Verified** | Approved, entity `ACTIVE` | Nothing. You can sign mandates. |
+| 🟡 **In review** | Manual check in progress | Wait — the webhook updates you. |
+| 🟡 **Needs review** | Entity came back `FLAGGED` | Purchases blocked until it clears. |
+| 🔴 **Not verified** | `Declined` or `BLOCKED` | Purchases blocked. |
+| ⚪ **Required** | Not started | Click **Verify with Didit**. |
+
+This gate is real, not decoration: identity is re-checked when the mandate is signed, when the agent calls `check_purchase`/`purchase`, **and** by a database trigger that refuses to mint a payment token for an unverified, flagged or blocked account. A direct API call cannot route around it.
+
+> 🔐 AgentPay stores only the session id, workflow, environment, decision status and entity risk state. Your documents, selfies, biometric captures and the full decision stay with Didit.
+
+### 💳 Your payment method
+
+If no card is saved, the agent calls `get_payment_setup_link` and gives you a **15-minute, user-bound browser link**. It does not, and cannot, collect card data in chat.
+
+Pick a brand, type four digits (`4242` is fine), give it a label, optionally make it your default.
+
+```
+🚫  No legitimate AgentPay flow will EVER ask you to type a card number,
+    CVC, PIN, bank password or vault credential into a chat window.
+    If an agent asks, it is not following the protocol. Refuse.
+```
+
+> 💡 **There is no field for a real card number.** The payment rail is deliberately mocked for this challenge. AgentPay stores the brand, last four digits, a label, and an encrypted mock-vault reference. That is the entire card record.
+
+Manage cards any time on **`/account`**: set a default, see each card's purchase count and last-used date, or remove one — removal is blocked while a card is bound to a live or pending mandate, so you cannot orphan a signed authorization.
+
+**While you are there**, fill in **Order and compliance details** (legal name, tax ID, phone) and your **Delivery address**. Your agent reads these through your authenticated connection so it can complete a real order without interrogating you mid-purchase. They never enter a payment token or a public registry record.
+
+### ✍️ Signing the mandate
+
+The agent gives you a link. Open it on your phone, or scan the QR from the desktop app. You land on the mobile signing sheet (`/m/mandates/<id>`):
 
 ```
 ┌──────────────────────────────────────────────┐
 │  Claude is asking to buy for you             │
 │                                              │
-│  "Restock 4 standard tires for the fleet     │
-│   before Monday — AutoParts only, nothing    │
-│   premium."                        ← your words, quoted back
+│  "My front brakes are squealing — front      │
+│   rotors and ceramic pads at PartsRoute,     │
+│   whole job under $150."   ← your words, quoted back
 │                                              │
-│  Per purchase      Up to $1,600.00           │
-│  This month        $1,600.00, 1 purchase     │
-│  Scope             tires at AutoParts        │
+│  Per purchase      Up to $90.00              │
+│  This month        $150.00, 2 purchases      │
+│  Scope             brakes at PartsRoute      │
 │  Expires           in 7 days                 │
 │  Charges           💳 Visa ···· 4242         │
 │                                              │
@@ -385,48 +352,23 @@ You land on the **mobile signing sheet** (`/m/mandates/<id>`), which shows in pl
 └──────────────────────────────────────────────┘
 ```
 
-**Before you sign, check three things:**
+**Check three things before you sign:**
 
-1. **The description is yours.** Your original request is quoted back verbatim. If it does not match what you asked for, decline.
+1. **The description is yours.** Your original request is quoted back verbatim. If it does not match, decline.
 2. **The scope is narrow.** One store, the categories you meant — not "everything, everywhere".
-3. **The card is right.** Tap **Change card** to switch to any other saved card *before* signing. The card you pick is part of what you sign.
+3. **The card is right.** Tap **Change card** to switch before signing. The card you pick is part of what you sign.
 
-Then approve with Face ID / Touch ID.
+> 🚫 **You cannot create a mandate yourself.** There is no "new mandate" form anywhere in the web app. That is deliberate: **a mandate exists only because an agent asked for one, in response to something you said.** It can never be pre-loaded, defaulted, or quietly widened later.
 
-> 🚫 **You cannot create a mandate yourself.** There is no "new mandate" form anywhere in the web app. That is a deliberate design decision: **a mandate exists only because an agent asked for one, in response to something you said.** It can never be pre-loaded, defaulted, or quietly widened later.
+Signing makes your passkey sign the canonical mandate. The registry co-signs and flips it to `active` — but only if your latest Didit decision still passes. From that instant the mandate is **immutable**. Nobody, including you, can edit it in place.
 
-**What signing actually does:** your passkey signs the canonical mandate. The registry co-signs it and flips it to `active` — but only if your latest Didit decision is still approved and your entity is not flagged or blocked. From that instant, a signed mandate is **immutable**. Nobody, including you, can edit it in place. Changing it means signing a replacement (see below).
+### ✅ Reading the decision
 
----
-
-## Step 9 · Watch the purchase go through ✅
-
-Your agent now runs two calls:
-
-**`check_purchase`** — a dry run. Same policy engine, same live mandate, but it contacts no merchant and records nothing. It answers "would this be approved?" for free, leaving no trace of a purchase that never happened.
-
-**`purchase`** — the real one:
-
-```
-  Agent      →  signs the checkout request with its own key
-  Store SDK  →  verifies the agent signature
-             →  verifies the registry's signature over the mandate
-             →  fetches LIVE mandate status from the registry
-             →  checks the nonce (replay protection)
-             →  checks its own policy
-  Registry   →  final ATOMIC decision under a per-mandate lock
-             →  mints a mock single-use payment token bound to your card id
-```
-
-You get one of three answers:
-
-| Result | What it means | What the agent does next |
+| Result | Meaning | What the agent does |
 |---|---|---|
 | 🟢 **approved** | Inside scope and limits, merchant verified. Done. | Reports the order to you. |
-| 🟡 **escalated** | Price exceeds your per-purchase limit. **Nothing was charged.** | Sends you an `approval_url`. You approve *that one purchase* with your passkey. Then it retries with the `exception_id`. Your mandate is untouched. |
+| 🟡 **escalated** | Over your per-purchase limit. **Nothing was charged.** | Sends you an `approval_url`. You approve *that one purchase* with your passkey; it retries with the `exception_id`. Your mandate is untouched. |
 | 🔴 **refused** | A rule said no. | Reads the `explanation`, `remedy` and `next_tool` it was handed, and follows them. |
-
-### Every refusal comes with instructions
 
 AgentPay never returns a bare error code. Every decision carries a plain-English explanation, the exact remedy, and the literal name of the next tool to call:
 
@@ -441,25 +383,16 @@ AgentPay never returns a bare error code. Every decision carries a plain-English
 | `MANDATE_REVOKED` | **Stop.** Do not retry, do not propose a replacement. |
 | `IDENTITY_VERIFICATION_REQUIRED` | Send the user to `/account` and wait. |
 
-### 🔁 Widening scope: amend, never revoke-and-recreate
+**Widening scope: amend, never revoke-and-recreate.** If your mandate covers `filters` and the agent needs `fluids`, the correct move is `amend_mandate`. An unsigned draft is edited in place; a **signed mandate is immutable**, so an amendment becomes a *replacement draft* carrying everything forward plus the change. You sign it **once**, and that same signature retires the old mandate at that exact moment. You are never left holding two live mandates for the same job, and never left with a gap where neither is valid.
 
-If your mandate covers `tires` and the agent needs `accessories`, the correct move is **`amend_mandate`** — never "revoke and make a new one".
-
-- An **unsigned draft** is edited in place.
-- A **signed mandate is immutable**, so an amendment becomes a *replacement draft* carrying everything forward plus the change. You sign it **once**, and that same signature retires the old mandate at that exact moment.
-
-**You are never left holding two live mandates for the same job, and never left with a gap where neither is valid.**
-
----
-
-## Step 10 · Stop it 🛑
+### 🛑 Stopping
 
 Three ways, all immediate:
 
 | Where | How |
 |---|---|
 | 💬 **Tell your agent** | "Stop buying." It calls `revoke_mandate` right away. |
-| 📱 **Your phone** | Open `/m`, tap the mandate, hit the kill switch. |
+| 📱 **Your phone** | `/m` → the mandate → kill switch. |
 | 💻 **Desktop** | `/dashboard` → the mandate → revoke. |
 
 **Revocation is final and it wins races.** A checkout already in flight does one last live registry check before settlement. If your revocation committed first, that checkout is refused with `MANDATE_REVOKED` and no token is minted — *even though the purchase started before you hit the button.*
@@ -484,8 +417,7 @@ That works because checkout settlement and revocation take the **same per-mandat
 | **`/privacy`** · **`/terms`** | Privacy Policy and Terms of Service |
 | **`/docs`** | Merchant documentation: put AgentPay in your own store |
 | **`/developers`** | Merchant console: create merchants, hosted test stores, products, API keys |
-| **`/developers/merchants/new`** | 🏪 Create a hosted test store to try the whole flow end to end |
-| **`/stores/:id`** | A hosted test storefront. Shareable by exact URL, never publicly listed |
+| **`/stores/:id`** | A hosted test storefront, for merchants integrating the SDK. Shareable by exact URL, never publicly listed |
 
 Every screen is responsive and works from a phone. `/m` is a deliberately narrower surface for the one thing you do under time pressure — signing and stopping.
 
@@ -495,20 +427,18 @@ Every screen is responsive and works from a phone. `/m` is a deliberately narrow
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| **No confirmation email** | It is in spam. It is always in spam. | Open the spam folder, search `fwdco.space`, mark **Not spam**. See Step 1. |
-| **"Check your email to confirm"** loops | Not confirmed yet | Confirm from the spam folder first, *then* sign in. |
-| **Email never arrives, even in spam** | 30-emails-per-hour project limit, or a strict corporate filter | Wait an hour, or use a personal Gmail. |
+| **No confirmation email** | It is in spam. It is always in spam. | Open the spam folder, search `fwdco.space`, mark **Not spam**. Nothing works until you confirm. |
+| **Email never arrives, even in spam** | 30-emails-per-hour project cap, or a strict corporate filter | Wait an hour, or use a personal Gmail. |
 | **Create passkey button is greyed out** | Embedded browser, or no screen lock | Open `https://agentpay-yuno.vercel.app` directly in Safari or Chrome. |
 | **Passkey prompt never appears** | Wrong hostname | Passkeys are bound to the exact host. Use the canonical production URL — not an IP, not a preview deployment. |
-| **Agent says it cannot sign in** | Popup blocked | Allow popups for your assistant, or copy the OAuth URL into a normal tab. |
-| **Agent says "identity verification required"** | Didit not approved, or entity flagged/blocked | Go to `/account` and finish or re-run verification. |
-| **Agent says "no payment method"** | No card saved | `/account` → Add payment method, or let the agent send you the setup link. |
+| **Agent cannot sign in** | Popup blocked | Allow popups for your assistant, or copy the OAuth URL into a normal tab. |
+| **"Identity verification required"** | Didit not approved, or entity flagged/blocked | Go to `/account` and finish or re-run verification. |
+| **"No payment method"** | No card saved | Open the setup link the agent gives you, or add one at `/account`. |
+| **Agent says it can't find the store** | It was not given a URL | AgentPay is not a directory. Paste `https://partsroute.vercel.app` into your prompt. |
 | **Mandate stuck on "draft"** | You have not signed it | Open the `authorization_url`. A draft is a normal state, not an error. |
-| **Agent created a second mandate** | It ignored the draft | Decline the duplicate. Only one draft should exist per request. |
-| **Purchase refused: category not in scope** | Mandate is narrower than the product | Ask the agent to **amend** — not revoke. |
+| **Agent created a second mandate** | It ignored the existing draft | Decline the duplicate. Only one draft should exist per request. |
+| **Refused: category not in scope** | Mandate is narrower than the product | Ask the agent to **amend** — not revoke. |
 | **Purchase escalated** | Over the per-purchase limit | Approve that single purchase with your passkey. Your limits stay as you set them. |
-
----
 
 # Part 2 — Under the hood
 
@@ -594,6 +524,13 @@ A live store integrates three routes:
 3. **A verified checkout endpoint**
 
 The catalog is optional: every manifest field added in SDK 0.2.0 is optional, so a store still on 0.1.0 is discovered fine.
+
+**PartsRoute is the reference integration.** It lives in its own repository ([`pedroschott/autoparts`](https://github.com/pedroschott/autoparts)) on its own domain, vendors the SDK tarball under `vendor/`, and serves all three routes itself. If you want to see exactly what a real store has to publish, read its live documents:
+
+```bash
+curl https://partsroute.vercel.app/.well-known/agentpay.json
+curl 'https://partsroute.vercel.app/api/agentpay/catalog?category=brakes'
+```
 
 ```bash
 npm run sdk:install -- ../my-store   # build, pack, vendor and install in one step
