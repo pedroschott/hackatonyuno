@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Smartphone, Plug } from "lucide-react";
+import { Copy, Check, Plug } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/AppShell";
-import { Button, Card, CardHeader, Modal } from "@/components/ui";
-import { Qr } from "@/components/Qr";
+import { Button, Modal } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 type App = {
@@ -21,7 +20,7 @@ const APPS: App[] = [
   {
     key: "claude",
     name: "Claude",
-    logo: "https://api.iconify.design/logos:anthropic-icon.svg",
+    logo: "https://api.iconify.design/logos:claude-icon.svg",
     logoAlt: "Claude",
     tile: "bg-[#f4eee8]",
     steps: [
@@ -35,7 +34,7 @@ const APPS: App[] = [
     name: "ChatGPT",
     logo: "https://api.iconify.design/logos:openai-icon.svg",
     logoAlt: "ChatGPT",
-    tile: "bg-[#111111]",
+    tile: "bg-white",
     steps: [
       "Open ChatGPT and go to Settings, then Connectors.",
       "Choose to add a connector and paste the link below.",
@@ -57,7 +56,7 @@ const APPS: App[] = [
   {
     key: "gemini",
     name: "Gemini",
-    logo: "https://api.iconify.design/logos:google-gemini.svg",
+    logo: "https://api.iconify.design/selfhst:google-gemini.svg",
     logoAlt: "Gemini",
     tile: "bg-white",
     steps: [
@@ -109,28 +108,6 @@ export default function AgentsPage() {
             <span className="text-[13.5px] font-medium">{app.name}</span>
           </button>
         ))}
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader title="What a connected agent can never do" />
-          <ul className="space-y-2 px-5 py-4 text-[13.5px] text-ink-2">
-            <li>See your card number — a store only ever receives a single-use token.</li>
-            <li>Sign its own mandate, or raise the limits on one.</li>
-            <li>Transact outside the scope, limits or expiry you signed.</li>
-            <li>Transact after you revoke, including a checkout already in flight.</li>
-          </ul>
-        </Card>
-
-        <Card>
-          <CardHeader title="Sign from your phone" description="Scan once to keep mandate signatures and revocation in your pocket." />
-          <div className="flex flex-col items-center gap-2 px-5 py-4">
-            <Qr value={`${base}/m`} size={140} />
-            <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted">
-              <Smartphone className="size-3.5" /> Point your camera at the code
-            </span>
-          </div>
-        </Card>
       </div>
 
       <Modal open={selected !== null} onClose={() => setSelected(null)} title={selected ? `Connect ${selected.name}` : ""} width="max-w-[460px]">
