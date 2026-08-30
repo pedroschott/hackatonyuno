@@ -151,7 +151,7 @@ POST|/api/agentpay/checkout|Ux1n...|2026-08-29T12:00:00.000Z|0f2a4c6e-8b1d-4f3a-
     "cumulative_cents": 400000,
     "max_uses": 3,
     "period": "month",
-    "currency": "BRL"
+    "currency": "USD"
   },
   "validity": { "not_before": "2026-08-01T00:00:00.000Z", "expires_at": "2026-09-01T00:00:00.000Z" },
   "payment": { "vault_card_id": "vc_1" },

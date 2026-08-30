@@ -4,6 +4,8 @@
 
 AgentPay is a functional, hackathon-ready authorization and enforcement layer for agent purchases. An agent connects through an OAuth-protected MCP server, requests a narrowly scoped mandate, and can purchase only after the user authorizes that mandate with a real passkey. Stores integrate the merchant SDK and publish their own discovery document; AgentPay never acts as a store directory.
 
+All product prices, mandate limits, attempts, and mock payment allowances use USD, stored as exact integer cents. AgentPay does not perform foreign-exchange conversion.
+
 Production: https://agentpay-yuno.vercel.app
 
 ## Working flow

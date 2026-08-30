@@ -1,9 +1,9 @@
-export function brl(cents: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+export function usd(cents: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
-export function brlCompact(cents: number) {
-  return `R$ ${(cents / 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
+export function usdCompact(cents: number) {
+  return `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
 export function timeShort(iso: string) {

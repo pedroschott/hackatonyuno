@@ -216,7 +216,7 @@ export default function Page() {
   name: string;
   category: string;
   price_cents: number;
-  currency: string;
+  currency: "USD";
 };
 
 type MerchantCheckoutResult = PolicyDecision & {

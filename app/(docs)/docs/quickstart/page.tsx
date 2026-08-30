@@ -118,7 +118,7 @@ const checkout = createAgentPayCheckoutHandler({
       name: product.name,
       category: product.category,
       price_cents: product.priceCents,
-      currency: product.currency,
+      currency: "USD",
     };
   },
 });

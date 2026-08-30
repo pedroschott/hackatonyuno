@@ -5,7 +5,7 @@ import { Check, X, PauseCircle, Loader2 } from "lucide-react";
 import type { Attempt, Product } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import { REASON_LABEL } from "@/lib/policy";
-import { brl, timeShort } from "@/lib/format";
+import { timeShort, usd } from "@/lib/format";
 import { Modal, Badge, Button } from "../ui";
 import { ChecksList } from "./ChecksList";
 import { Mark } from "../Logo";
@@ -76,7 +76,7 @@ function CheckoutBody({ product, onClose, merchantName }: { product: Product; on
                 {product.sku} · <span className="capitalize">{product.category}</span>
               </div>
             </div>
-            <div className="text-[15px] font-semibold tabular">{brl(product.priceCents)}</div>
+            <div className="text-[15px] font-semibold tabular">{usd(product.priceCents)}</div>
           </div>
 
           {/* Buyer */}
@@ -116,7 +116,7 @@ function CheckoutBody({ product, onClose, merchantName }: { product: Product; on
                   <div className="text-[13px] text-success-ink">
                     <div className="font-semibold">Order accepted</div>
                     <div className="mt-0.5">
-                      Charged {brl(final.amount_cents)} to •••• {card?.last4 ?? "????"} with a single-use token. The card
+                      Charged {usd(final.amount_cents)} to •••• {card?.last4 ?? "????"} with a single-use token. The card
                       number never reached the store.
                     </div>
                     {final.exception_id && (

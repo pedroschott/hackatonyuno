@@ -87,7 +87,7 @@ begin
     ) values (
       p_sample_product_id, p_merchant_id, 'Sample product',
       'A test product for the first AgentPay integration run.', lower(p_category),
-      'SAMPLE-001', 4900, 'BRL'
+      'SAMPLE-001', 4900, 'USD'
     ) returning * into v_product;
   end if;
 

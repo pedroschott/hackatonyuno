@@ -43,7 +43,7 @@ describe("merchant checkout handler", () => {
         cumulative_cents: 400_000,
         max_uses: 3,
         period: "month",
-        currency: "BRL",
+        currency: "USD",
       },
       validity: {
         not_before: "2026-08-01T00:00:00.000Z",
@@ -90,7 +90,7 @@ describe("merchant checkout handler", () => {
         name: "Standard tire set",
         category: "tires",
         price_cents: 154_800,
-        currency: "BRL",
+        currency: "USD",
       }),
     });
     const body = JSON.stringify({

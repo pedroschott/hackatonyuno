@@ -14,7 +14,7 @@ const mandate: RegistryMandate = {
     cumulative_cents: 400_000,
     max_uses: 3,
     period: "month",
-    currency: "BRL",
+    currency: "USD",
   },
   validity: {
     not_before: "2026-08-01T00:00:00.000Z",
@@ -37,7 +37,7 @@ const cart: CheckoutCart = {
   product_id: "prd_standard_tires",
   category: "tires",
   amount_cents: 154_800,
-  currency: "BRL",
+  currency: "USD",
 };
 
 describe("evaluatePolicy", () => {
@@ -84,7 +84,7 @@ describe("evaluatePolicy", () => {
 
   it("never compares amounts across currencies", () => {
     expect(
-      evaluatePolicy(mandate, { ...cart, currency: "USD" }, new Date("2026-08-29T12:00:00Z")),
+      evaluatePolicy(mandate, { ...cart, currency: "EUR" }, new Date("2026-08-29T12:00:00Z")),
     ).toEqual({ decision: "refused", reason_code: "CURRENCY_MISMATCH" });
   });
 });

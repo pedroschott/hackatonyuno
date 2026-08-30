@@ -5,7 +5,7 @@ import { Smartphone } from "lucide-react";
 import type { Mandate } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import { mandateHash } from "@/lib/seed";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { endsIn, itemKinds, storeNames } from "@/lib/plain";
 import { Button, Card, Modal } from "../ui";
 import { Qr } from "../Qr";
@@ -48,8 +48,8 @@ export function RequestCard({ mandate }: { mandate: Mandate }) {
         )}
 
         <dl className="mt-4 divide-y divide-line-2 rounded-md bg-canvas px-3">
-          <Row k="Per purchase" v={`Up to ${brl(mandate.limits.per_purchase_cents)}`} />
-          <Row k="This month" v={`${brl(mandate.limits.cumulative_cents)}, ${mandate.limits.max_uses} purchases`} />
+          <Row k="Per purchase" v={`Up to ${usd(mandate.limits.per_purchase_cents)}`} />
+          <Row k="This month" v={`${usd(mandate.limits.cumulative_cents)}, ${mandate.limits.max_uses} purchases`} />
           <Row k="Scope" v={where} />
           <Row k="Expires" v={endsIn(mandate.validity.expires_at)} />
           {card && (
@@ -102,8 +102,8 @@ export function RequestCard({ mandate }: { mandate: Mandate }) {
         successTitle="Mandate active"
         successBody={`${name} can now transact within these limits, and only these.`}
         facts={[
-          { label: "Per purchase", value: brl(mandate.limits.per_purchase_cents) },
-          { label: "This month", value: brl(mandate.limits.cumulative_cents) },
+          { label: "Per purchase", value: usd(mandate.limits.per_purchase_cents) },
+          { label: "This month", value: usd(mandate.limits.cumulative_cents) },
           { label: "Purchases", value: mandate.limits.max_uses },
           { label: "Expires", value: endsIn(mandate.validity.expires_at) },
         ]}

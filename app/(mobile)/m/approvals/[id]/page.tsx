@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { storeName } from "@/lib/plain";
 import { Badge, Button } from "@/components/ui";
 import { PasskeyCeremony } from "@/components/PasskeyCeremony";
@@ -54,11 +54,11 @@ export default function ApprovalSheet() {
         </div>
         <p className="mt-3 text-[14px] leading-snug text-ink-2">
           {name} tried to buy <b className="text-ink">{approval.product_name}</b> at {store} for{" "}
-          <b className="text-ink tabular">{brl(approval.amount_cents)}</b>.
+          <b className="text-ink tabular">{usd(approval.amount_cents)}</b>.
           {over > 0 && mandate && (
             <>
               {" "}
-              That is {brl(over)} over the {brl(mandate.limits.per_purchase_cents)} per-purchase limit on its mandate, so
+              That is {usd(over)} over the {usd(mandate.limits.per_purchase_cents)} per-purchase limit on its mandate, so
               it was held instead of charged.
             </>
           )}
@@ -69,8 +69,8 @@ export default function ApprovalSheet() {
         rows={[
           { k: "Item", v: approval.product_name },
           { k: "Store", v: store },
-          { k: "Amount", v: brl(approval.amount_cents) },
-          { k: "Mandate limit", v: mandate ? brl(mandate.limits.per_purchase_cents) : "—" },
+          { k: "Amount", v: usd(approval.amount_cents) },
+          { k: "Mandate limit", v: mandate ? usd(mandate.limits.per_purchase_cents) : "—" },
         ]}
       />
 
@@ -118,8 +118,8 @@ export default function ApprovalSheet() {
         facts={[
           { label: "Item", value: approval.product_name },
           { label: "Store", value: store },
-          { label: "Amount", value: brl(approval.amount_cents) },
-          { label: "Mandate limit", value: mandate ? brl(mandate.limits.per_purchase_cents) : "—" },
+          { label: "Amount", value: usd(approval.amount_cents) },
+          { label: "Mandate limit", value: mandate ? usd(mandate.limits.per_purchase_cents) : "—" },
           { label: "Covers", value: "This purchase only" },
         ]}
         onComplete={async (pk) => {

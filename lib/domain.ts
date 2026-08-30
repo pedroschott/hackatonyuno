@@ -10,7 +10,7 @@ export type MandateLimits = {
   cumulative_cents: number;
   max_uses: number;
   period: "month";
-  currency: string;
+  currency: "USD";
 };
 
 export type MandateValidity = {

@@ -7,7 +7,7 @@ import { ShieldOff } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { effectiveStatus } from "@/lib/engine";
 import { mandateHash } from "@/lib/seed";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { endsIn, itemKinds, mandateRef, storeNames } from "@/lib/plain";
 import { Badge, Button } from "@/components/ui";
 import { PasskeyCeremony } from "@/components/PasskeyCeremony";
@@ -48,8 +48,8 @@ export default function MandateSheet() {
   const card = cards.find((c) => c.id === mandate.payment.vault_card_id);
   const name = agentLabel(mandate, agents);
   const rows = [
-    { k: "Per purchase", v: `Up to ${brl(mandate.limits.per_purchase_cents)}` },
-    { k: "This month", v: `${brl(mandate.limits.cumulative_cents)}, ${mandate.limits.max_uses} purchases` },
+    { k: "Per purchase", v: `Up to ${usd(mandate.limits.per_purchase_cents)}` },
+    { k: "This month", v: `${usd(mandate.limits.cumulative_cents)}, ${mandate.limits.max_uses} purchases` },
     ...(mandate.scope.merchants.length > 0
       ? [{ k: "Scope", v: `${itemKinds(mandate.scope.categories)} at ${storeNames(merchants, mandate.scope.merchants)}` }]
       : []),
@@ -193,8 +193,8 @@ export default function MandateSheet() {
         successTitle="Mandate active"
         successBody={`${name} can now transact within these limits, and only these.`}
         facts={[
-          { label: "Per purchase", value: brl(mandate.limits.per_purchase_cents) },
-          { label: "This month", value: brl(mandate.limits.cumulative_cents) },
+          { label: "Per purchase", value: usd(mandate.limits.per_purchase_cents) },
+          { label: "This month", value: usd(mandate.limits.cumulative_cents) },
           { label: "Purchases", value: mandate.limits.max_uses },
           { label: "Expires", value: endsIn(mandate.validity.expires_at) },
         ]}
