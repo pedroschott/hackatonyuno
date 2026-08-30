@@ -18,6 +18,7 @@ export const BLOCK_REASON: Record<ReasonCode, string> = {
   MANDATE_NOT_FOUND: "No mandate covers this purchase",
   MANDATE_REVOKED: "You revoked this mandate",
   MANDATE_EXPIRED: "The mandate had already expired",
+  PAYMENT_METHOD_UNAVAILABLE: "The mandate's selected payment method is no longer available",
   MERCHANT_NOT_IN_SCOPE: "That store is outside the mandate's scope",
   CATEGORY_NOT_IN_SCOPE: "That category is outside the mandate's scope",
   CURRENCY_MISMATCH: "Wrong currency for this mandate",
@@ -109,6 +110,7 @@ const AUDIT_SENTENCE: Record<string, string> = {
   "mandate.declined": "You declined a mandate request",
   "mandate.revoked": "You revoked a mandate",
   "mandate.limits_updated": "A mandate limit was changed",
+  "mandate.payment_method_updated": "The mandate's payment method was changed before signing",
   "attempt.approved": "A purchase was authorized",
   "attempt.refused": "A purchase was refused",
   "attempt.escalated": "A purchase was escalated for your approval",
@@ -117,6 +119,9 @@ const AUDIT_SENTENCE: Record<string, string> = {
   "approval.approved": "You approved one purchase",
   "approval.denied": "You denied one purchase",
   "vault.card_added": "A payment method was added to the vault",
+  "vault.card_defaulted": "A default payment method was selected",
+  "vault.card_removed": "A payment method was removed from the vault",
+  "account.profile_updated": "Account and delivery details were updated",
   "passkey.registered": "A passkey was registered on a device",
 };
 

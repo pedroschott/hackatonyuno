@@ -24,7 +24,43 @@ const readme = `# @agentpay/merchant-sdk
 
 Publish store-owned AgentPay discovery metadata and protect a checkout route with request, registry-signature, live-status, replay, and deterministic policy verification.
 
-See the complete integration guide at https://github.com/pedroschott/hackatonyuno/blob/main/docs/merchant-sdk.md.
+Quickstart: https://agentpay-yuno.vercel.app/docs/quickstart
+Full documentation: https://agentpay-yuno.vercel.app/docs
+Repository: https://github.com/pedroschott/hackatonyuno
+
+## Two routes
+
+\`\`\`ts
+// app/.well-known/agentpay.json/route.ts
+import { merchantManifest } from "@agentpay/merchant-sdk";
+
+export function GET(request: Request) {
+  return Response.json(
+    merchantManifest({
+      origin: request.url,
+      merchantId: process.env.AGENTPAY_MERCHANT_ID,
+      merchantName: "Demo Store",
+      checkoutPath: "/api/agentpay/checkout",
+      registryUrl: process.env.AGENTPAY_REGISTRY_URL,
+    }),
+  );
+}
+
+// app/api/agentpay/checkout/route.ts
+import { createAgentPayCheckoutHandler } from "@agentpay/merchant-sdk";
+
+const checkout = createAgentPayCheckoutHandler({
+  merchantId: process.env.AGENTPAY_MERCHANT_ID,
+  registryUrl: process.env.AGENTPAY_REGISTRY_URL,
+  resolveProduct: async (productId) => database.products.find(productId),
+});
+
+export async function POST(request: Request) {
+  return checkout(request);
+}
+\`\`\`
+
+Charge only when the decision is \`approved\`.
 `;
 
 await Promise.all([

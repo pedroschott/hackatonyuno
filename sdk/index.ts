@@ -14,6 +14,28 @@ import type {
 } from "@/lib/domain";
 import { evaluatePolicy } from "@/lib/agentpay-policy";
 
+/**
+ * Re-exported so a merchant can build fixtures and sign test requests without
+ * depending on AgentPay internals. Everything here is generic Ed25519 and
+ * canonical-JSON plumbing; none of it holds a secret.
+ */
+export {
+  agentSigningMessage,
+  generateEd25519KeyPair,
+  signCanonical,
+  signText,
+  verifyText,
+} from "@/lib/crypto";
+export { canonicalJson } from "@/lib/canonical-json";
+export type {
+  AgentPayMerchantManifest,
+  CheckoutCart,
+  MandateStatus,
+  PolicyDecision,
+  PolicyReason,
+  RegistryMandate,
+} from "@/lib/domain";
+
 const manifestSchema = z.object({
   protocol: z.literal("agentpay/1.0"),
   merchant: z.object({ id: z.string().min(1), name: z.string().min(1) }),

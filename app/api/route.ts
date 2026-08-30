@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     version: "0.1.0",
     description:
       "OAuth-protected mandate and payment enforcement for autonomous agents.",
+    documentation: `${base}/docs`,
     mcp_endpoint: `${base}/mcp`,
     oauth_protected_resource: `${base}/.well-known/oauth-protected-resource`,
     merchant_discovery:

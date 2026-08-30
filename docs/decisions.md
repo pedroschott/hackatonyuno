@@ -32,7 +32,17 @@ No real processor is needed for the challenge. Successful checkout returns a moc
 
 ## Payment setup stays outside the agent conversation
 
-The MCP tool accepts no card fields. It returns a 15-minute, signed, user-bound link to AgentPay's authenticated browser UI, where the challenge flow records only brand, last four digits, an optional label, and an encrypted opaque mock-vault reference. The agent receives only safe display metadata and must tell the user never to share a full card number, CVC, PIN, bank password, or vault credential in chat. Saving a payment method grants no purchase authority; a separate passkey-approved mandate is still required.
+The MCP payment-setup tool accepts no card fields. It returns a 15-minute, signed, user-bound link to AgentPay's authenticated browser UI, where the challenge flow records only brand, last four digits, an optional label, and an encrypted opaque mock-vault reference. The agent receives only safe display metadata and must tell the user never to share a full card number, CVC, PIN, bank password, or vault credential in chat. Saving a payment method grants no purchase authority; a separate passkey-approved mandate is still required.
+
+## The card choice is signed into each mandate
+
+An account has exactly one default card whenever at least one saved card exists. MCP and REST mandate creation use that default when no explicit card ID is supplied, but the owner can switch a draft through the card picker before passkey signing. Once signed, the payment choice is immutable with the rest of the mandate. Changing the account default therefore affects only future drafts; it can never silently reroute an active mandate.
+
+Checkout validates that the signed card still belongs to the mandate owner, binds its safe ID into the mock token and audit record, and fails closed with `PAYMENT_METHOD_UNAVAILABLE` otherwise. Card removal is refused while a draft or active mandate references it, while historical usage remains visible through the mandate and attempt records.
+
+## Order metadata is private account data, not registry data
+
+Legal name, tax ID, phone and delivery address live in a dedicated user-owned table with RLS and explicit authenticated grants. The authenticated MCP account view may use these fields for a user-requested order, with an instruction to disclose only what that merchant needs. The public merchant registry and payment tokens never include this profile.
 
 ## Exact-ID public registry functions are intentional
 
@@ -40,7 +50,7 @@ Merchant checkout must retrieve a signed agent key and mandate without a user se
 
 ## The full app is responsive; `/m` stays a separate surface
 
-The console at `/dashboard`, `/activity`, `/audit` and `/connect` is fully responsive: a single centred column with a tab bar that scrolls horizontally on small screens. Judges can therefore drive the entire demo from a phone without a second implementation.
+The console at `/dashboard`, `/activity`, `/audit`, `/connect` and `/account` is fully responsive: a single centred column with a tab bar that scrolls horizontally on small screens. Judges can therefore drive the entire demo from a phone without a second implementation.
 
 `/m` is kept anyway because it answers a different question. The console is the owner's full control surface; `/m` is the approval inbox someone opens from a QR code on another device to approve a mandate or exception with a passkey and turn spending off in one tap. Collapsing the two would either bloat the phone approval flow or strip the console.
 
@@ -59,3 +69,17 @@ The screens therefore name the object again and explain it once: "Active mandate
 ## No seeded account data
 
 The build shipped with a fictional agent, card, company and pre-authorized mandate so the dashboard looked populated before sign-in. A judge could not tell demo scaffolding from real state, which is the worst property a payments console can have. Agents, cards, mandates, purchases and the audit chain now come only from Supabase for the signed-in user; an empty account renders an empty account. The demo merchant catalogue in `lib/seed.ts` stays, because a store that a real agent buys from has to exist and it is explicitly a merchant fixture, not account data.
+
+## The merchant documentation ships inside the application
+
+A store integrator needs one URL, not a repository tour. `/docs` is a documentation site built from the app's own design system in `app/(docs)/docs/**`, deployed with the code it describes, so a change to `sdk/index.ts` and a change to its documentation land in the same commit and the same deployment. A separate documentation repository or hosted service would have drifted within a day of a hackathon.
+
+`components/docs/nav.ts` is the single source of truth for the sidebar, the client-side search index, page titles and descriptions, previous/next links and `sitemap.xml`. That removes the usual failure mode where a page exists but is unreachable, or is listed twice with two different titles.
+
+There is no MDX pipeline and no syntax-highlighting dependency: pages are TSX using a small prose kit, and the highlighter is a forty-line tokenizer. Content and structure are typechecked with the rest of the app, and the docs add no build step and no runtime dependency.
+
+## The SDK exports its own test helpers
+
+A merchant cannot rehearse an approved purchase without a signed mandate, and could not produce one without canonical JSON and Ed25519 signing. Rather than leave integrators to reverse-engineer both, `@agentpay/merchant-sdk` re-exports `canonicalJson`, `signText`, `signCanonical`, `verifyText`, `generateEd25519KeyPair` and `agentSigningMessage`, plus the registry types. They are generic primitives holding no secret, and they turn "test your integration" from a paragraph of theory into a file a merchant can run offline against a stubbed registry.
+
+`npm run sdk:install -- ../my-store` exists for the same reason: it builds, packs, vendors and installs the package in one step, so the first documented instruction a merchant follows is one command rather than five.

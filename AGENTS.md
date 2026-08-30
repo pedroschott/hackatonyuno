@@ -20,8 +20,49 @@ These instructions apply to every contributor and coding agent working in this r
 
 - Keep application code in `src/`, static files in `assets/`, project notes in `docs/`, and tests in `tests/`.
 - Prefer simple, understandable solutions suitable for a hackathon. Avoid unnecessary abstractions and dependencies.
-- Update documentation when changes affect setup, architecture, environment variables, or user behavior.
+- Update documentation in the same change. See [Documentation](#documentation) for what to update when.
 - Never commit secrets. Document required environment variables with placeholder values in `.env.example`.
+
+## Documentation
+
+Documentation is part of the change, never a follow-up. **Always update the docs in the same branch and pull request as the code.** A change that alters behaviour and leaves documentation describing the old behaviour is incomplete, and reviewers should treat it as unfinished work.
+
+### Where documentation lives
+
+| Surface | Path | Audience |
+|---|---|---|
+| Merchant documentation site | `app/(docs)/docs/**` served at `/docs` | Developers integrating the SDK into a store |
+| Documentation UI kit and navigation | `components/docs/**` | Anyone adding or reordering a docs page |
+| Merchant SDK summary | `docs/merchant-sdk.md` | Readers browsing the repository on GitHub |
+| Architecture | `docs/architecture.md` | Judges and contributors |
+| Decision log | `docs/decisions.md` | Judges and contributors |
+| Route and endpoint inventory | `docs/routes.md` | Contributors and integrators |
+| Repository overview and run instructions | `README.md` | Everyone |
+| Agent-readable summary | `public/llms.txt` | Agents and crawlers |
+
+The docs site ships inside the application so it deploys with the code it describes and cannot drift into a separate repository. `components/docs/nav.ts` is the single source of truth for the sidebar, the search index, page titles and descriptions, `sitemap.xml` entries and previous/next links: adding a page means adding one entry there and one `page.tsx`.
+
+### What to update when
+
+| If you change | Also update |
+|---|---|
+| `sdk/index.ts` exports, options, verification steps or response shape | `/docs/reference`, `/docs/checkout`, `docs/merchant-sdk.md` |
+| Policy rules or reason codes in `lib/agentpay-policy.ts` or `lib/domain.ts` | `/docs/reference/decisions`, the refusal matrix in `/docs/testing` |
+| The signed request format, headers, canonical JSON or registry endpoints | `/docs/reference/protocol`, `docs/architecture.md` |
+| Packaging, `scripts/install-sdk.mjs` or the install flow | `/docs/installation`, `/docs/quickstart`, `README.md` |
+| Any route added, removed or renamed | `docs/routes.md`, `app/sitemap.ts`, `app/robots.ts`, `public/llms.txt` |
+| Environment variables | `.env.example`, `README.md`, `/docs/installation` |
+| MCP tools or the agent connection flow | `README.md`, `public/llms.txt`, `docs/routes.md` |
+| A trade-off, rejected alternative or deliberate limitation | `docs/decisions.md` |
+| Anything a judge sees, runs or clicks | `README.md` |
+
+### Rules for documentation changes
+
+- Run every command and code sample you publish. A sample that has not been executed is a claim, not documentation.
+- Document what works today. Never describe planned behaviour as if it were shipped; state the limitation instead, as the mocked payment rail is stated.
+- Keep the vocabulary the product uses. The UI says "mandate"; the docs say "mandate". Do not invent a second name for the same object.
+- Prefer deleting a stale paragraph over leaving it. Wrong documentation costs more than missing documentation.
+- Name the verification in the pull request: what changed, how it was verified, and which documents were updated.
 
 ## Hackathon judging context
 
@@ -53,7 +94,8 @@ These instructions apply to every contributor and coding agent working in this r
 - Coordinate through focused branches and pull requests to avoid overlapping or conflicting changes.
 - Preserve work from other contributors and agents. Never overwrite or revert unrelated changes.
 - Keep the repository organized and leave concise documentation for decisions that affect other work.
-- In every pull request, explain what changed, how it was verified, and any remaining follow-up work.
+- In every pull request, explain what changed, how it was verified, which documentation you updated, and any remaining follow-up work.
+- Treat a pull request without its documentation update as unfinished, in the same way as one without tests.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

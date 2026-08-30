@@ -8,9 +8,9 @@ Production: https://agentpay-yuno.vercel.app
 
 1. The user connects `https://agentpay-yuno.vercel.app/mcp` to an MCP client.
 2. Supabase OAuth opens AgentPay for sign-in, account creation and consent.
-3. The user registers one passkey and saves one or more cards. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
-4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The web app has no form for this: a mandate only ever exists because an agent asked for one.
-5. The user opens the approval link and authorizes the mandate with their passkey.
+3. The user registers one passkey, saves one or more cards, chooses a default, and completes the compliance and delivery profile. Raw card numbers are never stored; this challenge build uses encrypted mock-vault references and non-sensitive display metadata.
+4. The agent finds a product through normal search, reads the store's `/.well-known/agentpay.json`, and requests a mandate matching the user's instructions. The default card is used unless the agent selects another saved card. The web app has no form for this: a mandate only ever exists because an agent asked for one.
+5. The user opens the approval link, may switch the draft to another saved card, and authorizes that exact mandate and card choice with their passkey.
 6. The store SDK verifies the signed agent request, mandate signature, live registry status, nonce and policy before returning a mock single-use payment token.
 7. The user or agent can revoke the mandate immediately. A checkout still in progress performs a final live registry check before settlement and is refused if revocation committed first; every later checkout is refused too.
 
@@ -51,7 +51,9 @@ The delay is only a test affordance. The security boundary is the final Supabase
 | `/dashboard` | Summary: what was charged this month, which mandates are active, what is waiting for your signature |
 | `/activity` | Every purchase attempt and the mandate decision made on it |
 | `/connect` | See connected assistants and connect another with one link |
+| `/account` | Compliance, delivery address, saved cards, card usage and default-card controls |
 | `/m` | Phone-first signing inbox and revocation switch, opened by QR from the desktop app |
+| `/docs` | Merchant documentation: install and set up the SDK in a new store |
 | `/store` | Merchant demo with AgentPay checkout verification |
 | `/audit` | Security log: hash-chained record of every decision |
 | `/mcp` | OAuth-protected Streamable HTTP MCP server |
@@ -62,7 +64,7 @@ Every route above is responsive and usable from a phone. `/m` is a separate, del
 
 - `get_account`
 - `get_payment_setup_link` — returns a 15-minute, user-bound AgentPay browser link and accepts no card data
-- `create_mandate`
+- `create_mandate` — uses the account default unless `vault_card_id` selects another owned card
 - `get_mandate`
 - `purchase`
 - `revoke_mandate`
@@ -71,17 +73,37 @@ The protected-resource metadata is at `/.well-known/oauth-protected-resource/mcp
 
 ## Merchant SDK
 
-Build or pack `@agentpay/merchant-sdk` locally:
+A store integrates AgentPay with two routes: a discovery manifest and a verified checkout endpoint. Install the SDK into a merchant project with one command:
+
+```bash
+npm run sdk:install -- ../my-store
+```
+
+It builds `@agentpay/merchant-sdk`, packs it, copies the tarball into `my-store/vendor/` and installs it there, so the dependency is a relative path the store can commit. To build or pack without installing:
 
 ```bash
 npm run sdk:build
 npm run sdk:pack
 ```
 
-See [docs/merchant-sdk.md](docs/merchant-sdk.md) for store integration.
+The complete integration guide is the documentation site at [`/docs`](https://agentpay-yuno.vercel.app/docs) — quickstart, installation, discovery, checkout, framework recipes, testing, the SDK and protocol reference, and troubleshooting. [docs/merchant-sdk.md](docs/merchant-sdk.md) is the short version for readers browsing this repository.
 
-Architecture and the hackathon tradeoffs are documented in [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md).
-The complete web, MCP, API and V2-service map is in [docs/routes.md](docs/routes.md). Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml`; protocol and authenticated paths are excluded through `/robots.txt`.
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [`/docs`](https://agentpay-yuno.vercel.app/docs) (`app/(docs)/docs/**`) | Merchant-facing guide to installing and setting up the SDK in a new store |
+| [docs/merchant-sdk.md](docs/merchant-sdk.md) | Repository-side summary of the same integration |
+| [docs/architecture.md](docs/architecture.md) | System diagram, trust boundaries and the enforcement path |
+| [docs/decisions.md](docs/decisions.md) | Decision log: trade-offs, rejected alternatives and deliberate limits |
+| [docs/routes.md](docs/routes.md) | Every web, MCP, API and V2-service endpoint |
+| [public/llms.txt](public/llms.txt) | Agent-readable summary of the public surfaces |
+
+The docs site is part of the application, so it deploys with the code it documents. `components/docs/nav.ts` is the single source of truth for the sidebar, search index, page metadata and sitemap entries; a new page is one entry there plus one `page.tsx`.
+
+**Documentation is updated in the same pull request as the code it describes.** `AGENTS.md` carries the table of what to update when, and a pull request that changes behaviour without updating documentation is treated as unfinished.
+
+Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml` — the documentation site included; protocol and authenticated paths are excluded through `/robots.txt`.
 
 ## Supabase
 

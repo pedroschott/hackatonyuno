@@ -5,6 +5,8 @@ export type VaultCard = {
   brand: "mastercard" | "visa";
   last4: string; // NEVER more than last4, not even mocked
   label?: string;
+  isDefault: boolean;
+  createdAt: string;
 };
 
 export type Agent = {
@@ -77,6 +79,7 @@ export type ReasonCode =
   | "MANDATE_NOT_FOUND"
   | "MANDATE_REVOKED"
   | "MANDATE_EXPIRED"
+  | "PAYMENT_METHOD_UNAVAILABLE"
   | "MERCHANT_NOT_IN_SCOPE"
   | "CATEGORY_NOT_IN_SCOPE"
   | "CURRENCY_MISMATCH"
@@ -97,6 +100,7 @@ export type Decision = "approved" | "refused" | "escalated";
 
 export type PaymentToken = {
   token: string;
+  payment_method_id?: string;
   allowance: {
     reason: "one_time";
     max_amount_cents: number;
