@@ -50,7 +50,7 @@ The delay is only a test affordance. The security boundary is the final Supabase
 |---|---|
 | `/dashboard` | Summary: what was charged this month, which mandates are active, what is waiting for your signature |
 | `/activity` | Every purchase attempt and the mandate decision made on it |
-| `/connect` | Connect an agent: one button per assistant, one link to paste |
+| `/connect` | See connected assistants and connect another with one link |
 | `/account` | Compliance, delivery address, saved cards, card usage and default-card controls |
 | `/m` | Phone-first signing inbox and revocation switch, opened by QR from the desktop app |
 | `/docs` | Merchant documentation: install and set up the SDK in a new store |
