@@ -1,5 +1,6 @@
-import { BookOpen, Boxes, Building2, PlugZap, Rocket, ShieldCheck, Sparkles, TerminalSquare } from "lucide-react";
+import { BookOpen, Boxes, Building2, PlugZap, Rocket, ShieldCheck, TerminalSquare } from "lucide-react";
 
+import { CopyButton } from "@/components/docs/CopyButton";
 import { DocPage, docMetadata } from "@/components/docs/DocPage";
 import { A, C, Callout, Cards, CodeBlock, LI, Lead, LinkCard, List, P, Steps, Step } from "@/components/docs/prose";
 
@@ -82,26 +83,19 @@ export default function Page() {
           id: "agent-setup-prompt",
           title: "Set up AgentPay with your coding agent",
           body: (
-            <div className="my-5 overflow-hidden rounded-2xl border-2 border-brand/35 bg-gradient-to-br from-brand-soft via-surface to-success-soft/50 p-4 shadow-[var(--shadow-pop)] sm:p-5">
-              <div className="flex items-start gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-sm">
-                  <Sparkles className="size-4" aria-hidden />
-                </span>
-                <div>
-                  <h3 className="text-[16px] font-semibold text-ink">Copy one prompt. Let your agent wire the rest.</h3>
-                  <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-2">
-                    Paste this into Codex, Claude Code, Cursor, or another coding agent from your store&apos;s project.
-                    It tells the agent what to inspect, implement, test, and document without trusting agent-supplied
-                    prices or inventing credentials.
-                  </p>
-                </div>
+            <div className="my-5 rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
+              <h3 className="text-[16px] font-semibold text-ink">Copy the AgentPay setup prompt</h3>
+              <p className="mt-1 text-[13.5px] leading-[1.65] text-ink-2">
+                Paste it into your coding agent from your store&apos;s project. It covers installation, checkout safety,
+                tests, and documentation.
+              </p>
+              <div className="mt-4">
+                <CopyButton
+                  value={AGENT_SETUP_PROMPT}
+                  label="Copy agent prompt"
+                  className="bg-brand text-white hover:bg-brand-ink focus-visible:ring-brand/40"
+                />
               </div>
-              <CodeBlock
-                lang="text"
-                filename="AgentPay integration prompt — copy all"
-                code={AGENT_SETUP_PROMPT}
-                className="mb-0 mt-4 ring-1 ring-black/5"
-              />
               <p className="mt-3 text-[12.5px] leading-5 text-muted">
                 You will still need an assigned merchant ID from <A href="/developers">AgentPay Developers</A>. The
                 prompt deliberately asks the agent to leave a placeholder rather than fabricate one.
