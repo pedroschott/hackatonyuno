@@ -56,17 +56,17 @@ export async function POST(req: Request) {
     const perPurchaseCents =
       typeof rawLimits.per_purchase_cents === "number"
         ? Math.round(rawLimits.per_purchase_cents)
-        : Math.round(Number(rawLimits.per_purchase_brl ?? 0) * 100);
+        : Math.round(Number(rawLimits.per_purchase_usd ?? 0) * 100);
     const cumulativeCents =
       typeof rawLimits.cumulative_cents === "number"
         ? Math.round(rawLimits.cumulative_cents)
-        : Math.round(Number(rawLimits.cumulative_brl ?? 0) * 100);
+        : Math.round(Number(rawLimits.cumulative_usd ?? 0) * 100);
     const limits: MandateLimits = {
       per_purchase_cents: perPurchaseCents,
       cumulative_cents: cumulativeCents,
       max_uses: Math.round(Number(rawLimits.max_uses ?? 1)),
       period: "month",
-      currency: "BRL",
+      currency: "USD",
     };
     const validity: MandateValidity = {
       not_before:

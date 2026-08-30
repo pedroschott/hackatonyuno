@@ -27,7 +27,7 @@ export async function GET(request: Request, context: RouteContext<"/api/stores/[
       checkoutPath: `${storePath}/checkout`,
       catalogPath: `${storePath}/catalog`,
       categories: (products.data ?? []).map((product) => product.category),
-      currency: "BRL",
+      currency: "USD",
       documentationUrl: `${origin}/docs/agents`,
       registryUrl: origin,
     }),

@@ -39,12 +39,12 @@ describe("merchant discovery", () => {
       registryUrl: "https://agentpay.example",
       catalogPath: "/api/agentpay/catalog",
       categories: ["Tires", "accessories", "tires"],
-      currency: "brl",
+      currency: "usd",
       productUrlTemplate: "/product/{id}",
     });
     expect(manifest.catalog_endpoint).toBe("https://autoparts.example/api/agentpay/catalog");
     expect(manifest.categories).toEqual(["accessories", "tires"]);
-    expect(manifest.currency).toBe("BRL");
+    expect(manifest.currency).toBe("USD");
     expect(manifest.product_url_template).toBe("https://autoparts.example/product/{id}");
     expect(manifest.capabilities).toContain("catalog-search");
   });
@@ -66,10 +66,10 @@ describe("merchant discovery", () => {
 });
 
 const PRODUCTS: AgentPayCatalogProduct[] = [
-  { product_id: "prd_tire_std", name: "Standard tire set", description: "4× 205/55 R16 all-season", category: "tires", price_cents: 154_800, currency: "BRL", sku: "TR-205-STD-4" },
-  { product_id: "prd_tire_prm", name: "Premium tire set", description: "4× 205/55 R16 performance", category: "tires", price_cents: 172_000, currency: "BRL", sku: "TR-205-PRM-4" },
-  { product_id: "prd_acc_jack", name: "Hydraulic jack 2t", description: "Low-profile trolley jack", category: "accessories", price_cents: 38_900, currency: "BRL", sku: "AC-JACK-2T", availability: "out_of_stock" },
-  { product_id: "prd_acc_mats", name: "All-weather floor mats", description: "Set of 4", category: "accessories", price_cents: 12_900, currency: "BRL", sku: "AC-MATS-4" },
+  { product_id: "prd_tire_std", name: "Standard tire set", description: "4× 205/55 R16 all-season", category: "tires", price_cents: 154_800, currency: "USD", sku: "TR-205-STD-4" },
+  { product_id: "prd_tire_prm", name: "Premium tire set", description: "4× 205/55 R16 performance", category: "tires", price_cents: 172_000, currency: "USD", sku: "TR-205-PRM-4" },
+  { product_id: "prd_acc_jack", name: "Hydraulic jack 2t", description: "Low-profile trolley jack", category: "accessories", price_cents: 38_900, currency: "USD", sku: "AC-JACK-2T", availability: "out_of_stock" },
+  { product_id: "prd_acc_mats", name: "All-weather floor mats", description: "Set of 4", category: "accessories", price_cents: 12_900, currency: "USD", sku: "AC-MATS-4" },
 ];
 
 describe("catalog filtering", () => {
@@ -99,7 +99,7 @@ describe("catalog handler and discovery", () => {
   const handler = createAgentPayCatalogHandler({
     merchantId: "mrc_autoparts",
     merchantName: "AutoParts",
-    currency: "BRL",
+    currency: "USD",
     products: () => PRODUCTS,
   });
 
@@ -110,7 +110,7 @@ describe("catalog handler and discovery", () => {
     expect(body).toMatchObject({
       protocol: "agentpay-catalog/1.0",
       merchant: { id: "mrc_autoparts", name: "AutoParts" },
-      currency: "BRL",
+      currency: "USD",
       categories: ["accessories", "tires"],
       total: 1,
       query: { q: "jack", category: null, product_id: null, max_price_cents: null, limit: 10 },
@@ -149,7 +149,7 @@ describe("catalog handler and discovery", () => {
       merchantName: "AutoParts",
       catalogPath: "/api/agentpay/catalog",
     });
-    const other = createAgentPayCatalogHandler({ merchantId: "mrc_other", merchantName: "Other", currency: "BRL", products: () => [] });
+    const other = createAgentPayCatalogHandler({ merchantId: "mrc_other", merchantName: "Other", currency: "USD", products: () => [] });
     const fetcher: typeof fetch = async (input) => other(new Request(input.toString()));
     await expect(discoverAgentPayCatalog(manifest, {}, fetcher)).rejects.toThrow(/different merchants/);
   });
@@ -170,7 +170,7 @@ describe("merchant checkout handler", () => {
         cumulative_cents: 400_000,
         max_uses: 3,
         period: "month",
-        currency: "BRL",
+        currency: "USD",
       },
       validity: {
         not_before: "2026-08-01T00:00:00.000Z",
@@ -217,7 +217,7 @@ describe("merchant checkout handler", () => {
         name: "Standard tire set",
         category: "tires",
         price_cents: 154_800,
-        currency: "BRL",
+        currency: "USD",
       }),
     });
     const body = JSON.stringify({

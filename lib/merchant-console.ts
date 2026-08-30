@@ -28,7 +28,7 @@ export type DeveloperProduct = {
   category: string;
   sku: string;
   price_cents: number;
-  currency: string;
+  currency: "USD";
   active: boolean;
   created_at: string;
   updated_at: string;

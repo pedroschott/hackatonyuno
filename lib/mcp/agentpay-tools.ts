@@ -260,7 +260,7 @@ const perPurchaseField = z
   .number()
   .int()
   .positive()
-  .describe("Maximum price of one purchase in minor units (BRL cents). Set it at or above products[].price_cents of what the user wants.");
+  .describe("Maximum price of one purchase in minor units (USD cents). Set it at or above products[].price_cents of what the user wants.");
 const cumulativeField = z
   .number()
   .int()
@@ -553,14 +553,14 @@ export function registerAgentPayTools(server: McpServer) {
         cumulative_cents: input.cumulative_cents ?? input.per_purchase_cents * maxUses,
         max_uses: maxUses,
         period: "month",
-        currency: "BRL",
+        currency: "USD",
       };
       const expiresAt = expiryFrom(input);
       assertLimits(limits, expiresAt);
-      const foreignCurrency = merchants.find((merchant) => merchant.manifest.currency && merchant.manifest.currency !== "BRL");
+      const foreignCurrency = merchants.find((merchant) => merchant.manifest.currency && merchant.manifest.currency !== "USD");
       if (foreignCurrency) {
         throw new Error(
-          `${foreignCurrency.name} quotes ${foreignCurrency.manifest.currency}, but mandates are denominated in BRL and AgentPay never converts. Choose a merchant that quotes BRL.`,
+          `${foreignCurrency.name} quotes ${foreignCurrency.manifest.currency}, but mandates are denominated in USD and AgentPay never converts. Choose a merchant that quotes USD.`,
         );
       }
       const card = await getOwnedPaymentCard(auth.supabase, input.vault_card_id);

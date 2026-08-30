@@ -150,11 +150,11 @@ export async function POST(request: Request) {
                   },
                   {
                     name: "currency",
-                    type: "string",
+                    type: '"USD"',
                     required: true,
                     description: (
                       <>
-                        ISO code, for example <C>BRL</C>. A mismatch with the mandate is refused with{" "}
+                        ISO code, currently <C>USD</C>. A mismatch with the mandate is refused with{" "}
                         <C>CURRENCY_MISMATCH</C> rather than converted.
                       </>
                     ),
@@ -165,6 +165,12 @@ export async function POST(request: Request) {
                 <p>
                   Categories are the vocabulary a buyer uses to constrain an agent. Fifty micro-categories make mandates
                   unreadable and push buyers to approve something broader than they meant.
+                </p>
+              </Callout>
+              <Callout tone="note" title="AgentPay is USD-only">
+                <p>
+                  Return prices in USD cents. AgentPay never performs foreign-exchange conversion, and a non-USD
+                  product is refused rather than compared with a USD mandate.
                 </p>
               </Callout>
             </>
@@ -232,7 +238,7 @@ export async function POST(request: Request) {
     "name": "Standard tire set",
     "category": "tires",
     "price_cents": 154800,
-    "currency": "BRL"
+    "currency": "USD"
   },
   "checks": {
     "agent_signature": true,

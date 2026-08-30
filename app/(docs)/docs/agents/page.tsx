@@ -50,15 +50,15 @@ export default function Page() {
                   code={`{
   "merchant": { "id": "mrc_autoparts", "name": "AutoParts", "store_url": "https://agentpay-yuno.vercel.app/store" },
   "catalog_available": true,
-  "currency": "BRL",
+  "currency": "USD",
   "categories": ["accessories", "tires"],
   "total": 2,
   "products": [
-    { "product_id": "prd_tire_std", "name": "Standard tire set", "category": "tires", "price_cents": 154800, "currency": "BRL",
+    { "product_id": "prd_tire_std", "name": "Standard tire set", "category": "tires", "price_cents": 154800, "currency": "USD",
       "url": "https://agentpay-yuno.vercel.app/store/products/prd_tire_std" }
   ],
   "mandate_hint": { "merchant_urls": ["https://agentpay-yuno.vercel.app/store"], "merchant_ids": ["mrc_autoparts"],
-                    "categories": ["tires"], "currency": "BRL", "per_purchase_cents": 154800 }
+                    "categories": ["tires"], "currency": "USD", "per_purchase_cents": 154800 }
 }`}
                 />
               </Step>
@@ -77,7 +77,7 @@ export default function Page() {
   "per_purchase_cents": 160000,
   "max_uses": 1,
   "expires_in_days": 7,
-  "natural_language_description": "Buy one standard tire set from AutoParts, up to R$ 1,600"
+  "natural_language_description": "Buy one standard tire set from AutoParts, up to $1,600"
 }`}
                 />
                 <P>

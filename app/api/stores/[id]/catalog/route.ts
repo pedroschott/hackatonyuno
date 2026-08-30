@@ -21,7 +21,7 @@ export async function GET(request: Request, context: RouteContext<"/api/stores/[
   const handler = createAgentPayCatalogHandler({
     merchantId: merchant.data.id,
     merchantName: merchant.data.name,
-    currency: "BRL",
+    currency: "USD",
     products: async () => {
       const products = await supabase
         .from("products")

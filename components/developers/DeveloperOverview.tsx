@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { buttonClassName, Card, CardHeader, EmptyState } from "@/components/ui";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { developerApi } from "./client";
 import { DeveloperPageHeader, LoadingPanel, MerchantRow, MetricCard, type MerchantSummary } from "./bits";
 
@@ -42,7 +42,7 @@ export function DeveloperOverview() {
             <MetricCard label="Merchants" value={merchants.length} detail={`${merchants.filter((merchant) => merchant.agent_ready).length} agent-ready`} />
             <MetricCard label="Catalog products" value={totalProducts} detail="Across owned merchants" />
             <MetricCard label="Checkout attempts" value={totalAttempts} detail="Approved, refused, and escalated" />
-            <MetricCard label="Test volume" value={brl(volume)} detail="Mock payment rail" />
+            <MetricCard label="Test volume" value={usd(volume)} detail="Mock payment rail" />
           </div>
           <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,.7fr)]">
             <Card>

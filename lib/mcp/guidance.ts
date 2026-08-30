@@ -77,7 +77,7 @@ export function validateCategories(
   return categories;
 }
 
-export function formatMoney(cents: number, currency = "BRL"): string {
+export function formatMoney(cents: number, currency = "USD"): string {
   try {
     return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
   } catch {
@@ -140,7 +140,7 @@ export function explainDecision(
   reasonCode: string | null | undefined,
   context: GuidanceContext = {},
 ): DecisionGuidance {
-  const currency = context.mandateCurrency ?? context.currency ?? "BRL";
+  const currency = context.mandateCurrency ?? context.currency ?? "USD";
   const amount = typeof context.amountCents === "number" ? formatMoney(context.amountCents, currency) : "the amount";
   if (decision === "approved") {
     return {
@@ -177,7 +177,7 @@ export function explainDecision(
     case "CURRENCY_MISMATCH":
       return {
         explanation: `The merchant quotes ${context.currency ?? "another currency"} but the mandate is denominated in ${context.mandateCurrency ?? "a different currency"}. AgentPay never converts.`,
-        remedy: "Choose a merchant that quotes the mandate's currency. Mandates are always created in BRL in this deployment.",
+        remedy: "Choose a merchant that quotes the mandate's currency. Mandates are always created in USD in this deployment.",
         next_tool: "find_products",
         retry_same_purchase: false,
       };

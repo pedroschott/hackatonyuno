@@ -173,14 +173,14 @@ function MandatePreview() {
       </div>
 
       <p className="px-5 pt-1 text-[14px] text-ink-2">
-        Authorized to charge up to <b className="text-ink">R$ 450,00</b> per purchase at AutoParts.
+        Authorized to charge up to <b className="text-ink">$450.00</b> per purchase at AutoParts.
       </p>
 
       <div className="px-5 py-4">
         <div className="flex items-baseline justify-between gap-3 text-[13.5px]">
           <span className="text-muted">Left this month</span>
           <span className="tabular font-semibold text-ink">
-            R$ 1.200,00 <span className="font-normal text-muted">of R$ 1.800,00</span>
+            $1,200.00 <span className="font-normal text-muted">of $1,800.00</span>
           </span>
         </div>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line-2">

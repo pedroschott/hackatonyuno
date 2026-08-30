@@ -5,7 +5,7 @@ import { seedProducts } from "@/lib/seed";
 import type { Product } from "@/lib/types";
 
 export const AUTOPARTS_MERCHANT = { id: "mrc_autoparts", name: "AutoParts" } as const;
-export const AUTOPARTS_CURRENCY = "BRL";
+export const AUTOPARTS_CURRENCY = "USD";
 
 export const autoPartsProducts: Product[] = seedProducts.filter(
   (product) => product.merchantId === AUTOPARTS_MERCHANT.id,

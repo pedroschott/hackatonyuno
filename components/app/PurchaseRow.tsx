@@ -3,7 +3,7 @@
 import { Check, X, Clock } from "lucide-react";
 import type { Attempt } from "@/lib/types";
 import { useStore } from "@/lib/store";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { outcomeOf, storeName, timeOfDay } from "@/lib/plain";
 import { cn } from "@/lib/cn";
 
@@ -41,7 +41,7 @@ export function PurchaseRow({ attempt, fresh, explain }: { attempt: Attempt; fre
             outcome.tone === "success" ? "text-ink" : "text-muted line-through",
           )}
         >
-          {brl(attempt.amount_cents)}
+          {usd(attempt.amount_cents)}
         </div>
         <div
           className={cn(

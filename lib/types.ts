@@ -40,7 +40,7 @@ export type MandateLimits = {
   cumulative_cents: number;
   max_uses: number;
   period: "month";
-  currency: "BRL";
+  currency: "USD";
 };
 
 export type MandateScope = { merchants: string[]; categories: string[] };
@@ -104,7 +104,7 @@ export type PaymentToken = {
   allowance: {
     reason: "one_time";
     max_amount_cents: number;
-    currency: "BRL";
+    currency: "USD";
     merchant_id: string;
     attempt_id: string;
     expires_at: string;
@@ -156,8 +156,8 @@ export type AuditEntry = {
 };
 
 export type Scenario =
-  | "standard" // R$1,548 standard set — within limit
-  | "premium" // R$1,720 premium set — over per-purchase → escalate
+  | "standard" // $1,548 standard set — within limit
+  | "premium" // $1,720 premium set — over per-purchase → escalate
   | "accessory" // other category → CATEGORY_NOT_IN_SCOPE
   | "pneufast" // other merchant → MERCHANT_NOT_IN_SCOPE
   | "unsigned" // impersonation → AGENT_SIGNATURE_INVALID

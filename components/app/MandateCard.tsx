@@ -5,7 +5,7 @@ import { ShieldOff } from "lucide-react";
 import type { Mandate } from "@/lib/types";
 import { useStore, usageFor } from "@/lib/store";
 import { effectiveStatus } from "@/lib/engine";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import { endsIn, itemKinds, mandateRef, storeNames } from "@/lib/plain";
 import { Badge, Button, Card, Meter } from "../ui";
 import { CardBrand } from "../CardBrand";
@@ -69,7 +69,7 @@ export function MandateCard({ mandate, onRevoked }: { mandate: Mandate; onRevoke
       </div>
 
       <p className="px-5 pt-1 text-[14px] text-ink-2">
-        Authorized to charge up to <b className="text-ink">{brl(mandate.limits.per_purchase_cents)}</b> per purchase
+        Authorized to charge up to <b className="text-ink">{usd(mandate.limits.per_purchase_cents)}</b> per purchase
         {card && (
           <>
             {" "}
@@ -86,7 +86,7 @@ export function MandateCard({ mandate, onRevoked }: { mandate: Mandate; onRevoke
         <div className="flex items-baseline justify-between gap-3 text-[13.5px]">
           <span className="text-muted">Left this month</span>
           <span className="font-semibold tabular">
-            {brl(left)} <span className="font-normal text-muted">of {brl(mandate.limits.cumulative_cents)}</span>
+            {usd(left)} <span className="font-normal text-muted">of {usd(mandate.limits.cumulative_cents)}</span>
           </span>
         </div>
         <div className="mt-2">

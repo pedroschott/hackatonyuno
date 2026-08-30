@@ -243,7 +243,7 @@ app.get("/.well-known/agentpay.json", (req, res) => {
 export const GET = createAgentPayCatalogHandler({
   merchantId: process.env.AGENTPAY_MERCHANT_ID!,
   merchantName: "Demo Store",
-  currency: "BRL",
+  currency: "USD",
   products: async () =>
     (await db.products.list()).map((p) => ({
       product_id: p.id,
@@ -251,7 +251,7 @@ export const GET = createAgentPayCatalogHandler({
       description: p.description,
       category: p.mandateCategory,   // the same slug resolveProduct returns at checkout
       price_cents: p.priceCents,     // the same integer resolveProduct returns at checkout
-      currency: "BRL",
+      currency: "USD",
       sku: p.sku,
       availability: p.stock > 0 ? "in_stock" : "out_of_stock",
       url: \`https://my-store.example/product/\${p.id}\`,

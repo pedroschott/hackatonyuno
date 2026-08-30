@@ -12,11 +12,11 @@ alter table public.mandates
 
 insert into public.products (id, merchant_id, name, category, price_cents, currency)
 values
-  ('prd_tire_std', 'mrc_autoparts', 'Standard tire set', 'tires', 154800, 'BRL'),
-  ('prd_tire_prm', 'mrc_autoparts', 'Premium tire set', 'tires', 172000, 'BRL'),
-  ('prd_acc_jack', 'mrc_autoparts', 'Hydraulic jack 2t', 'accessories', 38900, 'BRL'),
-  ('prd_acc_mats', 'mrc_autoparts', 'All-weather floor mats', 'accessories', 12900, 'BRL'),
-  ('prd_pf_std', 'mrc_pneufast', 'Standard tire set (PneuFast)', 'tires', 149000, 'BRL')
+  ('prd_tire_std', 'mrc_autoparts', 'Standard tire set', 'tires', 154800, 'USD'),
+  ('prd_tire_prm', 'mrc_autoparts', 'Premium tire set', 'tires', 172000, 'USD'),
+  ('prd_acc_jack', 'mrc_autoparts', 'Hydraulic jack 2t', 'accessories', 38900, 'USD'),
+  ('prd_acc_mats', 'mrc_autoparts', 'All-weather floor mats', 'accessories', 12900, 'USD'),
+  ('prd_pf_std', 'mrc_pneufast', 'Standard tire set (PneuFast)', 'tires', 149000, 'USD')
 on conflict (id) do update set
   merchant_id = excluded.merchant_id,
   name = excluded.name,

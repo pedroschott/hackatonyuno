@@ -43,7 +43,7 @@ export function GET(request: Request) {
       checkoutPath: "/api/agentpay/checkout",
       catalogPath: "/api/agentpay/catalog",
       categories: ["tires", "accessories"],
-      currency: "BRL",
+      currency: "USD",
       productUrlTemplate: "/product/{id}",
       registryUrl: "https://agentpay-yuno.vercel.app",
     }),
@@ -63,7 +63,7 @@ import { createAgentPayCatalogHandler } from "@agentpay/merchant-sdk";
 export const GET = createAgentPayCatalogHandler({
   merchantId: process.env.AGENTPAY_MERCHANT_ID!,
   merchantName: "Example Store",
-  currency: "BRL",
+  currency: "USD",
   products: async () =>
     (await database.products.list()).map((p) => ({
       product_id: p.id,
@@ -71,7 +71,7 @@ export const GET = createAgentPayCatalogHandler({
       description: p.description,
       category: p.mandateCategory,
       price_cents: p.priceCents,
-      currency: "BRL",
+      currency: "USD",
       sku: p.sku,
       availability: p.stock > 0 ? "in_stock" : "out_of_stock",
       url: `https://my-store.example/product/${p.id}`,
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
 
 The handler verifies the Ed25519 agent request signature, timestamp and nonce, the registry's mandate signature, live mandate status, merchant/category/amount/use/expiry policy and any approved one-time exception. Only then should the store ask its payment provider to charge. AgentPay's challenge implementation returns a mock single-use payment token instead of moving money.
 
-The agent sends a product id and never an amount: price, currency and category come from the store's own `resolveProduct`. The handler reads the raw request body itself, so a JSON body parser or a path rewrite in front of the route breaks signature verification. Full detail: [`/docs/checkout`](https://agentpay-yuno.vercel.app/docs/checkout) and [`/docs/frameworks`](https://agentpay-yuno.vercel.app/docs/frameworks).
+The agent sends a product id and never an amount: price, currency and category come from the store's own `resolveProduct`. AgentPay currently accepts USD only, expressed as integer cents; it performs no foreign-exchange conversion and refuses a non-USD product. The handler reads the raw request body itself, so a JSON body parser or a path rewrite in front of the route breaks signature verification. Full detail: [`/docs/checkout`](https://agentpay-yuno.vercel.app/docs/checkout) and [`/docs/frameworks`](https://agentpay-yuno.vercel.app/docs/frameworks).
 
 ## Decisions
 

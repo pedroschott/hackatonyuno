@@ -43,7 +43,7 @@ export function GET(request: Request) {
       checkoutPath: "/api/agentpay/checkout",
       catalogPath: "/api/agentpay/catalog",
       categories: ["tires", "accessories"],
-      currency: "BRL",
+      currency: "USD",
       productUrlTemplate: "/product/{id}",
       registryUrl: process.env.AGENTPAY_REGISTRY_URL,
     }),
@@ -56,7 +56,7 @@ import { createAgentPayCatalogHandler } from "@agentpay/merchant-sdk";
 export const GET = createAgentPayCatalogHandler({
   merchantId: process.env.AGENTPAY_MERCHANT_ID,
   merchantName: "Demo Store",
-  currency: "BRL",
+  currency: "USD",
   products: () => database.products.list(),
 });
 

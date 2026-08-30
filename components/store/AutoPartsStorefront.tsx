@@ -7,7 +7,7 @@ import { ArrowLeft, Disc3, Search, ShieldCheck, ShoppingCart, Truck, Wrench } fr
 import { Mark } from "@/components/Logo";
 import { CheckoutModal } from "@/components/store/CheckoutModal";
 import { cn } from "@/lib/cn";
-import { brl } from "@/lib/format";
+import { usd } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
 /**
@@ -71,8 +71,8 @@ export function AutoPartsProductView({ product, related }: { product: Product; r
           </dl>
           <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-6">
             <div>
-              <div className="text-[26px] font-bold tabular">{brl(product.priceCents)}</div>
-              <div className="text-[11.5px] text-[#888]">incl. taxes · {product.priceCents} BRL cents</div>
+              <div className="text-[26px] font-bold tabular">{usd(product.priceCents)}</div>
+              <div className="text-[11.5px] text-[#888]">incl. taxes · {product.priceCents} USD cents</div>
             </div>
             <PayButton onClick={() => setPaying(true)} />
           </div>
@@ -102,7 +102,7 @@ function StoreChrome({ children }: { children: React.ReactNode }) {
       <div className="border-b border-[#eee] bg-[#111] text-[12px] text-white/80">
         <div className="mx-auto flex max-w-[1100px] items-center gap-4 px-4 py-1.5 sm:px-6">
           <span className="hidden items-center gap-1.5 sm:inline-flex">
-            <Truck className="size-3.5" /> Free fleet delivery over R$ 1.000
+            <Truck className="size-3.5" /> Free fleet delivery over $1,000
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2 py-0.5 sm:ml-auto">
             <Mark size={14} /> Agent-ready · accepts AgentPay mandates
@@ -155,7 +155,7 @@ function ProductCard({ product, onPay }: { product: Product; onPay?: () => void 
         <p className="mt-1 text-[13px] text-[#666]">{product.description}</p>
         <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
           <div>
-            <div className="text-[20px] font-bold tabular">{brl(product.priceCents)}</div>
+            <div className="text-[20px] font-bold tabular">{usd(product.priceCents)}</div>
             <div className="text-[11.5px] text-[#888]">incl. taxes · in stock</div>
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
