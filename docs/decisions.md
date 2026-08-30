@@ -22,6 +22,10 @@ AgentPay binds WebAuthn to its exact canonical hostname instead of a shared pare
 
 A long-lived bearer payment credential would make revocation unreliable. The merchant SDK instead verifies the registry's signature and current mandate status for every purchase, so user- or agent-initiated revocation stops the next attempt.
 
+## Revocation and settlement share one ordering boundary
+
+The merchant's live read is necessary but not sufficient: revocation can race with the final checkout write after that read. The deployed Supabase checkout and revocation functions therefore take the same transaction-scoped advisory lock keyed by mandate ID. The operation that acquires the lock first commits first. If revocation wins, checkout re-reads `revoked` and cannot mint a payment token; if checkout wins, its approved attempt is committed to the audit trail before revocation. An eight-second dashboard trial window makes the pre-settlement case visible to judges without changing the production rule.
+
 ## Mock the payment rail, keep enforcement real
 
 No real processor is needed for the challenge. Successful checkout returns a mock single-use token, while authentication, signatures, replay protection, policy evaluation, escalation, audit and revocation remain production-shaped and testable.

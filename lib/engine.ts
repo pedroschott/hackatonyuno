@@ -93,6 +93,19 @@ export function effectiveStatus(m: Mandate, now = Date.now()) {
   return m.status;
 }
 
+/** Newest-first mandates: the agent keeps holding the latest authorized one even after revocation. */
+export function latestHeldMandate(mandates: Mandate[]): Mandate | undefined {
+  return (
+    mandates.find(
+      (mandate) =>
+        mandate.authorization !== undefined &&
+        (mandate.status === "active" ||
+          mandate.status === "revoked" ||
+          mandate.status === "expired"),
+    ) ?? mandates.find((mandate) => mandate.status === "draft")
+  );
+}
+
 // ---------- mandates ----------
 
 export function createDraft(d: Data, input: MandateDraftInput): [Data, Mandate] {
@@ -203,7 +216,12 @@ export function updateLimits(d: Data, id: string, limits: Partial<MandateLimits>
 
 // ---------- checkout ----------
 
-export type CheckoutOpts = { exception_id?: string; source?: "heartbeat" | "manual" | "store" | "api"; productId?: string };
+export type CheckoutOpts = {
+  exception_id?: string;
+  source?: "heartbeat" | "manual" | "store" | "api" | "trial";
+  productId?: string;
+  revocation_window_ms?: number;
+};
 
 export function checkout(d: Data, scenario: Scenario, opts: CheckoutOpts = {}): [Data, Attempt] {
   const now = new Date();

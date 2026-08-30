@@ -17,6 +17,8 @@ export default function MobileInbox() {
   const current = useStore(selectCurrentMandate);
   const revoke = useStore((s) => s.revokeMandate);
   const [confirming, setConfirming] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
 
   const drafts = mandates.filter((m) => m.status === "draft");
   const pending = approvals.filter((a) => a.status === "pending");
@@ -97,10 +99,28 @@ export default function MobileInbox() {
                   <p className="text-[13px] text-danger-ink">Every later purchase fails. This can’t be undone.</p>
                   <div className="flex gap-2">
                     <Button size="lg" className="flex-1" onClick={() => setConfirming(false)}>Cancel</Button>
-                    <Button size="lg" variant="dangerSolid" className="flex-1" onClick={() => { revoke(current.id, "user:cfo"); setConfirming(false); }}>
+                    <Button
+                      size="lg"
+                      variant="dangerSolid"
+                      className="flex-1"
+                      loading={revoking}
+                      onClick={async () => {
+                        setRevoking(true);
+                        setRevokeError(null);
+                        try {
+                          await revoke(current.id, "user:cfo");
+                          setConfirming(false);
+                        } catch (cause) {
+                          setRevokeError(cause instanceof Error ? cause.message : "Revocation failed");
+                        } finally {
+                          setRevoking(false);
+                        }
+                      }}
+                    >
                       Revoke now
                     </Button>
                   </div>
+                  {revokeError && <p className="text-[12px] text-danger-ink">{revokeError}</p>}
                 </div>
               )}
               {status !== "active" && <p className="text-[13px] text-muted">No active mandate. Your agent can’t buy anything until you approve a new one.</p>}

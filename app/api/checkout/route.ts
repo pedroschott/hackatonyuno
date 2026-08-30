@@ -1,6 +1,10 @@
 import { ensureAgent, getAgentPrivateKey } from "@/lib/data";
 import { authenticatedRequest } from "@/lib/http";
 import { publicBaseUrl } from "@/lib/server/db";
+import {
+  parseRevocationWindowMs,
+  waitForRevocationWindow,
+} from "@/lib/server/checkout-flow";
 import { error, handle, json, options, readJson } from "@/lib/server/http";
 import { loadAuthenticatedState } from "@/lib/server/state";
 import { seedProducts } from "@/lib/seed";
@@ -23,10 +27,11 @@ export async function POST(req: Request) {
   return handle(async () => {
     const body = await readJson<{
       scenario?: Scenario;
-      source?: "heartbeat" | "manual" | "store" | "api";
+      source?: "heartbeat" | "manual" | "store" | "api" | "trial";
       productId?: string;
       product_id?: string;
       exception_id?: string;
+      revocation_window_ms?: number;
     }>(req);
     const scenario = SCENARIOS.includes(body.scenario as Scenario)
       ? (body.scenario as Scenario)
@@ -35,6 +40,13 @@ export async function POST(req: Request) {
       body.productId ?? body.product_id ?? PRODUCT_BY_SCENARIO[scenario];
     const product = seedProducts.find((candidate) => candidate.id === productId);
     if (!product) return error("Product not found", 404);
+    const revocationWindowMs = parseRevocationWindowMs(body.revocation_window_ms);
+    if (revocationWindowMs === null) {
+      return error("revocation_window_ms must be an integer from 0 to 10000", 400);
+    }
+    if (revocationWindowMs > 0 && body.source !== "trial") {
+      return error("revocation_window_ms is reserved for the live revocation trial", 400);
+    }
 
     const { supabase, user } = await authenticatedRequest();
     const agent = await ensureAgent(supabase, user.id);
@@ -86,6 +98,11 @@ export async function POST(req: Request) {
       }
       merchantChecks = merchantDecision.checks ?? {};
     }
+
+    // The trial pauses before the atomic settlement decision so a judge can
+    // revoke from another browser or phone. The RPC below always re-reads the
+    // mandate under the same transaction lock used by revocation.
+    await waitForRevocationWindow(revocationWindowMs);
 
     const evaluation = await supabase.rpc("evaluate_agentpay_checkout", {
       p_mandate_id: activeMandate.data.id,

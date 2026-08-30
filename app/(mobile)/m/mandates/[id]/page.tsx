@@ -26,6 +26,8 @@ export default function MandateSheet() {
   const revoke = useStore((s) => s.revokeMandate);
   const [ceremony, setCeremony] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
 
   if (!mandate) return <Status tone="neutral" title="Mandate not found" body={<Link className="underline" href="/m">Back to inbox</Link>} />;
 
@@ -110,13 +112,31 @@ export default function MandateSheet() {
           ) : (
             <>
               <Button size="lg" className="flex-1" onClick={() => setConfirmRevoke(false)}>Cancel</Button>
-              <Button size="lg" variant="dangerSolid" className="flex-[2]" onClick={() => { revoke(mandate.id, "user:cfo"); setConfirmRevoke(false); }}>
+              <Button
+                size="lg"
+                variant="dangerSolid"
+                className="flex-[2]"
+                loading={revoking}
+                onClick={async () => {
+                  setRevoking(true);
+                  setRevokeError(null);
+                  try {
+                    await revoke(mandate.id, "user:cfo");
+                    setConfirmRevoke(false);
+                  } catch (cause) {
+                    setRevokeError(cause instanceof Error ? cause.message : "Revocation failed");
+                  } finally {
+                    setRevoking(false);
+                  }
+                }}
+              >
                 Revoke now
               </Button>
             </>
           )}
         </StickyActions>
       )}
+      {revokeError && <p className="px-1 text-[12px] text-danger-ink">{revokeError}</p>}
       {(status === "revoked" || status === "declined" || status === "expired") && (
         <StickyActions>
           <Link href="/m" className="flex-1">
