@@ -5,14 +5,18 @@ import { Loader2, X } from "lucide-react";
 import { useEffect } from "react";
 
 /* ---------- Button ---------- */
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+type ButtonStyleProps = {
   variant?: "primary" | "secondary" | "danger" | "dangerSolid" | "ghost";
   size?: "sm" | "md" | "lg";
+  className?: string;
+};
+
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & ButtonStyleProps & {
   loading?: boolean;
   icon?: React.ReactNode;
 };
 
-export function Button({ variant = "secondary", size = "md", loading, icon, className, children, disabled, ...rest }: ButtonProps) {
+export function buttonClassName({ variant = "secondary", size = "md", className }: ButtonStyleProps = {}) {
   const base =
     "inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-[background,box-shadow,color] duration-150 focus:outline-none focus-visible:shadow-[var(--shadow-focus)] disabled:opacity-50 disabled:cursor-not-allowed";
   const sizes = { sm: "h-7 px-2.5 text-[12.5px]", md: "h-8 px-3 text-[13px]", lg: "h-10 px-4 text-[14px]" }[size];
@@ -23,8 +27,12 @@ export function Button({ variant = "secondary", size = "md", loading, icon, clas
     dangerSolid: "bg-danger text-white hover:bg-[#c8143a] shadow-[0_1px_1px_rgba(0,0,0,.08)]",
     ghost: "bg-transparent text-ink-2 hover:bg-line-2",
   }[variant];
+  return cn(base, sizes, variants, className);
+}
+
+export function Button({ variant = "secondary", size = "md", loading, icon, className, children, disabled, ...rest }: ButtonProps) {
   return (
-    <button className={cn(base, sizes, variants, className)} disabled={disabled || loading} {...rest}>
+    <button className={buttonClassName({ variant, size, className })} disabled={disabled || loading} {...rest}>
       {loading ? <Loader2 className="size-3.5 animate-spin" /> : icon}
       {children}
     </button>

@@ -84,6 +84,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/docs" className="hover:text-ink">
             Merchant docs
           </Link>
+          <Link href="/developers" className="hover:text-ink">
+            Merchant console
+          </Link>
           <a href="/store" target="_blank" rel="noreferrer" className="hover:text-ink">
             Demo store
           </a>
