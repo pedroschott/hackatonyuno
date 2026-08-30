@@ -22,7 +22,7 @@ It builds and packs the SDK, copies the tarball into `my-store/vendor/` and inst
 
 ```bash
 npm run sdk:pack
-npm install ./dist/agentpay-merchant-sdk-0.2.0.tgz
+npm install ./dist/agentpay-merchant-sdk-0.3.0.tgz
 ```
 
 Requirements: Node 22+, zod 4, a public HTTPS origin, and a stable merchant id. Full detail: [`/docs/installation`](https://agentpay-yuno.vercel.app/docs/installation).
@@ -45,13 +45,15 @@ export function GET(request: Request) {
       categories: ["tires", "accessories"],
       currency: "USD",
       productUrlTemplate: "/product/{id}",
+      customShipping: true,
+      shipsTo: ["US"],
       registryUrl: "https://agentpay-yuno.vercel.app",
     }),
   );
 }
 ```
 
-`registryUrl` defaults to the store's own origin, which is almost never what a merchant wants — set it explicitly. `catalogPath`, `categories`, `currency` and `productUrlTemplate` are optional and were added in SDK 0.2.0; an agent on the newest SDK still discovers a store that omits them. Full detail: [`/docs/discovery`](https://agentpay-yuno.vercel.app/docs/discovery).
+`registryUrl` defaults to the store's own origin, which is almost never what a merchant wants — set it explicitly. `catalogPath`, `categories`, `currency` and `productUrlTemplate` are optional and were added in SDK 0.2.0; `customShipping` and `shipsTo` in 0.3.0. Every one of them is optional, so an agent on the newest SDK still discovers a store that omits them all. Full detail: [`/docs/discovery`](https://agentpay-yuno.vercel.app/docs/discovery).
 
 ## Publish the catalog
 
@@ -86,12 +88,27 @@ Return the same `category`, `price_cents` and `currency` that `resolveProduct` r
 Create the handler once and pass it the store's own product lookup:
 
 ```ts
-import { createAgentPayCheckoutHandler } from "@agentpay/merchant-sdk";
+import { createAgentPayCheckoutHandler, deliveryWindow } from "@agentpay/merchant-sdk";
 
 const checkout = createAgentPayCheckoutHandler({
   merchantId: process.env.AGENTPAY_MERCHANT_ID!,
   registryUrl: "https://agentpay-yuno.vercel.app",
   resolveProduct: async (productId) => database.products.find(productId),
+
+  // Optional, added in 0.3.0. Return null for an address you do not serve.
+  resolveFulfillment: async ({ product, address, address_source, now }) => {
+    if (address.country_code !== "US") return null;
+    return {
+      address_source,
+      ships_to: address,
+      method: "Ground",
+      carrier: "Example Freight",
+      handling_time: "Ships the next business day",
+      estimated_delivery: deliveryWindow({ from: now, minBusinessDays: 2, maxBusinessDays: 4 }),
+      shipping_cents: product.price_cents >= 15_000 ? 0 : 1_295,
+      currency: "USD",
+    };
+  },
 });
 
 export async function POST(request: Request) {
@@ -102,6 +119,30 @@ export async function POST(request: Request) {
 The handler verifies the Ed25519 agent request signature, timestamp and nonce, the registry's mandate signature, live mandate status, merchant/category/amount/use/expiry policy and any approved one-time exception. Only then should the store ask its payment provider to charge. AgentPay's challenge implementation returns a mock single-use payment token instead of moving money.
 
 The agent sends a product id and never an amount: price, currency and category come from the store's own `resolveProduct`. AgentPay currently accepts USD only, expressed as integer cents; it performs no foreign-exchange conversion and refuses a non-USD product. The handler reads the raw request body itself, so a JSON body parser or a path rewrite in front of the route breaks signature verification. Full detail: [`/docs/checkout`](https://agentpay-yuno.vercel.app/docs/checkout) and [`/docs/frameworks`](https://agentpay-yuno.vercel.app/docs/frameworks).
+
+### Delivery, and what the buyer is actually charged
+
+The checkout body carries `shipping_address` — the buyer's registered address, or a one-off one they named for this order — and `purchase_reason`, their own words for why they are buying it. Both come from AgentPay, which already holds them; the agent never collects an address in conversation.
+
+`resolveFulfillment` is called before the policy runs, because what the mandate has to cover is what will be charged. The response adds two fields:
+
+- `charge` — `subtotal_cents`, `shipping_cents`, `total_cents`. **Charge `total_cents`.** It is the amount the mandate was evaluated against, and the amount an approved one-time exception is bound to.
+- `fulfillment` — the method, carrier, handling time, estimated window and delivery price you just quoted, relayed to the agent so it can tell the buyer when the part arrives.
+
+Return `null` and the handler refuses with `SHIPPING_ADDRESS_UNSUPPORTED` before a mandate use is consumed. Omit `resolveFulfillment` entirely and the store keeps 0.2.0 behaviour: no quote, and `charge.total_cents` equals the product price.
+
+## After the sale: transactions and disputes
+
+Two key-authenticated endpoints on AgentPay give a store the other half of the record. Both take `Authorization: Bearer ap_live_…` from the console's Keys tab.
+
+```bash
+curl -H "authorization: Bearer $AGENTPAY_KEY" \
+  "https://agentpay-yuno.vercel.app/api/v1/merchants/$MERCHANT_ID/transactions?decision=approved&limit=50"
+```
+
+`/transactions` returns every attempt against the merchant with the reason the buyer gave their agent, where it shipped, the delivery quoted and any dispute. `/disputes` returns the cases raised against you; `POST /disputes/:id` answers one; `POST /disputes/:id/analyze` reads it against that buyer's history here and recommends refund, uphold or request-evidence — advisory, never changing the case's status. The merchant console shows the same data under **Activity** and **Disputes**.
+
+Buyers appear as a stable per-merchant pseudonym, never an account id: enough to recognise a repeat customer, not enough to identify a person.
 
 ## Decisions
 

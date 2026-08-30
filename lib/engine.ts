@@ -2,6 +2,7 @@
 // State itself lives in Supabase (lib/server/state.ts); enforcement lives in
 // lib/policy.ts and the database function it mirrors. Nothing here does I/O.
 
+import type { Dispute } from "./disputes";
 import type {
   Agent,
   Approval,
@@ -22,6 +23,7 @@ export type Data = {
   attempts: Attempt[];
   approvals: Approval[];
   audit: AuditEntry[];
+  disputes: Dispute[];
   usedNonces: string[];
 };
 

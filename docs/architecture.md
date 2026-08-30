@@ -47,21 +47,28 @@ sequenceDiagram
     AgentPay->>Registry: Verify WebAuthn and co-sign active mandate
     Agent->>AgentPay: check_purchase (dry run, nothing recorded)
     AgentPay-->>Agent: would_be approved / escalated / refused + remedy
-    Agent->>AgentPay: purchase
+    Agent->>AgentPay: purchase(purchase_reason, optional ship_to)
     AgentPay->>Registry: Recheck latest Didit decision
-    AgentPay->>Store: Signed checkout request
+    AgentPay->>Registry: Resolve delivery address (registered, or ship_to over it)
+    AgentPay->>Store: Signed checkout + shipping address + purchase reason
     Store->>Registry: Fetch signed live status
     Store->>Store: Verify signatures, nonce and policy
-    Store-->>AgentPay: Verification result
-    AgentPay->>Registry: Final atomic status + policy check
+    Store->>Store: Quote delivery for that exact address
+    Store-->>AgentPay: Verification result + charge.total_cents + fulfillment
+    AgentPay->>Registry: Final atomic check against the total, not the sticker
     Registry-->>AgentPay: Mock single-use payment token
-    AgentPay-->>Agent: Decision + explanation, remedy, next_tool
+    AgentPay-->>Agent: Decision + fulfillment + explanation, remedy, next_tool
     Agent->>AgentPay: amend_mandate (only if scope or limits fell short)
     AgentPay->>Registry: Save replacement draft that supersedes the old id
     User->>AgentPay: Sign replacement with passkey → old mandate revoked
     User->>Agent: Stop buying
     Agent->>AgentPay: revoke_mandate
     AgentPay->>Registry: Revoke immediately
+
+    User->>AgentPay: Open a purchase trail, dispute a charge
+    AgentPay->>Registry: Record dispute + hash-chained audit entry
+    Console->>Registry: Read dispute, charge, mandate and that buyer's history
+    Console->>Console: Analyze (advisory) and answer the buyer
 ```
 
 Checkout settlement and revocation use the same per-mandate transaction lock. A revocation that commits before the final check produces `MANDATE_REVOKED` and no token, including when the checkout began earlier.
@@ -83,3 +90,9 @@ Checkout settlement and revocation use the same per-mandate transaction lock. A 
 - The payment rail is the only mocked boundary. The mock token is issued only after the real authorization and enforcement path succeeds and is bound to the card ID inside the signed mandate.
 - Product prices, signed mandate limits, recorded attempts and mock-token allowances are USD integer cents. No component performs foreign-exchange conversion; a currency mismatch is refused before payment.
 - Compliance and delivery fields are user-owned RLS data. They are available only through the authenticated account/MCP connection and never enter public registry projections or payment tokens.
+- The delivery address is AgentPay's to hold, not the agent's to collect. An order ships to the registered address unless the user names a one-off `ship_to`, which applies to that order only and is never written back to the account. An agent that had to ask for an address would be asking whoever is talking to it.
+- Delivery is priced by the store, before the policy runs, for the exact address on the request. The mandate is evaluated against `charge.total_cents` — product plus delivery — so a per-purchase limit covers what is actually charged and an approval hash is bound to that same total. A store that does not serve the address refuses with `SHIPPING_ADDRESS_UNSUPPORTED` before a mandate use is spent.
+- Every attempt states why it was made. `purchase_reason` is required by the settlement function itself, not only by the tool schema, so no path — including the console trial — can record a charge with no stated motivation. It is inside the hash-chained audit payload rather than beside it.
+- Disputes are the one corrective control. Writes go through `SECURITY DEFINER` functions rather than RLS policies, so a buyer cannot mark their own case refunded and a merchant cannot withdraw one on the buyer's behalf; a partial unique index allows one open case per charge. Both sides read the same rows and the same timeline.
+- The merchant sees the buyer as `sha256(user_id + "|" + merchant_id)` — stable within one merchant, unlinkable across merchants, and never the account id. It is enough to recognise a repeat customer and not enough to identify a person.
+- Dispute analysis is advisory and structurally cannot decide. It writes only to `analysis`; `status` is set by a person through a different function. With no `ANTHROPIC_API_KEY`, or when the API call fails, a deterministic reading runs instead and labels itself in `engine`, so the console never silently loses the feature mid-demo.

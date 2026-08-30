@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { canonicalJson } from "@/lib/canonical-json";
 import { generateEd25519KeyPair, signText } from "@/lib/crypto";
 import type { AgentPayCatalogProduct, RegistryMandate } from "@/lib/domain";
+import type { FulfillmentRequest } from "@/sdk";
 import {
   createAgentPayCatalogHandler,
   createAgentPayCheckoutHandler,
+  deliveryWindow,
   discoverAgentPayCatalog,
   discoverAgentPayMerchant,
   filterCatalogProducts,
@@ -239,6 +241,165 @@ describe("merchant checkout handler", () => {
     await expect(response.json()).resolves.toMatchObject({
       decision: "approved",
       checks: { agent_signature: true, registry_status: true, policy: true },
+      // A store on 0.2.0 quotes no delivery, so the charge is the product alone.
+      charge: { subtotal_cents: 154_800, shipping_cents: 0, total_cents: 154_800 },
     });
+  });
+});
+
+describe("delivery quoting", () => {
+  const ADDRESS = {
+    recipient: "Dana Ruiz",
+    line1: "88 Wythe Ave",
+    city: "Brooklyn",
+    region: "NY",
+    postal_code: "11249",
+    country_code: "US",
+  };
+  const NOW = new Date("2026-08-29T12:00:00.000Z");
+  const keys = generateEd25519KeyPair();
+  const registryKeys = generateEd25519KeyPair();
+  const artifact: Omit<RegistryMandate, "server_sig" | "status" | "usage"> = {
+    mandate_id: "3eb0f49d-2c10-4d3a-8f34-08a47e2fca6e",
+    type: "intent",
+    issuer: { user_id: "user" },
+    agent: { agent_id: "agt_test", public_key: keys.publicKey },
+    scope: { merchants: ["mrc_autoparts"], categories: ["tires"] },
+    limits: { per_purchase_cents: 156_000, cumulative_cents: 400_000, max_uses: 3, period: "month", currency: "USD" },
+    validity: { not_before: "2026-08-01T00:00:00.000Z", expires_at: "2026-09-01T00:00:00.000Z" },
+    payment: { vault_card_id: "card" },
+    authorization: { credential_id: "credential", mandate_hash: "hash", signed_at: "2026-08-29T12:00:00.000Z" },
+  };
+  const mandate: RegistryMandate = {
+    ...artifact,
+    server_sig: signText(registryKeys.privateKey, canonicalJson(artifact)),
+    status: "active",
+    usage: { approved_uses: 0, cumulative_cents: 0 },
+  };
+  const fetcher: typeof fetch = async (input) => {
+    const url = new URL(input.toString());
+    if (url.pathname.startsWith("/api/registry/agents/")) return Response.json({ id: "agt_test", public_key: keys.publicKey });
+    if (url.pathname === "/api/registry/nonces") return Response.json({ consumed: true }, { status: 201 });
+    if (url.pathname.startsWith("/api/registry/mandates/")) return Response.json(mandate);
+    if (url.pathname === "/api/registry/keys") return Response.json({ algorithm: "Ed25519", public_key: registryKeys.publicKey });
+    return new Response(null, { status: 404 });
+  };
+  const CHECKOUT_URL = "https://autoparts.example/api/store/checkout";
+
+  function handlerWith(resolveFulfillment: Parameters<typeof createAgentPayCheckoutHandler>[0]["resolveFulfillment"]) {
+    return createAgentPayCheckoutHandler({
+      merchantId: "mrc_autoparts",
+      registryUrl: "https://agentpay.example",
+      fetcher,
+      now: () => NOW,
+      resolveProduct: async () => ({
+        id: "prd_standard_tires",
+        merchant_id: "mrc_autoparts",
+        name: "Standard tire set",
+        category: "tires",
+        price_cents: 154_800,
+        currency: "USD",
+      }),
+      resolveFulfillment,
+    });
+  }
+
+  function signed(nonce: string, body: Record<string, unknown>) {
+    const payload = JSON.stringify(body);
+    const headers = signAgentPayRequest({
+      agentId: "agt_test",
+      privateKey: keys.privateKey,
+      method: "POST",
+      url: CHECKOUT_URL,
+      body: payload,
+      now: NOW,
+      nonce,
+    });
+    return new Request(CHECKOUT_URL, { method: "POST", headers, body: payload });
+  }
+
+  const quote = ({ address, address_source, now }: FulfillmentRequest) =>
+    address.country_code === "US"
+      ? {
+          address_source,
+          ships_to: address,
+          method: "Ground",
+          carrier: "Test Freight",
+          handling_time: "Ships the next business day",
+          estimated_delivery: deliveryWindow({ from: now, minBusinessDays: 2, maxBusinessDays: 4 }),
+          shipping_cents: 1_295,
+          currency: "USD",
+        }
+      : null;
+
+  it("skips weekends so an estimate never promises a Sunday", () => {
+    // Friday 2026-08-28 + 1 business day is Monday, not Saturday.
+    const window = deliveryWindow({ from: new Date("2026-08-28T12:00:00.000Z"), minBusinessDays: 1, maxBusinessDays: 3 });
+    expect(window.earliest).toBe("2026-08-31");
+    expect(window.latest).toBe("2026-09-02");
+    expect(window.text).toContain("Mon, Aug 31");
+  });
+
+  it("adds the quoted delivery to the amount the policy is evaluated against", async () => {
+    const response = await handlerWith(quote)(
+      signed("nonce-quote", {
+        mandate_id: mandate.mandate_id,
+        merchant_id: "mrc_autoparts",
+        product_id: "prd_standard_tires",
+        shipping_address: ADDRESS,
+        shipping_address_source: "custom",
+        purchase_reason: "Van needs tires before Monday's run.",
+      }),
+    );
+    const body = await response.json();
+    expect(body.charge).toEqual({ subtotal_cents: 154_800, shipping_cents: 1_295, total_cents: 156_095, currency: "USD" });
+    expect(body.fulfillment.address_source).toBe("custom");
+    // 156,095 is above the 156,000 per-purchase limit: delivery is what escalated it.
+    expect(body.decision).toBe("escalated");
+    expect(body.reason_code).toBe("AMOUNT_EXCEEDS_LIMIT");
+  });
+
+  it("refuses an address the store does not serve before any limit is spent", async () => {
+    const response = await handlerWith(quote)(
+      signed("nonce-abroad", {
+        mandate_id: mandate.mandate_id,
+        merchant_id: "mrc_autoparts",
+        product_id: "prd_standard_tires",
+        shipping_address: { ...ADDRESS, country_code: "BR" },
+        purchase_reason: "Van needs tires.",
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      decision: "refused",
+      reason_code: "SHIPPING_ADDRESS_UNSUPPORTED",
+    });
+  });
+
+  it("uppercases the country code so US and us are the same address", async () => {
+    const response = await handlerWith(quote)(
+      signed("nonce-lower", {
+        mandate_id: mandate.mandate_id,
+        merchant_id: "mrc_autoparts",
+        product_id: "prd_standard_tires",
+        shipping_address: { ...ADDRESS, country_code: "us" },
+        purchase_reason: "Van needs tires.",
+      }),
+    );
+    const body = await response.json();
+    expect(body.fulfillment.ships_to.country_code).toBe("US");
+  });
+
+  it("leaves a store that quotes nothing on the 0.2.0 contract", async () => {
+    const response = await handlerWith(undefined)(
+      signed("nonce-nofulfil", {
+        mandate_id: mandate.mandate_id,
+        merchant_id: "mrc_autoparts",
+        product_id: "prd_standard_tires",
+      }),
+    );
+    const body = await response.json();
+    expect(body.fulfillment).toBeUndefined();
+    expect(body.charge.total_cents).toBe(154_800);
+    expect(body.decision).toBe("approved");
   });
 });

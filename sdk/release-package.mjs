@@ -2,8 +2,8 @@ import { writeFile } from "node:fs/promises";
 
 const packageJson = {
   name: "@agentpay/merchant-sdk",
-  version: "0.2.0",
-  description: "Store-owned discovery, catalog search and cryptographic checkout verification for AgentPay",
+  version: "0.3.0",
+  description: "Store-owned discovery, catalog search, delivery quoting and cryptographic checkout verification for AgentPay",
   license: "MIT",
   main: "./index.js",
   module: "./index.mjs",
@@ -22,7 +22,7 @@ const packageJson = {
 
 const readme = `# @agentpay/merchant-sdk
 
-Publish store-owned AgentPay discovery metadata and a searchable catalog, and protect a checkout route with request, registry-signature, live-status, replay, and deterministic policy verification.
+Publish store-owned AgentPay discovery metadata and a searchable catalog, quote delivery to the buyer's address, and protect a checkout route with request, registry-signature, live-status, replay, and deterministic policy verification.
 
 Quickstart: https://agentpay-yuno.vercel.app/docs/quickstart
 Full documentation: https://agentpay-yuno.vercel.app/docs
@@ -45,6 +45,8 @@ export function GET(request: Request) {
       categories: ["tires", "accessories"],
       currency: "USD",
       productUrlTemplate: "/product/{id}",
+      customShipping: true,
+      shipsTo: ["US"],
       registryUrl: process.env.AGENTPAY_REGISTRY_URL,
     }),
   );
@@ -61,12 +63,24 @@ export const GET = createAgentPayCatalogHandler({
 });
 
 // app/api/agentpay/checkout/route.ts
-import { createAgentPayCheckoutHandler } from "@agentpay/merchant-sdk";
+import { createAgentPayCheckoutHandler, deliveryWindow } from "@agentpay/merchant-sdk";
 
 const checkout = createAgentPayCheckoutHandler({
   merchantId: process.env.AGENTPAY_MERCHANT_ID,
   registryUrl: process.env.AGENTPAY_REGISTRY_URL,
   resolveProduct: async (productId) => database.products.find(productId),
+  // Optional. Return null for an address you do not serve: the handler refuses
+  // with SHIPPING_ADDRESS_UNSUPPORTED before the buyer's limit is touched.
+  resolveFulfillment: async ({ product, address, now }) => ({
+    address_source: "registered",
+    ships_to: address,
+    method: "Ground",
+    carrier: "Demo Freight",
+    handling_time: "Ships the next business day",
+    estimated_delivery: deliveryWindow({ from: now, minBusinessDays: 2, maxBusinessDays: 4 }),
+    shipping_cents: 995,
+    currency: "USD",
+  }),
 });
 
 export async function POST(request: Request) {
@@ -74,7 +88,7 @@ export async function POST(request: Request) {
 }
 \`\`\`
 
-Charge only when the decision is \`approved\`.
+Charge only when the decision is \`approved\`, and charge \`charge.total_cents\` — the product plus the delivery you just quoted, which is the amount the buyer's mandate was checked against.
 `;
 
 await Promise.all([

@@ -153,3 +153,53 @@ The demo uses an unexpected fleet maintenance event: a vehicle is immobilized, e
 This scenario demonstrates why agentic purchasing is valuable beyond convenience. The agent can search broadly and act quickly, while AgentPay limits the authority granted to it and keeps the purchase verifiable and auditable.
 
 The rejected primary demo was a simple recurring purchase. It was easier to automate, but did not demonstrate the economic value of discovery, urgency and controlled autonomy as clearly.
+
+## Every purchase states why it was made
+
+An attempt recorded what was bought, under which mandate, and what the policy engine decided. It recorded nothing about the request behind it — and that is precisely what a buyer needs three months later when they do not recognise a charge. The mandate says the purchase was *allowed*; it never said what it was *for*.
+
+`purchase_reason` is now required on every attempt, in the buyer's own words. "The delivery van's front rotors are scored and it runs tomorrow" and "I just want it" are both complete answers; an invented business justification is not, and the tool description says so explicitly, because a model asked for a reason will otherwise manufacture a plausible one.
+
+The requirement lives in `evaluate_agentpay_checkout`, not only in the MCP tool schema. A record with exceptions is not a record: the console trial route had to start supplying a reason too, and it does. The reason is inside the hash-chained audit payload rather than sitting in a column beside it, so it is covered by the same tamper evidence as the decision.
+
+We rejected making it optional with a default. A field that is usually empty is worse than absent — it teaches everyone reading the log that the answer is unavailable, and the one time it matters, it is.
+
+## The delivery address belongs to AgentPay, not to the conversation
+
+An agent that asks "where should I send it?" is asking whoever is talking to it. In a fleet that is a driver, not the person holding the card, and there is no way for the store to tell the difference.
+
+Orders therefore ship to the address on the account, which AgentPay already holds and the buyer confirmed once. `ship_to` on `purchase` is a one-off override for a single order — the depot instead of the yard — merged over the registered address so a partial answer still produces a deliverable parcel, and never written back to the account. `SHIPPING_ADDRESS_REQUIRED` sends the buyer to `/account` to complete their own address rather than dictating one in chat.
+
+The rejected alternative was letting the agent collect and save an address. It moves a fraud primitive into the least authenticated part of the system.
+
+## Shipping is inside the amount the mandate is checked against
+
+A per-purchase limit that covers the sticker price and not the delivery is a limit the buyer did not agree to. Stores quote delivery for the exact destination, so the amount is not knowable until the address is.
+
+`createAgentPayCheckoutHandler` gained `resolveFulfillment`, called before the policy runs. The store returns a delivery quote; the handler evaluates the mandate against `charge.total_cents` — product plus delivery — and returns both halves so nothing is hidden. A store that does not serve the address returns `null` and the handler refuses with `SHIPPING_ADDRESS_UNSUPPORTED` before a mandate use is consumed, which matters because a use spent on an undeliverable order is a use the buyer paid for and did not get.
+
+The approval hash covers the total, so approving a $180 order to the depot does not silently authorise the same part shipped somewhere that costs more. `resolveFulfillment` is optional: a store on SDK 0.2.0 quotes nothing, `charge` is the product price, and its behaviour is unchanged.
+
+## Disputes are the corrective control, and they are not the model's to decide
+
+Every other rule in AgentPay is preventive: a mandate refuses what it does not cover. Nothing handled the case the whole design admits is possible — a charge that was inside the mandate and still wrong. Without that, "revoke the mandate" was the only remedy, which stops the next purchase and does nothing about the one that already happened.
+
+A dispute attaches to one approved attempt. Writes go through `SECURITY DEFINER` functions rather than RLS policies, because the two sides need different powers over the same row: a buyer can open and withdraw, a merchant can answer and resolve, and neither can do the other's. A partial unique index keeps one open case per charge, so "disputing it again" adds to the case rather than opening a second one against the same money.
+
+The analysis reads one dispute against that buyer's history at that merchant — including the purchase reasons recorded at the time — and recommends refund, uphold or request-evidence. It writes only to `analysis`. `status` is set by a person through a different function, so a model that mis-reads a case cannot close it: an LLM with the power to resolve disputes is a new way to move money that nobody agreed to.
+
+With no `ANTHROPIC_API_KEY`, or when the API call fails, a deterministic reading runs instead and says so in `engine`. This is a demo property as much as an engineering one: a judge changing inputs live always gets an answer, and it is always labelled with which engine produced it.
+
+## Merchants see a pseudonym, not a customer
+
+A merchant answering a dispute needs to know whether this is the buyer's first order or their fourth. They do not need to know who the buyer is.
+
+Every merchant-facing surface identifies the account as `sha256(user_id + "|" + merchant_id)`: stable within one merchant, unlinkable across merchants, and never the account id. Delivery addresses reach the merchant because they have to ship to them; identity does not, because they do not.
+
+## The purchase trail is a different question from the security log
+
+The hash-chained log already held everything, interleaved with every other event on the account. That is the right shape for "prove nothing was edited" and the wrong shape for the question people actually ask, which is "what happened with *this* charge?"
+
+Clicking any purchase on `/dashboard` or `/activity` now opens its trail: the four verifications, the mandate it was checked against with that month's usage, the delivery, the reason it was bought, the log entries that name it with their hashes, and the dispute action. Nothing new is stored — it is the same rows, assembled around one attempt.
+
+`search_security_log` gives an agent the same access, including `attempt_id` and `mandate_id` filters for one item's full trail. It verifies the chain over the whole log rather than the matching slice, because verification over a filtered subset would let a removed entry pass unnoticed, and it reports the result on every call so an agent can tell the user the history is intact.
