@@ -186,6 +186,26 @@ AGENTPAY_REGISTRY_URL=https://agentpay-yuno.vercel.app`}
             </>
           ),
         },
+        {
+          id: "agentpay-operator",
+          title: "AgentPay operator setup",
+          body: (
+            <>
+              <P>
+                Merchants do not need an email-provider key. AgentPay&apos;s hosted Supabase Auth service sends its own
+                transactional email through Resend. Only contributors running the local Supabase stack need to set the
+                server-only <C>RESEND_API_KEY</C> value before starting Supabase.
+              </P>
+              <CodeBlock lang="bash" code={`export RESEND_API_KEY=re_your_resend_api_key\nsupabase start`} />
+              <Callout tone="warn" title="Keep the SMTP key server-only">
+                <p>
+                  Never prefix this value with <C>NEXT_PUBLIC_</C>, add it to Vercel, or commit it. Supabase reads it
+                  directly from the operator environment for local Auth email delivery.
+                </p>
+              </Callout>
+            </>
+          ),
+        },
       ]}
     />
   );
