@@ -10,7 +10,7 @@ The documentation site at `/docs` is public canonical content and is listed in `
 
 | Route | Purpose | Sitemap | Crawl policy |
 |---|---|---:|---|
-| `/` | Redirects to the authenticated dashboard. It is not a canonical content page. | No | No |
+| `/` | Public landing page: what AgentPay does for a buyer, plus the merchant entry point. | Yes | Allowed |
 | `/connect` | Connect an agent: one-click instructions per assistant. | Yes | Allowed |
 | `/store` | Public AutoParts merchant demonstration. | Yes | Allowed |
 | `/docs` | Merchant documentation: introduction and integration overview. | Yes | Allowed |

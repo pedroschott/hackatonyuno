@@ -12,6 +12,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = agentPayBaseUrl();
 
   return [
+    {
+      url: new URL("/", baseUrl).toString(),
+      changeFrequency: "monthly",
+      priority: 1,
+    },
     ...DOC_PAGES.map((page) => ({
       url: new URL(page.href, baseUrl).toString(),
       changeFrequency: "weekly" as const,
