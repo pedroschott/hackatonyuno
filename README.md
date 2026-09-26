@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="#readme"><img src="./assets/banner.svg?v=1" alt="AgentPay: authorization and enforcement for AI-agent purchases" width="100%"/></a>
+  <a href="#readme"><img src="./assets/banner.svg?v=2" alt="AgentPay: authorization and enforcement for AI-agent purchases" width="100%"/></a>
 </div>
 
 **Your AI assistant can now buy things. AgentPay is the layer that decides what it is allowed to buy — and enforces it.**
@@ -691,7 +691,7 @@ The complete integration guide — quickstart, installation, discovery, checkout
 ## Architecture
 
 <div align="center">
-  <img src="./assets/protocol.svg?v=1" alt="Mandated purchase sequence: agent, store SDK, AgentPay registry, mock vault" width="100%"/>
+  <img src="./assets/protocol.svg?v=2" alt="Mandated purchase sequence: agent, store SDK, AgentPay registry, mock vault" width="100%"/>
 </div>
 
 Full sequence diagram, trust boundaries and the enforcement path: **[docs/architecture.md](docs/architecture.md)**.
