@@ -1,12 +1,22 @@
-# AgentPay
-
-![AgentPay logo](public/agentpay-logo.png)
+<div align="center">
+  <a href="#readme"><img src="./assets/banner.svg?v=1" alt="AgentPay: authorization and enforcement for AI-agent purchases" width="100%"/></a>
+</div>
 
 **Your AI assistant can now buy things. AgentPay is the layer that decides what it is allowed to buy — and enforces it.**
 
 An agent connects to AgentPay through an OAuth-protected MCP server. It can *ask* for spending authority, but it can never grant itself any. You sign a narrow, time-boxed **mandate** with your passkey, and every purchase is checked against that mandate at the moment of settlement. Revoke it and the very next checkout fails.
 
 🔗 **Live:** https://agentpay-yuno.vercel.app · 🏪 **Store you can actually buy from:** https://partsroute.vercel.app · 📘 **Merchant docs:** https://agentpay-yuno.vercel.app/docs 🏬 **Merchant Developer Setup:** https://agentpay-yuno.vercel.app/developers
+
+<p>
+  <img src="https://img.shields.io/badge/Next.js-16.3.3-1a1f36?style=flat-square&logo=nextdotjs&logoColor=ffffff&labelColor=1a1f36&color=635bff" alt="Next.js 16.3.3" />
+  <img src="https://img.shields.io/badge/React-19.2.8-1a1f36?style=flat-square&logo=react&logoColor=ffffff&labelColor=1a1f36&color=635bff" alt="React 19.2.8" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9.3-1a1f36?style=flat-square&logo=typescript&logoColor=ffffff&labelColor=1a1f36&color=635bff" alt="TypeScript 5.9.3" />
+  <img src="https://img.shields.io/badge/MCP-OAuth%202.1%20%2B%20PKCE-1a1f36?style=flat-square&labelColor=1a1f36&color=635bff" alt="MCP over OAuth 2.1 + PKCE" />
+  <img src="https://img.shields.io/badge/WebAuthn-passkey%20mandates-1a1f36?style=flat-square&labelColor=1a1f36&color=635bff" alt="WebAuthn passkey mandates" />
+  <img src="https://img.shields.io/badge/merchant_sdk-0.3.0-1a1f36?style=flat-square&labelColor=1a1f36&color=635bff" alt="merchant SDK 0.3.0" />
+  <img src="https://img.shields.io/badge/attack_suite-15%20scenarios-1a1f36?style=flat-square&labelColor=1a1f36&color=697386" alt="attack suite: 15 scenarios" />
+</p>
 
 ---
 
@@ -680,6 +690,10 @@ The complete integration guide — quickstart, installation, discovery, checkout
 
 ## Architecture
 
+<div align="center">
+  <img src="./assets/protocol.svg?v=1" alt="Mandated purchase sequence: agent, store SDK, AgentPay registry, mock vault" width="100%"/>
+</div>
+
 Full sequence diagram, trust boundaries and the enforcement path: **[docs/architecture.md](docs/architecture.md)**.
 
 The layers:
@@ -856,6 +870,12 @@ The automated Mandate API test starts a payment authorization, revokes the manda
 
 The delay is only a test affordance. The real security boundary is the final Supabase transaction: checkout and revocation take the same per-mandate advisory lock, so their outcome has exactly one defensible order under concurrency.
 
+### Attack suite
+
+[`tests/attack-suite/`](tests/attack-suite/) holds **15 declarative fixtures** that specify the purchase circuit's attack surface before any implementation is evaluated: over-limit spend, wrong merchant, expired and revoked mandates, agent impersonation, one agent riding another's mandate, duplicate and concurrent purchases, limits changed mid-flow, revocation landing mid-flow, payment failure after authorization, malformed requests, missing mandate, and a replayed authorization.
+
+Every fixture follows [`fixture.schema.json`](tests/attack-suite/fixture.schema.json): deterministic preconditions (clock, mandate, quote, mock-payment state), semantic steps a runner maps to API calls, and asserted outcomes plus invariants that must hold even when requests race (for example, two concurrent purchases can produce only one capture). Fixtures carry no credentials, tokens or card data, so the same suite can run against the in-memory demo, the deployed APIs, or a future end-to-end harness.
+
 ## Supabase
 
 Schema changes are versioned in `supabase/migrations/`. Every Data API table has **Row Level Security**. User-owned cards, credentials, agents and mandates are isolated by `auth.uid()` policies; merchant checkout decisions run through narrowly scoped database functions.
@@ -899,3 +919,12 @@ Public crawlers receive only the canonical HTML surfaces in `/sitemap.xml`, docs
 | Delivery quoting, the shipping charge, and the address it goes to | Nothing is physically shipped — PartsRoute is a real store's code with a real catalog, but no warehouse |
 | Disputes: opening, answering, resolving, the shared timeline | Refunds are recorded as an outcome; no money moves back, because none moved out |
 | Dispute analysis (Claude, with a deterministic fallback) | |
+
+---
+
+## Related repositories
+
+- **[PartsRoute](https://github.com/pedroschott/autoparts)**: the live reference store on its own domain. It vendors `@agentpay/merchant-sdk` and serves discovery, catalog and checkout itself; the three curlable documents are listed in Part 2.
+- **[AutoParts](https://github.com/viniciusgorini/AutoParts)**: a standalone B2B fleet-parts merchant implementing the AgentPay merchant protocol, with ES256-signed immutable quotes, RFC 8785 JCS canonicalization, and payment-token verification against the Mandate Authority.
+
+The trade-offs behind everything above live in [docs/decisions.md](docs/decisions.md).
